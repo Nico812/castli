@@ -6,8 +6,6 @@ pub const MAX_LOBBY_PLAYERS: usize = 2;
 pub const MAX_LOBBIES: usize = 2;
 
 pub const ONLINE: bool = false;
-pub const IP_4_SERVER: &str = "192.168.1.166:7878";
-pub const IP_4_CLIENT: &str = "178.193.230.130:7878";
 pub const IP_LOCAL: &str = "127.0.0.1:7878";
 
 pub const MAX_MSG_SIZE_BYTES: usize = 1048; // 2KB max
