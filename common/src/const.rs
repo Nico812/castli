@@ -11,4 +11,5 @@ pub const IP_LOCAL: &str = "127.0.0.1:7878";
 pub const MAX_MSG_SIZE_BYTES: usize = 1048; // 2KB max
 
 // Client
+// CIAOOOOOOOOOOO
 pub const CLIENT_DEBUG_MODE: bool = false;
