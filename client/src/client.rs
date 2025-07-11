@@ -18,7 +18,8 @@ impl Client {
 
     pub async fn run(&mut self) {
         let addr = if r#const::ONLINE {
-            r#const::IP_4_CLIENT
+            //r#const::IP_4_CLIENT
+            r#const::IP_LOCAL
         } else {
             r#const::IP_LOCAL
         };
@@ -56,6 +57,7 @@ impl Client {
             &common::C2S::C2S4L(common::C2S4L::GiveObjs),
         )
         .await;
+
         match common::stream::get_msg_from_server(stream).await {
             Err(err) => println!("client:33 ERROR: {}", err),
             Ok(msg) => {

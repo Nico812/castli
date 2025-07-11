@@ -41,7 +41,7 @@ impl Tui {
                 Self::clear_screen();
                 if let Some(quadrant) = map_zoom {
                     canvas.add_map_zoomed(&map, quadrant);
-                    canvas.add_strutures_zoomed(&map_objs.structures);
+                    canvas.add_strutures_zoomed(&map_objs.structures, quadrant);
                 } else {
                     canvas.add_map();
                 }

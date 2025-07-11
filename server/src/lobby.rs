@@ -96,10 +96,10 @@ impl Lobby {
             if let Ok(msg) = client_rx.try_recv() {
                 match msg {
                     common::C2S4L::GiveMap => {
-                        client_tx.send(common::L2S4C::Map(self.game.export_map()));
+                        let _ = client_tx.send(common::L2S4C::Map(self.game.export_map()));
                     }
                     common::C2S4L::GiveObjs => {
-                        client_tx.send(common::L2S4C::MapObjs(self.game.export_objs()));
+                        let _ = client_tx.send(common::L2S4C::MapObjs(self.game.export_objs()));
                     }
                 };
             }

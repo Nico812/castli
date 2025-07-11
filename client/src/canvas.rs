@@ -105,13 +105,25 @@ impl Canvas {
         self.canvas[31 + MAP_TOP_MARGIN][63 + MAP_LEFT_MARGIN] += DEF_COLOR;
     }
 
-    pub fn add_strutures_zoomed(&mut self, structures: &Vec<common::StructureE>) {
+    pub fn add_strutures_zoomed(
+        &mut self,
+        structures: &Vec<common::StructureE>,
+        quadrant: (usize, usize),
+    ) {
         for structure in structures.iter() {
-            if structure.struc_type == common::StructureTypeE::Castle {
-                let pos = structure.pos;
-                for row in pos.0..pos.0 + r#const::CASTLE_SIZE {
-                    for col in pos.1..pos.1 + r#const::CASTLE_SIZE {
-                        self.canvas[row][col] = "C".to_string();
+            let term_pos = (structure.pos.0 / 2, structure.pos.1);
+            if term_pos.0 < (quadrant.0 + 1) * 64 && term_pos.0 >= (quadrant.0 * 64) {
+                if term_pos.1 < (quadrant.1 + 1) * 64 && term_pos.1 >= (quadrant.1 * 64) {
+                    if structure.struc_type == common::StructureTypeE::Castle {
+                        for row in MAP_TOP_MARGIN + (term_pos.0 % 64)
+                            ..MAP_TOP_MARGIN + (term_pos.0 % 64) + r#const::CASTLE_SIZE / 2
+                        {
+                            for col in MAP_LEFT_MARGIN + (term_pos.1 % 64)
+                                ..MAP_LEFT_MARGIN + (term_pos.1 % 64) + r#const::CASTLE_SIZE
+                            {
+                                self.canvas[row][col] = "C".to_string();
+                            }
+                        }
                     }
                 }
             }

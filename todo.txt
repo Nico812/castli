@@ -1,3 +1,3 @@
 review error managerment in client.
 
-Per la UI è piu semplice se fai un vettore di linee (&str) e lo chiami canvas. Puoi anche fare la struct Canvas.Poi è semplice inserirci la mappa, perche le &str si possono trattare loro stesse come vettori.
+per il canvas, crea il canvas mappa di suo e poi fai una funzione che lo mette all interno del canvas completo.

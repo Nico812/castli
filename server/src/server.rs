@@ -4,7 +4,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 use crate::lobby;
-use common::r#const::{IP_4_SERVER, IP_LOCAL, MAX_LOBBIES, ONLINE};
+use common::r#const::{IP_LOCAL, MAX_LOBBIES, ONLINE};
 use common::{self, stream};
 
 pub enum S2L {
@@ -41,7 +41,8 @@ impl Server {
     pub async fn run(&mut self) {
         let listener;
         if ONLINE {
-            listener = TcpListener::bind(IP_4_SERVER).await.unwrap();
+            //listener = TcpListener::bind(IP_4_SERVER).await.unwrap();
+            listener = TcpListener::bind(IP_LOCAL).await.unwrap();
         } else {
             listener = TcpListener::bind(IP_LOCAL).await.unwrap();
         };
