@@ -1,4 +1,6 @@
+mod ansi;
 mod canvas;
+mod canvas_modules;
 mod client;
 mod tui;
 

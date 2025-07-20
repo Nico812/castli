@@ -39,12 +39,8 @@ impl Tui {
                 let map_zoom = map_zoom_arc0.lock().await.clone();
                 let map_objs = map_objs_arc0.lock().await;
                 Self::clear_screen();
-                if let Some(quadrant) = map_zoom {
-                    canvas.add_map_zoomed(&map, quadrant);
-                    canvas.add_strutures_zoomed(&map_objs.structures, quadrant);
-                } else {
-                    canvas.add_map();
-                }
+                canvas.update_map(&map, map_zoom);
+                canvas.update_structures(&map_objs.structures, map_zoom);
                 canvas.print();
 
                 tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
