@@ -1,3 +1,4 @@
+use crate::ansi;
 use crate::canvas_modules;
 
 pub const CANVAS_SIZE: (usize, usize) = (50, 160);
@@ -13,37 +14,24 @@ impl Canvas {
         Self { central_module }
     }
 
-    pub fn update_map(
-        &mut self,
-        tiles: &Vec<Vec<common::TileE>>,
-        map_zoom: Option<(usize, usize)>,
-    ) {
-        match map_zoom {
-            Some(quadrant) => self.central_module.set_map_zoomed(tiles, quadrant),
-            None => self.central_module.set_map(),
-        }
+    pub fn init(&mut self, tiles: &Vec<Vec<common::TileE>>) {
+        self.central_module.init(tiles);
     }
 
-    pub fn update_structures(
-        &mut self,
-        structures: &Vec<common::StructureE>,
-        map_zoom: Option<(usize, usize)>,
-    ) {
-        match map_zoom {
-            Some(quadrant) => self
-                .central_module
-                .set_strutures_zoomed(structures, quadrant),
-            None => self.central_module.set_strutures(structures),
-        }
-    }
-
-    pub fn print(&self) {
+    pub fn print(&self, structures: &Vec<common::StructureE>, map_zoom: Option<(usize, usize)>) {
         let mut buffer: Vec<String> = vec![".".repeat(CANVAS_SIZE.1); CANVAS_SIZE.0];
 
-        for (line, line_contents) in self.central_module.content.iter().enumerate() {
+        for (line, line_contents) in self
+            .central_module
+            .get_map(structures, map_zoom)
+            .iter()
+            .enumerate()
+        {
+            let replacement = format!("{}{}", line_contents.concat(), ansi::RESET_COLOR);
+
             buffer[line + CENTRAL_MODULE_POS.0].replace_range(
                 CENTRAL_MODULE_POS.1..CENTRAL_MODULE_POS.1 + canvas_modules::CENTRAL_MODULE_SIZE,
-                &line_contents.concat(),
+                &replacement,
             );
         }
 

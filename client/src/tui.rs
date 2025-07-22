@@ -22,7 +22,7 @@ impl Tui {
     pub async fn run(
         tx: mpsc::UnboundedSender<PlayerInput>,
         mut rx: mpsc::UnboundedReceiver<common::MapObjsE>,
-        map: Vec<Vec<common::TileE>>,
+        tiles: Vec<Vec<common::TileE>>,
     ) {
         let map_objs = rx.recv().await.unwrap();
         let map_objs_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(map_objs));
@@ -35,13 +35,13 @@ impl Tui {
         // Actual UI
         let ui_handle = tokio::spawn(async move {
             let mut canvas = canvas::Canvas::new();
+            canvas.init(&tiles);
+
             loop {
                 let map_zoom = map_zoom_arc0.lock().await.clone();
                 let map_objs = map_objs_arc0.lock().await;
                 Self::clear_screen();
-                canvas.update_map(&map, map_zoom);
-                canvas.update_structures(&map_objs.structures, map_zoom);
-                canvas.print();
+                canvas.print(&map_objs.structures, map_zoom);
 
                 tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
             }
