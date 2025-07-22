@@ -6,7 +6,11 @@ use common::r#const;
 pub const CENTRAL_MODULE_SIZE: usize = 64;
 
 pub struct CentralModule {
-    pub content: Vec<Vec<String>>,
+    // Stores the tiles for the rest of the game, since they should be immutable
+    map_tiles: Vec<Vec<common::TileE>>,
+    world_map_tiles: Vec<Vec<common::TileE>>,
+    map_tiles_formatted: Vec<Vec<String>>,
+    world_map_tiles_formatted: Vec<Vec<String>>,
 }
 
 impl CentralModule {
@@ -15,7 +19,7 @@ impl CentralModule {
         Self { content }
     }
     
-    pub fn set_map(&mut self, tiles: &Vec<Vec<common::TileE>>) {
+    pub fn set_map_tiles(&mut self, tiles: &Vec<Vec<common::TileE>>) {
         fn compact_8x8_tiles(tiles: &Vec<Vec<common::TileE>>, pos: (usize, usize)) -> common::TileE {
             let mut grass_counter = 0;
             let mut water_counter = 0;
@@ -29,22 +33,27 @@ impl CentralModule {
                     }
                 }
             }
-
             if grass_counter >= water_counter {
                 common::TileE::Grass
             } else {
                 common::TileE::Water
             }
         }
-
+        let mut compacted = vec![vec![common::TileE::Grass; MAP_SIZE / 8]; MAP_SIZE / 8];
         for row in 0..MAP_SIZE/8 {
             for col in 0..MAP_SIZE/8 {
-                 match compact_8x8_tiles(tiles, (row*8, col*8)) {
-                     common::TileE::Grass => 
-                     common::TileE::Water =>
-                 };
+                 compacted[row][col] = compact_8x8_tiles(tiles, (row*8, col*8));
             }
         }
+        self.world_map_tiles = compacted;
+    }
+
+    pub fn set_world_map_tiles(&mut self) {
+        self.map_tiles = tiles.clone();
+    }
+                                          
+    pub fn format_map_tiles(&mut self) {
+        
     }
     
     pub fn set_strutures(&mut self, structures: &Vec<common::StructureE>) {}
