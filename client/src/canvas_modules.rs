@@ -15,11 +15,27 @@ pub struct CentralModule {
 
 impl CentralModule {
     pub fn new() -> Self {
-        let content = vec![vec!["C".to_owned(); CENTRAL_MODULE_SIZE]; CENTRAL_MODULE_SIZE / 2];
-        Self { content }
+        let map_tiles = vec![vec![common::TileE::Grass; const::MAP_SIZE]; const::MAP_SIZE];
+        let world_map_tiles = vec![vec![common::TileE::Grass; CENTRAL_MODULE_SIZE]; CENTRAL_MODULE_SIZE];
+        let map_tiles_formatted = vec![vec![ERR_VARIANT.to_owned(); const::MAP_SIZE]; const::MAP_SIZE];
+        let world_map_tiles_formatted = vec![vec![ERR_VARIANT.to_owned(); CENTRAL_MODULE_SIZE]; CENTRAL_MODULE_SIZE];
+
+    Self {
+        map_tiles: empty_tile.clone(),
+        world_map_tiles: empty_tile,
+        map_tiles_formatted: empty_str.clone(),
+        world_map_tiles_formatted: empty_str,
+    }
+    }
+
+    pub fn get_map(&self, structures: &Vec<common::StructureE>, map_zoom: Option<(usize, usize)>) -> Vec<Vec<String>> {
+        match map_zoom {
+            Some(quadrant) => {self.add_structures_to_map(structures, quadrant)}
+            None => {self.add_structures_to_world_map()}
+        }
     }
     
-    pub fn set_map_tiles(&mut self, tiles: &Vec<Vec<common::TileE>>) {
+    pub fn set_tiles(&mut self, tiles: &Vec<Vec<common::TileE>>) {
         fn compact_8x8_tiles(tiles: &Vec<Vec<common::TileE>>, pos: (usize, usize)) -> common::TileE {
             let mut grass_counter = 0;
             let mut water_counter = 0;
@@ -46,13 +62,8 @@ impl CentralModule {
             }
         }
         self.world_map_tiles = compacted;
-    }
-
-    pub fn set_world_map_tiles(&mut self) {
         self.map_tiles = tiles.clone();
     }
-    
-    pub fn set_strutures(&mut self, structures: &Vec<common::StructureE>) {}
 
     pub fn format_tiles(&mut self) {
         self.map_tiles_formatted = format_tiles_core(self.map_tiles);
@@ -60,7 +71,7 @@ impl CentralModule {
 
         fn format_tiles_core(tiles: Vec<Vec<common::TileE>>) -> Vec<Vec<String>> {
             let mut rng = rand::rng();
-            let mut tiles_formatted = vec![vec![ERR_VARIANT.to_string(); tiles[0].len()]; tiles.len()/2];
+            let mut tiles_formatted = vec![vec![ERR_VARIANT.to_owned(); tiles[0].len()]; tiles.len()/2];
         let mut tiles_row;
         let mut tiles_col;
         for term_row in 0..tiles.len() / 2 {
@@ -124,11 +135,15 @@ impl CentralModule {
         tiles_formatted
     }
 
-    pub fn set_strutures_zoomed(
-        &mut self,
+    pub fn add_strutures_to_world_map(&mut self, structures: &Vec<common::StructureE>) -> Vec<Vec<String>> {}
+
+    pub fn add_strutures_to_map(
+        &self,
         structures: &Vec<common::StructureE>,
         quadrant: (usize, usize),
-    ) {
+    ) -> Vec<Vec<String>> {
+        let mut output: Vec<Vec<String>> = self.tiles_map.clone();
+    
         for structure in structures.iter() {
             let term_pos = (structure.pos.0 / 2, structure.pos.1);
             if term_pos.0 < (quadrant.0 + 1) * CENTRAL_MODULE_SIZE
@@ -144,12 +159,13 @@ impl CentralModule {
                             for col in (term_pos.1 % CENTRAL_MODULE_SIZE)
                                 ..(term_pos.1 % CENTRAL_MODULE_SIZE) + r#const::CASTLE_SIZE
                             {
-                                self.content[row][col] = "C".to_string();
+                                output[row][col] = "C".to_string();
                             }
                         }
                     }
                 }
             }
         }
+    output
     }
 }
