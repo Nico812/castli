@@ -51,24 +51,22 @@ impl CentralModule {
     pub fn set_world_map_tiles(&mut self) {
         self.map_tiles = tiles.clone();
     }
-                                          
-    pub fn format_map_tiles(&mut self) {
-        
-    }
     
     pub fn set_strutures(&mut self, structures: &Vec<common::StructureE>) {}
 
-    pub fn set_map_zoomed(&mut self, tiles: &Vec<Vec<common::TileE>>, quadrant: (usize, usize)) {
-        let map_start_row = quadrant.0 * CENTRAL_MODULE_SIZE;
-        let map_start_col = quadrant.1 * CENTRAL_MODULE_SIZE;
-        let mut rng = rand::rng();
+    pub fn format_tiles(&mut self) {
+        self.map_tiles_formatted = format_tiles_core(self.map_tiles);
+        self.world_map_tiles_formatted = format_tiles_core(self.world_map_tiles);
 
+        fn format_tiles_core(tiles: Vec<Vec<common::TileE>>) -> Vec<Vec<String>> {
+            let mut rng = rand::rng();
+            let mut tiles_formatted = vec![vec![ERR_VARIANT.to_string(); tiles[0].len()]; tiles.len()/2];
         let mut tiles_row;
         let mut tiles_col;
-        for term_row in 0..CENTRAL_MODULE_SIZE / 2 {
-            tiles_row = term_row * 2 + map_start_row;
-            for term_col in 0..CENTRAL_MODULE_SIZE {
-                tiles_col = term_col + map_start_col;
+        for term_row in 0..tiles.len() / 2 {
+            tiles_row = term_row * 2;
+            for term_col in 0..tiles[tiles_row].len() {
+                tiles_col = term_col;
                 if tiles[tiles_row][tiles_col] == tiles[tiles_row + 1][tiles_col] {
                     let char;
                     match tiles[tiles_row][tiles_col] {
@@ -90,7 +88,7 @@ impl CentralModule {
                             char = ERR_VARIANT;
                         }
                     }
-                    self.content[term_row][term_col] = char.to_string();
+                    tiles_formatted[term_row][term_col] = char.to_string();
                 } else {
                     let top_color;
                     let bottom_color;
@@ -116,12 +114,14 @@ impl CentralModule {
                             bottom_color = ERR_COLOR.1;
                         }
                     }
-                    self.content[term_row][term_col] = top_color.to_string() + bottom_color + BLOCK;
+                    tiles_formatted[term_row][term_col] = top_color.to_string() + bottom_color + BLOCK;
                 }
             }
-            self.content[term_row][CENTRAL_MODULE_SIZE - 1] += RESET_COLOR;
+            tiles_formatted[term_row][tiles_formatted[0].len() - 1] += RESET_COLOR;
         }
-        self.content[CENTRAL_MODULE_SIZE / 2 - 1][CENTRAL_MODULE_SIZE - 1] += RESET_COLOR;
+        tiles_formatted[tiles_formatted.len() - 1][tiles_formatted[0].len() - 1] += RESET_COLOR;
+        }
+        tiles_formatted
     }
 
     pub fn set_strutures_zoomed(
