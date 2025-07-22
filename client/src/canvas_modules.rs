@@ -14,9 +14,39 @@ impl CentralModule {
         let content = vec![vec!["C".to_owned(); CENTRAL_MODULE_SIZE]; CENTRAL_MODULE_SIZE / 2];
         Self { content }
     }
+    
+    pub fn set_map(&mut self, tiles: &Vec<Vec<common::TileE>>) {
+        fn compact_8x8_tiles(tiles: &Vec<Vec<common::TileE>>, pos: (usize, usize)) -> common::TileE {
+            let mut grass_counter = 0;
+            let mut water_counter = 0;
 
-    pub fn set_map(&mut self) {}
+            for row in pos.0..(pos.0 + 8).min(MAP_SIZE) {
+                for col in pos.1..(pos.1 + 8).min(MAP_SIZE) {
+                    match tiles[row][col] {
+                        common::TileE::Grass => grass_counter += 1,
+                        common::TileE::Water => water_counter += 1,
+                        _ => {}
+                    }
+                }
+            }
 
+            if grass_counter >= water_counter {
+                common::TileE::Grass
+            } else {
+                common::TileE::Water
+            }
+        }
+
+        for row in 0..MAP_SIZE/8 {
+            for col in 0..MAP_SIZE/8 {
+                 match compact_8x8_tiles(tiles, (row*8, col*8)) {
+                     common::TileE::Grass => 
+                     common::TileE::Water =>
+                 };
+            }
+        }
+    }
+    
     pub fn set_strutures(&mut self, structures: &Vec<common::StructureE>) {}
 
     pub fn set_map_zoomed(&mut self, tiles: &Vec<Vec<common::TileE>>, quadrant: (usize, usize)) {
