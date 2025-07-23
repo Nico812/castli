@@ -182,3 +182,46 @@ pub const WATER_VARIANTS: (&str, &str) = (
     concat!(BG_BLUE!(), FG_BRIGHT_BLUE!(), "~"),
     concat!(BG_BLUE!(), " "),
 );
+
+pub const CASTLE_ART: [[&str; 8]; 4] = [
+    [
+        concat!(BG_BLACK!(), FG_WHITE!(), "M"),
+        "_",
+        "M",
+        "_",
+        "_",
+        "M",
+        "_",
+        "M",
+    ],
+    [
+        concat!(BG_BLACK!(), FG_WHITE!(), "|"),
+        "▒",
+        "▒",
+        "░",
+        "░",
+        "░",
+        "░",
+        "|",
+    ],
+    [
+        concat!(BG_BLACK!(), FG_WHITE!(), "|"),
+        "▒",
+        "▒",
+        "X",
+        "_",
+        "_",
+        "░",
+        "|",
+    ],
+    [
+        concat!(BG_BLACK!(), FG_WHITE!(), "|"),
+        "▒",
+        "▒",
+        "░",
+        "|",
+        "|",
+        "░",
+        "|",
+    ],
+];

@@ -43,7 +43,7 @@ impl Tui {
                 Self::clear_screen();
                 canvas.print(&map_objs.structures, map_zoom);
 
-                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(1000 / 60)).await;
             }
         });
 

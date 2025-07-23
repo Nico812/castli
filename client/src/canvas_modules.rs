@@ -177,23 +177,27 @@ impl CentralModule {
             .collect();
 
         for structure in structures.iter() {
-            let term_pos = (structure.pos.0 / 2, structure.pos.1);
-            if term_pos.0 < (quadrant.0 + 1) * CENTRAL_MODULE_SIZE
-                && term_pos.0 >= (quadrant.0 * CENTRAL_MODULE_SIZE)
+            let str_term_pos = (structure.pos.0 / 2, structure.pos.1);
+            if str_term_pos.0 < (quadrant.0 + 1) * CENTRAL_MODULE_SIZE
+                && str_term_pos.0 >= (quadrant.0 * CENTRAL_MODULE_SIZE)
             {
-                if term_pos.1 < (quadrant.1 + 1) * CENTRAL_MODULE_SIZE
-                    && term_pos.1 >= (quadrant.1 * CENTRAL_MODULE_SIZE)
+                if str_term_pos.1 < (quadrant.1 + 1) * CENTRAL_MODULE_SIZE
+                    && str_term_pos.1 >= (quadrant.1 * CENTRAL_MODULE_SIZE)
                 {
-                    if structure.struc_type == common::StructureTypeE::Castle {
-                        for row in (term_pos.0 % CENTRAL_MODULE_SIZE)
-                            ..(term_pos.0 % CENTRAL_MODULE_SIZE) + r#const::CASTLE_SIZE / 2
-                        {
-                            for col in (term_pos.1 % CENTRAL_MODULE_SIZE)
-                                ..(term_pos.1 % CENTRAL_MODULE_SIZE) + r#const::CASTLE_SIZE
-                            {
-                                output[row][col] = "C".to_owned();
+                    match structure.struc_type {
+                        common::StructureTypeE::Castle => {
+                            for ansi_art_row in 0..r#const::CASTLE_SIZE / 2 {
+                                let output_row =
+                                    str_term_pos.0 % CENTRAL_MODULE_SIZE + ansi_art_row;
+                                for ansi_art_col in 0..r#const::CASTLE_SIZE {
+                                    let output_col =
+                                        str_term_pos.1 % CENTRAL_MODULE_SIZE + ansi_art_col;
+                                    output[output_row][output_col] =
+                                        CASTLE_ART[ansi_art_row][ansi_art_col].to_owned();
+                                }
                             }
                         }
+                        _ => {}
                     }
                 }
             }
