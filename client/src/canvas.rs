@@ -1,4 +1,4 @@
-use terminal_size::{Width, Height, terminal_size};
+use terminal_size::{Height, Width, terminal_size};
 
 use crate::ansi;
 use crate::canvas_modules;
@@ -13,12 +13,20 @@ impl Canvas {
     pub fn new() -> Self {
         let canvas_size;
         match terminal_size() {
-            Some((Width(w), Height(h))) => canvas_size = (h,w),
+            Some((Width(w), Height(h))) => canvas_size = (h as usize, w as usize),
             None => panic!(),
         }
-        let central_module_pos = ((canvas_size.0-canvas_modules::CENTRAL_MODULE_SIZE)/2, (canvas_size.1-canvas_modules::CENTRAL_MODULE_SIZE)/2));
+        println!("{}{}", canvas_size.0, canvas_size.1);
+        let central_module_pos = (
+            (canvas_size.0 - canvas_modules::CENTRAL_MODULE_SIZE / 2) / 2,
+            (canvas_size.1 - canvas_modules::CENTRAL_MODULE_SIZE) / 2,
+        );
         let central_module = canvas_modules::CentralModule::new();
-        Self { canvas_size, central_module_pos, central_module }
+        Self {
+            canvas_size,
+            central_module_pos,
+            central_module,
+        }
     }
 
     pub fn init(&mut self, tiles: &Vec<Vec<common::TileE>>) {
@@ -37,13 +45,15 @@ impl Canvas {
             let replacement = format!("{}{}", line_contents.concat(), ansi::RESET_COLOR);
 
             buffer[line + self.central_module_pos.0].replace_range(
-                self.central_module_pos.1..self.central_module_pos.1 + canvas_modules::CENTRAL_MODULE_SIZE,
+                self.central_module_pos.1
+                    ..self.central_module_pos.1 + canvas_modules::CENTRAL_MODULE_SIZE,
                 &replacement,
             );
         }
 
         for line in buffer.iter() {
-            println!("{}", line);
+            print!("{}", line);
+            print!("\r\n");
         }
     }
 }
