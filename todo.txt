@@ -1,3 +1,3 @@
 review error managerment in client.
 
-per il canvas, crea il canvas mappa di suo e poi fai una funzione che lo mette all interno del canvas completo.
+fix super mega GPU usage (thick system)

@@ -16,7 +16,6 @@ impl Canvas {
             Some((Width(w), Height(h))) => canvas_size = (h as usize, w as usize),
             None => panic!(),
         }
-        println!("{}{}", canvas_size.0, canvas_size.1);
         let central_module_pos = (
             (canvas_size.0 - canvas_modules::CENTRAL_MODULE_SIZE / 2) / 2,
             (canvas_size.1 - canvas_modules::CENTRAL_MODULE_SIZE) / 2,
@@ -51,9 +50,12 @@ impl Canvas {
             );
         }
 
-        for line in buffer.iter() {
+        let buffer_len = buffer.len();
+        for (iter, line) in buffer.iter().enumerate() {
             print!("{}", line);
-            print!("\r\n");
+            if iter != buffer_len - 1 {
+                print!("\r\n");
+            };
         }
     }
 }

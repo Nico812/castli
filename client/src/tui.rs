@@ -1,6 +1,6 @@
-use std::process::Command;
+use std::{io::Write, process::Command};
 use tokio::{
-    io::{self, AsyncReadExt},
+    io::{self, AsyncReadExt, AsyncWriteExt},
     sync::mpsc,
 };
 
@@ -42,6 +42,9 @@ impl Tui {
                 let map_objs = map_objs_arc0.lock().await;
                 Self::clear_screen();
                 canvas.print(&map_objs.structures, map_zoom);
+
+                print!("\r\x1b[0;0H");
+                let _ = std::io::stdout().flush();
 
                 tokio::time::sleep(tokio::time::Duration::from_millis(1000 / 60)).await;
             }
