@@ -1,17 +1,32 @@
+use terminal_size::{Height, Width, terminal_size};
+
 use crate::ansi;
 use crate::canvas_modules;
 
-pub const CANVAS_SIZE: (usize, usize) = (50, 160);
-pub const CENTRAL_MODULE_POS: (usize, usize) = (1, 2);
-
 pub struct Canvas {
+    canvas_size: (usize, usize),
+    central_module_pos: (usize, usize),
     central_module: canvas_modules::CentralModule,
 }
 
 impl Canvas {
     pub fn new() -> Self {
+        let canvas_size;
+        match terminal_size() {
+            Some((Width(w), Height(h))) => canvas_size = (h as usize, w as usize),
+            None => panic!(),
+        }
+        println!("{}{}", canvas_size.0, canvas_size.1);
+        let central_module_pos = (
+            (canvas_size.0 - canvas_modules::CENTRAL_MODULE_SIZE / 2) / 2,
+            (canvas_size.1 - canvas_modules::CENTRAL_MODULE_SIZE) / 2,
+        );
         let central_module = canvas_modules::CentralModule::new();
-        Self { central_module }
+        Self {
+            canvas_size,
+            central_module_pos,
+            central_module,
+        }
     }
 
     pub fn init(&mut self, tiles: &Vec<Vec<common::TileE>>) {
@@ -19,7 +34,7 @@ impl Canvas {
     }
 
     pub fn print(&self, structures: &Vec<common::StructureE>, map_zoom: Option<(usize, usize)>) {
-        let mut buffer: Vec<String> = vec![".".repeat(CANVAS_SIZE.1); CANVAS_SIZE.0];
+        let mut buffer: Vec<String> = vec![".".repeat(self.canvas_size.1); self.canvas_size.0];
 
         for (line, line_contents) in self
             .central_module
@@ -29,8 +44,9 @@ impl Canvas {
         {
             let replacement = format!("{}{}", line_contents.concat(), ansi::RESET_COLOR);
 
-            buffer[line + CENTRAL_MODULE_POS.0].replace_range(
-                CENTRAL_MODULE_POS.1..CENTRAL_MODULE_POS.1 + canvas_modules::CENTRAL_MODULE_SIZE,
+            buffer[line + self.central_module_pos.0].replace_range(
+                self.central_module_pos.1
+                    ..self.central_module_pos.1 + canvas_modules::CENTRAL_MODULE_SIZE,
                 &replacement,
             );
         }
