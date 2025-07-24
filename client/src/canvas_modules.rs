@@ -157,7 +157,13 @@ impl CentralModule {
 
         for structure in structures.iter() {
             let term_pos = (structure.pos.0 / 16, structure.pos.1 / 8);
-            output[term_pos.0][term_pos.1] = "C".to_owned();
+            match structure.struc_type {
+                common::StructureTypeE::Castle => {
+                    output[term_pos.0][term_pos.1] = "C".to_owned();
+                    output[term_pos.0][term_pos.1 + 1] = "C".to_owned();
+                }
+                _ => {}
+            }
         }
         output
     }

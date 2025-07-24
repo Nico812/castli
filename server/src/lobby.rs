@@ -56,7 +56,7 @@ impl Lobby {
                 _ = server_comunication_tick.tick() => {
                     self.listen_server(&mut main_rx, &mut running).await;
                 }
-                _=client_comunication_tick.tick() => {
+                _ = client_comunication_tick.tick() => {
                     self.listen_clients().await;
                 }
                 _ = game_tick.tick() => {
@@ -115,11 +115,11 @@ impl Lobby {
     }
 
     async fn listen_clients(&mut self) {
-        for (_, (client_tx, client_rx)) in self.clients.iter_mut() {
+        for (client_id, (client_tx, client_rx)) in self.clients.iter_mut() {
             if let Ok(msg) = client_rx.try_recv() {
                 match msg {
                     common::C2S4L::GiveMap => {
-                        println!("requested to give map");
+                        println!("Player requested to give map, ID: {}", client_id);
                         let _ = client_tx.send(common::L2S4C::Map(self.game.export_map()));
                     }
                     common::C2S4L::GiveObjs => {

@@ -15,7 +15,7 @@ impl Game {
         let structures = vec![common::StructureE {
             name: "nico".to_string(),
             struc_type: common::StructureTypeE::Castle,
-            pos: (4, 2),
+            pos: (42, 110),
         }];
         let unit_groups = Vec::new();
         Self {
@@ -91,9 +91,6 @@ impl Game {
                 }
             }
         }
-
-        Self::print_map(&tiles);
-
         tiles
     }
 
