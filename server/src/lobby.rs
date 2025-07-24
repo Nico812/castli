@@ -45,24 +45,23 @@ impl Lobby {
     }
 
     pub async fn run(&mut self, mut main_rx: mpsc::UnboundedReceiver<server::S2L>) {
-        let mut tick = time::interval(time::Duration::from_millis(1000));
-        let running = true;
+        let mut client_comunication_tick = time::interval(time::Duration::from_millis(100));
+        let mut server_comunication_tick = time::interval(time::Duration::from_millis(1000));
+        let mut game_tick = time::interval(time::Duration::from_millis(1000));
+
+        let mut running = true;
 
         while running {
             tokio::select! {
-                Some(msg) =  main_rx.recv()=> {
-                    match msg {
-                        server::S2L::IsFull(temp_tx) => {
-                            let _ = temp_tx
-                                .send(self.is_full()).await;
-                        }
-                        server::S2L::NewClient(client_id,client_tx ,client_rx ) => {
-                            self.add_client(client_id, client_tx,client_rx).await.inspect_err(|err| eprintln!("\x1b[35mLOBBY ERROR: {:?}\x1b[0m", err));
-                        }
-                    };
+                _ = server_comunication_tick.tick() => {
+                    self.listen_server(&mut main_rx, &mut running).await;
                 }
-                _ = self.listen_clients_request()=> {}
-                _ = tick.tick() => {self.step();}
+                _=client_comunication_tick.tick() => {
+                    self.listen_clients().await;
+                }
+                _ = game_tick.tick() => {
+                    self.step();
+                }
             }
         }
     }
@@ -91,11 +90,36 @@ impl Lobby {
         Err(LobbyErr::AddClientFail)
     }
 
-    async fn listen_clients_request(&mut self) {
+    async fn listen_server(
+        &mut self,
+        main_rx: &mut mpsc::UnboundedReceiver<server::S2L>,
+        running: &mut bool,
+    ) {
+        if let Ok(msg) = main_rx.try_recv() {
+            match msg {
+                server::S2L::IsFull(temp_tx) => {
+                    let _ = temp_tx.send(self.is_full()).await;
+                }
+                server::S2L::NewClient(client_id, client_tx, client_rx) => {
+                    let _ = self
+                        .add_client(client_id, client_tx, client_rx)
+                        .await
+                        .inspect_err(|err| eprintln!("\x1b[35mLOBBY ERROR: {:?}\x1b[0m", err));
+                }
+                server::S2L::Shutdown => {
+                    println!("Lobby shutting down");
+                    *running = false;
+                }
+            };
+        }
+    }
+
+    async fn listen_clients(&mut self) {
         for (_, (client_tx, client_rx)) in self.clients.iter_mut() {
             if let Ok(msg) = client_rx.try_recv() {
                 match msg {
                     common::C2S4L::GiveMap => {
+                        println!("requested to give map");
                         let _ = client_tx.send(common::L2S4C::Map(self.game.export_map()));
                     }
                     common::C2S4L::GiveObjs => {

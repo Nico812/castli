@@ -14,6 +14,7 @@ pub enum S2L {
         UnboundedSender<common::L2S4C>,
         UnboundedReceiver<common::C2S4L>,
     ),
+    Shutdown,
 }
 
 #[derive(Debug)]
