@@ -47,6 +47,37 @@ impl CentralModule {
         }
     }
 
+    fn add_frame(content: &mut Vec<Vec<String>>, with_markers: bool){
+        let content_rows = content.len();
+        let content_cols = content[0].len();
+
+        let top_right_corner = "+".to_owned();
+        let bottom_left_corner = top_right_corner;
+        let bottom_right_corner = top_right_corner;
+        let top_left_corner = match with_markers {true => "0".to_owned(),
+                                                false => top_right_corner};
+        
+        let bottom_border = vec!["-".to_owned; content_cols];
+        let right_border = vec!["|".to_owned; content_rows];
+        let top_border = bottom_border;
+        let left_border = right_border;
+        if with_markers {
+             for col_marker in 1..content_cols/8 {
+                 top_border[col_marker*8] = col_marker.to_string();
+             }
+            for row_marker in 1..content_rows/8 {
+                left_border[row_marker*8] = row_marker.to_string();
+            }
+        }
+
+        for row in 0..content_rows {
+            content[row].insert(0, left_border[row]);
+            content.push(right_border[row]);
+        }
+        content.insert(0, concat!(top_left_corner, top_border, top_right_corner));
+        content.push(concat!(bottom_left_corner, bottom_border, bottom_roght_corder));
+    }
+
     fn set_tiles(&mut self, tiles: &Vec<Vec<common::TileE>>) {
         fn compact_8x8_tiles(
             tiles: &Vec<Vec<common::TileE>>,
