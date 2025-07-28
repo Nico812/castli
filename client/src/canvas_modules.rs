@@ -3,7 +3,7 @@ use rand::{self, Rng};
 use crate::ansi::*;
 use common::r#const::{self, MAP_COLS, MAP_ROWS};
 
-pub const CENTRAL_MODULE_SIZE: usize = 64;
+pub const CENTRAL_MODULE_SIZE: usize = r#const::MAP_COLS / 8;
 
 pub struct CentralModule {
     // Stores the tiles for the rest of the game, since they should be immutable
@@ -17,11 +17,11 @@ impl CentralModule {
     pub fn new() -> Self {
         let map_tiles = vec![vec![common::TileE::Grass; r#const::MAP_COLS]; r#const::MAP_ROWS];
         let world_map_tiles =
-            vec![vec![common::TileE::Grass; CENTRAL_MODULE_SIZE]; CENTRAL_MODULE_SIZE];
+            vec![vec![common::TileE::Grass; r#const::MAP_COLS / 8]; r#const::MAP_ROWS / 8];
         let map_tiles_formatted =
             vec![vec![ERR_VARIANT.to_owned(); r#const::MAP_COLS]; r#const::MAP_ROWS];
         let world_map_tiles_formatted =
-            vec![vec![ERR_VARIANT.to_owned(); CENTRAL_MODULE_SIZE]; CENTRAL_MODULE_SIZE];
+            vec![vec![ERR_VARIANT.to_owned(); r#const::MAP_COLS / 8]; r#const::MAP_ROWS / 8];
 
         Self {
             map_tiles,
@@ -42,40 +42,57 @@ impl CentralModule {
         map_zoom: Option<(usize, usize)>,
     ) -> Vec<Vec<String>> {
         match map_zoom {
-            Some(quadrant) => self.add_structures_to_map(structures, quadrant),
-            None => self.add_structures_to_world_map(structures),
+            Some(quadrant) => {
+                let mut content = self.add_structures_to_map(structures, quadrant);
+                Self::add_frame(&mut content, true);
+                content
+            }
+            None => {
+                let mut content = self.add_structures_to_world_map(structures);
+                Self::add_frame(&mut content, false);
+                content
+            }
         }
     }
 
-    fn add_frame(content: &mut Vec<Vec<String>>, with_markers: bool){
+    fn add_frame(content: &mut Vec<Vec<String>>, with_markers: bool) {
         let content_rows = content.len();
         let content_cols = content[0].len();
 
         let top_right_corner = "+".to_owned();
-        let bottom_left_corner = top_right_corner;
-        let bottom_right_corner = top_right_corner;
-        let top_left_corner = match with_markers {true => "0".to_owned(),
-                                                false => top_right_corner};
-        
-        let bottom_border = vec!["-".to_owned; content_cols];
-        let right_border = vec!["|".to_owned; content_rows];
-        let top_border = bottom_border;
-        let left_border = right_border;
+        let bottom_left_corner = top_right_corner.clone();
+        let bottom_right_corner = top_right_corner.clone();
+        let top_left_corner = match with_markers {
+            true => "0".to_owned(),
+            false => top_right_corner.clone(),
+        };
+
+        let mut bottom_border = vec!["-".to_owned(); content_cols];
+        let right_border = vec![concat!(RESET_COLOR!(), "|").to_owned(); content_rows];
+        let mut top_border = bottom_border.clone();
+        let mut left_border = right_border.clone();
         if with_markers {
-             for col_marker in 1..content_cols/8 {
-                 top_border[col_marker*8] = col_marker.to_string();
-             }
-            for row_marker in 1..content_rows/8 {
-                left_border[row_marker*8] = row_marker.to_string();
+            for col_marker in 1..content_cols / 8 {
+                top_border[col_marker * 8] = col_marker.to_string();
+            }
+            for row_marker in 1..content_rows / 4 {
+                left_border[row_marker * 4] = row_marker.to_string();
             }
         }
 
         for row in 0..content_rows {
-            content[row].insert(0, left_border[row]);
-            content.push(right_border[row]);
+            content[row].insert(0, left_border[row].clone());
+            content[row].push(right_border[row].clone());
         }
-        content.insert(0, concat!(top_left_corner, top_border, top_right_corner));
-        content.push(concat!(bottom_left_corner, bottom_border, bottom_roght_corder));
+        let mut top_row = vec![top_left_corner];
+        top_row.append(&mut top_border);
+        top_row.push(top_right_corner);
+        let mut bottom_row = vec![bottom_left_corner];
+        bottom_row.append(&mut bottom_border);
+        bottom_row.push(bottom_right_corner);
+
+        content.insert(0, top_row);
+        content.push(bottom_row);
     }
 
     fn set_tiles(&mut self, tiles: &Vec<Vec<common::TileE>>) {

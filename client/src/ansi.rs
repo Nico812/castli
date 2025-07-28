@@ -163,7 +163,13 @@ macro_rules! BG_BRIGHT_WHITE {
 }
 
 // Reset / Default
-pub const RESET_COLOR: &str = "\x1b[0m";
+
+macro_rules! RESET_COLOR {
+    () => {
+        "\x1b[0m"
+    };
+}
+pub(crate) use RESET_COLOR;
 pub const BLOCK: &str = "▀";
 
 // Game ansi elements. Variants are used when the full terminal character block is occupied by the

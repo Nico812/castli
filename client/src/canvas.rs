@@ -17,8 +17,8 @@ impl Canvas {
             None => panic!(),
         }
         let central_module_pos = (
-            (canvas_size.0 - canvas_modules::CENTRAL_MODULE_SIZE / 2) / 2,
-            (canvas_size.1 - canvas_modules::CENTRAL_MODULE_SIZE) / 2,
+            (canvas_size.0 - (canvas_modules::CENTRAL_MODULE_SIZE + 2) / 2) / 2,
+            (canvas_size.1 - canvas_modules::CENTRAL_MODULE_SIZE + 2) / 2,
         );
         let central_module = canvas_modules::CentralModule::new();
         Self {
@@ -33,7 +33,7 @@ impl Canvas {
     }
 
     pub fn print(&self, structures: &Vec<common::StructureE>, map_zoom: Option<(usize, usize)>) {
-        let mut buffer: Vec<String> = vec![".".repeat(self.canvas_size.1); self.canvas_size.0];
+        let mut buffer: Vec<String> = vec!["_".repeat(self.canvas_size.1); self.canvas_size.0];
 
         for (line, line_contents) in self
             .central_module
@@ -41,11 +41,11 @@ impl Canvas {
             .iter()
             .enumerate()
         {
-            let replacement = format!("{}{}", line_contents.concat(), ansi::RESET_COLOR);
+            let replacement = format!("{}{}", line_contents.concat(), ansi::RESET_COLOR!());
 
             buffer[line + self.central_module_pos.0].replace_range(
                 self.central_module_pos.1
-                    ..self.central_module_pos.1 + canvas_modules::CENTRAL_MODULE_SIZE,
+                    ..self.central_module_pos.1 + canvas_modules::CENTRAL_MODULE_SIZE + 2,
                 &replacement,
             );
         }
