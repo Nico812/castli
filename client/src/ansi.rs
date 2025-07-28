@@ -225,3 +225,8 @@ pub const CASTLE_ART: [[&str; 8]; 4] = [
         "|",
     ],
 ];
+
+pub const CASTLE_ART_WORLD: [[&str; 2]; 1] = [[
+    concat!(BG_BLACK!(), FG_YELLOW!(), "C"),
+    concat!(BG_BLACK!(), FG_YELLOW!(), "C"),
+]];

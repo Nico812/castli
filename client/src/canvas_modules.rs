@@ -159,8 +159,11 @@ impl CentralModule {
             let term_pos = (structure.pos.0 / 16, structure.pos.1 / 8);
             match structure.struc_type {
                 common::StructureTypeE::Castle => {
-                    output[term_pos.0][term_pos.1] = "C".to_owned();
-                    output[term_pos.0][term_pos.1 + 1] = "C".to_owned();
+                    for (row, ansi_row) in CASTLE_ART_WORLD.iter().enumerate() {
+                        for (col, ansi_char) in ansi_row.iter().enumerate() {
+                            output[term_pos.0 + row][term_pos.1 + col] = ansi_char.to_string();
+                        }
+                    }
                 }
                 _ => {}
             }
