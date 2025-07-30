@@ -3,7 +3,14 @@ use rand::{self, Rng};
 use crate::ansi::*;
 use common::r#const::{self, MAP_COLS, MAP_ROWS};
 
-pub const CENTRAL_MODULE_SIZE: usize = r#const::MAP_COLS / 8;
+pub const CENTRAL_MODULE_ROWS: usize = r#const::MAP_ROWS / 8;
+pub const CENTRAL_MODULE_COLS: usize = r#const::MAP_COLS / 8;
+pub const LEFT_MODULE_ROWS: usize = r#const::MAP_ROWS / 8;
+pub const LEFT_MODULE_COLS: usize = 30;
+pub const RIGHT_MODULE_ROWS: usize = r#const::MAP_ROWS / 8;
+pub const RIGHT_MODULE_COLS: usize = 30;
+pub const BOTTOM_MODULE_ROWS: usize = 30;
+pub const BOTTOM_MODULE_COLS: usize = r#const::MAP_COLS / 8;
 
 pub struct CentralModule {
     // Stores the tiles for the rest of the game, since they should be immutable
@@ -13,49 +20,20 @@ pub struct CentralModule {
     world_map_tiles_formatted: Vec<Vec<String>>,
 }
 
-impl CentralModule {
-    pub fn new() -> Self {
-        let map_tiles = vec![vec![common::TileE::Grass; r#const::MAP_COLS]; r#const::MAP_ROWS];
-        let world_map_tiles =
-            vec![vec![common::TileE::Grass; r#const::MAP_COLS / 8]; r#const::MAP_ROWS / 8];
-        let map_tiles_formatted =
-            vec![vec![ERR_VARIANT.to_owned(); r#const::MAP_COLS]; r#const::MAP_ROWS];
-        let world_map_tiles_formatted =
-            vec![vec![ERR_VARIANT.to_owned(); r#const::MAP_COLS / 8]; r#const::MAP_ROWS / 8];
+pub struct LeftModule {
+    // Player data
+    player_name: String,
+}
 
-        Self {
-            map_tiles,
-            world_map_tiles,
-            map_tiles_formatted,
-            world_map_tiles_formatted,
-        }
-    }
+pub struct RightModule {
+    // Inspect
+}
 
-    pub fn init(&mut self, tiles: &Vec<Vec<common::TileE>>) {
-        self.set_tiles(tiles);
-        self.format_tiles();
-    }
+pub struct BottomModule {
+    // Game events
+}
 
-    pub fn get_map(
-        &self,
-        structures: &Vec<common::StructureE>,
-        map_zoom: Option<(usize, usize)>,
-    ) -> Vec<Vec<String>> {
-        match map_zoom {
-            Some(quadrant) => {
-                let mut content = self.add_structures_to_map(structures, quadrant);
-                Self::add_frame(&mut content, true);
-                content
-            }
-            None => {
-                let mut content = self.add_structures_to_world_map(structures);
-                Self::add_frame(&mut content, false);
-                content
-            }
-        }
-    }
-
-    fn add_frame(content: &mut Vec<Vec<String>>, with_markers: bool) {
+fn add_frame(content: &mut Vec<Vec<String>>, with_markers: bool) {
         let content_rows = content.len();
         let content_cols = content[0].len();
 
@@ -93,6 +71,48 @@ impl CentralModule {
 
         content.insert(0, top_row);
         content.push(bottom_row);
+    }
+
+impl CentralModule {
+    pub fn new() -> Self {
+        let map_tiles = vec![vec![common::TileE::Grass; r#const::MAP_COLS]; r#const::MAP_ROWS];
+        let world_map_tiles =
+            vec![vec![common::TileE::Grass; r#const::MAP_COLS / 8]; r#const::MAP_ROWS / 8];
+        let map_tiles_formatted =
+            vec![vec![ERR_VARIANT.to_owned(); r#const::MAP_COLS]; r#const::MAP_ROWS];
+        let world_map_tiles_formatted =
+            vec![vec![ERR_VARIANT.to_owned(); r#const::MAP_COLS / 8]; r#const::MAP_ROWS / 8];
+
+        Self {
+            map_tiles,
+            world_map_tiles,
+            map_tiles_formatted,
+            world_map_tiles_formatted,
+        }
+    }
+
+    pub fn init(&mut self, tiles: &Vec<Vec<common::TileE>>) {
+        self.set_tiles(tiles);
+        self.format_tiles();
+    }
+
+    pub fn get_map(
+        &self,
+        structures: &Vec<common::StructureE>,
+        map_zoom: Option<(usize, usize)>,
+    ) -> Vec<Vec<String>> {
+        match map_zoom {
+            Some(quadrant) => {
+                let mut content = self.add_structures_to_map(structures, quadrant);
+                add_frame(&mut content, true);
+                content
+            }
+            None => {
+                let mut content = self.add_structures_to_world_map(structures);
+                add_frame(&mut content, false);
+                content
+            }
+        }
     }
 
     fn set_tiles(&mut self, tiles: &Vec<Vec<common::TileE>>) {
@@ -225,30 +245,30 @@ impl CentralModule {
         quadrant: (usize, usize),
     ) -> Vec<Vec<String>> {
         let mut output: Vec<Vec<String>> = self.map_tiles_formatted
-            [quadrant.0 * CENTRAL_MODULE_SIZE / 2..(quadrant.0 + 1) * CENTRAL_MODULE_SIZE / 2]
+            [quadrant.0 * CENTRAL_MODULE_ROWS..(quadrant.0 + 1) * CENTRAL_MODULE_ROWS]
             .iter()
             .map(|row| {
-                row[quadrant.1 * CENTRAL_MODULE_SIZE..(quadrant.1 + 1) * CENTRAL_MODULE_SIZE]
+                row[quadrant.1 * CENTRAL_MODULE_COLS..(quadrant.1 + 1) * CENTRAL_MODULE_COLS]
                     .to_vec()
             })
             .collect();
 
         for structure in structures.iter() {
             let str_term_pos = (structure.pos.0 / 2, structure.pos.1);
-            if str_term_pos.0 < (quadrant.0 + 1) * CENTRAL_MODULE_SIZE
-                && str_term_pos.0 >= (quadrant.0 * CENTRAL_MODULE_SIZE)
+            if str_term_pos.0 < (quadrant.0 + 1) * CENTRAL_MODULE_ROWS
+                && str_term_pos.0 >= (quadrant.0 * CENTRAL_MODULE_ROWS)
             {
-                if str_term_pos.1 < (quadrant.1 + 1) * CENTRAL_MODULE_SIZE
-                    && str_term_pos.1 >= (quadrant.1 * CENTRAL_MODULE_SIZE)
+                if str_term_pos.1 < (quadrant.1 + 1) * CENTRAL_MODULE_COLS
+                    && str_term_pos.1 >= (quadrant.1 * CENTRAL_MODULE_COLS)
                 {
                     match structure.struc_type {
                         common::StructureTypeE::Castle => {
                             for ansi_art_row in 0..r#const::CASTLE_SIZE / 2 {
                                 let output_row =
-                                    str_term_pos.0 % CENTRAL_MODULE_SIZE + ansi_art_row;
-                                for ansi_art_col in 0..r#const::CASTLE_SIZE {
+                                    str_term_pos.0 % CENTRAL_MODULE_ROWS + ansi_art_row;
+                                for ansi_art_col in 0..r#const::CASTLE_COLS {
                                     let output_col =
-                                        str_term_pos.1 % CENTRAL_MODULE_SIZE + ansi_art_col;
+                                        str_term_pos.1 % CENTRAL_MODULE_COLS + ansi_art_col;
                                     output[output_row][output_col] =
                                         CASTLE_ART[ansi_art_row][ansi_art_col].to_owned();
                                 }
@@ -260,5 +280,66 @@ impl CentralModule {
             }
         }
         output
+    }
+}
+
+impl LeftModule {
+    const PADDING_LEFT: usize = 2;
+    const PADDING_RIGHT: usize = 2;
+    
+    pub fn new() -> Self {
+        let player_name = "nico".to_owned();
+        Self{player_name}
+    }
+
+    pub fn get_content(&self) {
+        let content: Vec<String>= Vec::new();
+        let name_line = " ".repeat(PADDING_LEFT).to_owned();
+        name_line.push(self.player_name.clone());
+        name_line.push(" ".repeat(LEFT_MODULE_COLS - PADDING_LEFT - PADDING_RIGHT - self.player_name.len()).to_owned());
+
+        for row in 0.. LEFT_MODULE_ROWS {
+            match row {
+                3 => content.push(name_line),
+                _ => content.push(" ".repeat(LEFT_MODULE_COLS))
+            }
+        }
+    }
+}
+
+impl RightModule {
+    const PADDING_LEFT: usize = 2;
+    const PADDING_RIGHT: usize = 2;
+    
+    pub fn new() -> Self {
+        Self{}
+    }
+
+    pub fn get_content(&self) {
+        let content: Vec<String>= Vec::new();
+        for row in 0.. RIGHT_MODULE_ROWS {
+            match row {
+                _ => content.push(" ".repeat(RIGHT_MODULE_COLS))
+            }
+        }
+    }
+}
+
+
+impl BottomModule {
+    const PADDING_LEFT: usize = 2;
+    const PADDING_RIGHT: usize = 2;
+    
+    pub fn new() -> Self {
+        Self{}
+    }
+
+    pub fn get_content(&self) {
+        let content: Vec<String>= Vec::new();
+        for row in 0.. BOTTOM_MODULE_ROWS {
+            match row {
+                _ => content.push(" ".repeat(BOTTOM_MODULE_COLS))
+            }
+        }
     }
 }
