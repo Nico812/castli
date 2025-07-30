@@ -3,13 +3,13 @@ use rand::{self, Rng};
 use crate::ansi::*;
 use common::r#const::{self, MAP_COLS, MAP_ROWS};
 
-pub const CENTRAL_MODULE_ROWS: usize = r#const::MAP_ROWS / 8;
+pub const CENTRAL_MODULE_ROWS: usize = r#const::MAP_ROWS / 16;
 pub const CENTRAL_MODULE_COLS: usize = r#const::MAP_COLS / 8;
-pub const LEFT_MODULE_ROWS: usize = r#const::MAP_ROWS / 8;
-pub const LEFT_MODULE_COLS: usize = 30;
-pub const RIGHT_MODULE_ROWS: usize = r#const::MAP_ROWS / 8;
-pub const RIGHT_MODULE_COLS: usize = 30;
-pub const BOTTOM_MODULE_ROWS: usize = 30;
+pub const LEFT_MODULE_ROWS: usize = r#const::MAP_ROWS / 16;
+pub const LEFT_MODULE_COLS: usize = 18;
+pub const RIGHT_MODULE_ROWS: usize = r#const::MAP_ROWS / 16;
+pub const RIGHT_MODULE_COLS: usize = 13;
+pub const BOTTOM_MODULE_ROWS: usize = 7;
 pub const BOTTOM_MODULE_COLS: usize = r#const::MAP_COLS / 8;
 
 pub struct CentralModule {
@@ -34,44 +34,44 @@ pub struct BottomModule {
 }
 
 fn add_frame(content: &mut Vec<Vec<String>>, with_markers: bool) {
-        let content_rows = content.len();
-        let content_cols = content[0].len();
+    let content_rows = content.len();
+    let content_cols = content[0].len();
 
-        let top_right_corner = "+".to_owned();
-        let bottom_left_corner = top_right_corner.clone();
-        let bottom_right_corner = top_right_corner.clone();
-        let top_left_corner = match with_markers {
-            true => "0".to_owned(),
-            false => top_right_corner.clone(),
-        };
+    let top_right_corner = "+".to_owned();
+    let bottom_left_corner = top_right_corner.clone();
+    let bottom_right_corner = top_right_corner.clone();
+    let top_left_corner = match with_markers {
+        true => "0".to_owned(),
+        false => top_right_corner.clone(),
+    };
 
-        let mut bottom_border = vec!["-".to_owned(); content_cols];
-        let right_border = vec![concat!(RESET_COLOR!(), "|").to_owned(); content_rows];
-        let mut top_border = bottom_border.clone();
-        let mut left_border = right_border.clone();
-        if with_markers {
-            for col_marker in 1..content_cols / 8 {
-                top_border[col_marker * 8] = col_marker.to_string();
-            }
-            for row_marker in 1..content_rows / 4 {
-                left_border[row_marker * 4] = row_marker.to_string();
-            }
+    let mut bottom_border = vec!["-".to_owned(); content_cols];
+    let right_border = vec![concat!(RESET_COLOR!(), "|").to_owned(); content_rows];
+    let mut top_border = bottom_border.clone();
+    let mut left_border = right_border.clone();
+    if with_markers {
+        for col_marker in 1..content_cols / 8 {
+            top_border[col_marker * 8] = col_marker.to_string();
         }
-
-        for row in 0..content_rows {
-            content[row].insert(0, left_border[row].clone());
-            content[row].push(right_border[row].clone());
+        for row_marker in 1..content_rows / 4 {
+            left_border[row_marker * 4] = row_marker.to_string();
         }
-        let mut top_row = vec![top_left_corner];
-        top_row.append(&mut top_border);
-        top_row.push(top_right_corner);
-        let mut bottom_row = vec![bottom_left_corner];
-        bottom_row.append(&mut bottom_border);
-        bottom_row.push(bottom_right_corner);
-
-        content.insert(0, top_row);
-        content.push(bottom_row);
     }
+
+    for row in 0..content_rows {
+        content[row].insert(0, left_border[row].clone());
+        content[row].push(right_border[row].clone());
+    }
+    let mut top_row = vec![top_left_corner];
+    top_row.append(&mut top_border);
+    top_row.push(top_right_corner);
+    let mut bottom_row = vec![bottom_left_corner];
+    bottom_row.append(&mut bottom_border);
+    bottom_row.push(bottom_right_corner);
+
+    content.insert(0, top_row);
+    content.push(bottom_row);
+}
 
 impl CentralModule {
     pub fn new() -> Self {
@@ -266,7 +266,7 @@ impl CentralModule {
                             for ansi_art_row in 0..r#const::CASTLE_SIZE / 2 {
                                 let output_row =
                                     str_term_pos.0 % CENTRAL_MODULE_ROWS + ansi_art_row;
-                                for ansi_art_col in 0..r#const::CASTLE_COLS {
+                                for ansi_art_col in 0..r#const::CASTLE_SIZE {
                                     let output_col =
                                         str_term_pos.1 % CENTRAL_MODULE_COLS + ansi_art_col;
                                     output[output_row][output_col] =
@@ -284,62 +284,49 @@ impl CentralModule {
 }
 
 impl LeftModule {
-    const PADDING_LEFT: usize = 2;
-    const PADDING_RIGHT: usize = 2;
-    
+    const PADDING_LEFT: usize = 1;
+
     pub fn new() -> Self {
-        let player_name = "nico".to_owned();
-        Self{player_name}
+        let player_name = "ni".to_owned();
+        Self { player_name }
     }
 
-    pub fn get_content(&self) {
-        let content: Vec<String>= Vec::new();
-        let name_line = " ".repeat(PADDING_LEFT).to_owned();
-        name_line.push(self.player_name.clone());
-        name_line.push(" ".repeat(LEFT_MODULE_COLS - PADDING_LEFT - PADDING_RIGHT - self.player_name.len()).to_owned());
+    pub fn get_content(&self) -> Vec<String> {
+        let mut content: Vec<String> = vec![" ".repeat(LEFT_MODULE_COLS); LEFT_MODULE_ROWS];
 
-        for row in 0.. LEFT_MODULE_ROWS {
-            match row {
-                3 => content.push(name_line),
-                _ => content.push(" ".repeat(LEFT_MODULE_COLS))
-            }
-        }
+        let name_line = " ".repeat(Self::PADDING_LEFT).to_owned()
+            + &self.player_name.clone()
+            + &" "
+                .repeat(LEFT_MODULE_COLS - Self::PADDING_LEFT - &self.player_name.len())
+                .to_owned();
+
+        content[3] = name_line;
+        content
     }
 }
 
 impl RightModule {
     const PADDING_LEFT: usize = 2;
-    const PADDING_RIGHT: usize = 2;
-    
+
     pub fn new() -> Self {
-        Self{}
+        Self {}
     }
 
-    pub fn get_content(&self) {
-        let content: Vec<String>= Vec::new();
-        for row in 0.. RIGHT_MODULE_ROWS {
-            match row {
-                _ => content.push(" ".repeat(RIGHT_MODULE_COLS))
-            }
-        }
+    pub fn get_content(&self) -> Vec<String> {
+        let mut content: Vec<String> = vec![" ".repeat(RIGHT_MODULE_COLS); RIGHT_MODULE_ROWS];
+        content
     }
 }
 
-
 impl BottomModule {
     const PADDING_LEFT: usize = 2;
-    const PADDING_RIGHT: usize = 2;
-    
+
     pub fn new() -> Self {
-        Self{}
+        Self {}
     }
 
-    pub fn get_content(&self) {
-        let content: Vec<String>= Vec::new();
-        for row in 0.. BOTTOM_MODULE_ROWS {
-            match row {
-                _ => content.push(" ".repeat(BOTTOM_MODULE_COLS))
-            }
-        }
+    pub fn get_content(&self) -> Vec<String> {
+        let mut content: Vec<String> = vec![" ".repeat(BOTTOM_MODULE_COLS); BOTTOM_MODULE_ROWS];
+        content
     }
 }
