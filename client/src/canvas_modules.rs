@@ -1,3 +1,9 @@
+//! # TUI Canvas Modules
+//!
+//! This module defines the individual components or "modules" that make up the `Canvas`.
+//! Each module is responsible for generating a specific part of the UI, such as the
+//! map view, player information panel, or event log.
+
 use rand::{self, Rng};
 
 use crate::ansi::*;

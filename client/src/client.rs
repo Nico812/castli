@@ -1,3 +1,8 @@
+//! # Client Core Logic
+//!
+//! This module contains the `Client` struct, which manages the client's
+//! connection to the server and orchestrates the different parts of the
+//! client application, such as the TUI and server communication.
 use tokio::{self, net::TcpStream, sync::mpsc};
 
 use crate::tui;
@@ -16,6 +21,10 @@ impl Client {
         Self {}
     }
 
+    /// Runs the main client loop.
+    ///
+    /// This function connects to the server, performs the initial login and map request,
+    /// and then starts the TUI and server communication tasks.
     pub async fn run(&mut self) {
         let addr = if r#const::ONLINE {
             //r#const::IP_4_CLIENT
@@ -47,6 +56,10 @@ impl Client {
         tui::Tui::run(tx2, rx1, map).await;
     }
 
+    /// Handles the ongoing communication with the server.
+    ///
+    /// This function is typically run in a loop to periodically request updates
+    /// from the server and send player input.
     async fn comunicate_with_server(
         stream: &mut TcpStream,
         tui_tx: &mpsc::UnboundedSender<common::MapObjsE>,

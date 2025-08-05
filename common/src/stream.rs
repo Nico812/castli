@@ -1,3 +1,9 @@
+//! # Stream Communication Helpers
+//!
+//! This module provides helper functions for sending and receiving messages
+//! over a `TcpStream`. It handles serialization to JSON and deserialization
+//! from JSON, using newline characters to delimit messages.
+
 use crate::{C2S, S2C};
 use serde_json;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -20,13 +26,13 @@ pub async fn send_msg_to_client(stream: &mut TcpStream, msg: &S2C) -> tokio::io:
 pub async fn get_msg_from_server(stream: &mut TcpStream) -> Result<S2C, serde_json::Error> {
     let mut reader = BufReader::new(stream);
     let mut buf = String::new();
-    reader.read_line(&mut buf).await.unwrap(); // Gestione errore più robusta consigliata
+    reader.read_line(&mut buf).await.unwrap();
     serde_json::from_str(&buf)
 }
 
 pub async fn get_msg_from_client(stream: &mut TcpStream) -> Result<C2S, serde_json::Error> {
     let mut reader = BufReader::new(stream);
     let mut buf = String::new();
-    reader.read_line(&mut buf).await.unwrap(); // Gestione errore più robusta consigliata
+    reader.read_line(&mut buf).await.unwrap();
     serde_json::from_str(&buf)
 }

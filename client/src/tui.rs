@@ -1,3 +1,9 @@
+//! # Terminal User Interface (TUI)
+//!
+//! This module manages the entire terminal user interface. It handles raw mode,
+//! rendering the game state to the terminal using the `canvas`, and processing
+//! player input.
+
 use std::{io::Write, process::Command};
 use tokio::{
     io::{self, AsyncReadExt, AsyncWriteExt},
@@ -19,6 +25,10 @@ impl Tui {
         Self {}
     }
 
+    /// Runs the main TUI loop.
+    ///
+    /// This function spawns tasks for rendering the UI and handling communication
+    /// with the main client logic. It also contains the player input loop.
     pub async fn run(
         tx: mpsc::UnboundedSender<PlayerInput>,
         mut rx: mpsc::UnboundedReceiver<common::MapObjsE>,

@@ -1,3 +1,9 @@
+//! # ANSI Escape Codes and Constants
+//!
+//! This module provides a set of macros and constants for working with ANSI
+//! escape codes, which are used to add color and style to the terminal output.
+//! It also defines constants for the visual representation of game elements.
+
 // === ANSI COLOR MACROS ===
 
 macro_rules! FG_BLACK {

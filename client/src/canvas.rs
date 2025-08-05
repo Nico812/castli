@@ -1,8 +1,18 @@
+//! # TUI Canvas
+//!
+//! This module defines the `Canvas`, which is responsible for composing and
+//! rendering the different UI modules (central map, side panels, etc.) into
+//! a single view in the terminal.
+
 use terminal_size::{Height, Width, terminal_size};
 
 use crate::ansi;
 use crate::canvas_modules;
 
+/// Represents the main drawing area for the TUI.
+///
+/// It holds all the different UI modules and is responsible for positioning
+/// them correctly and printing them to the screen.
 pub struct Canvas {
     canvas_size: (usize, usize),
     central_module_pos: (usize, usize),
@@ -56,6 +66,10 @@ impl Canvas {
         self.central_module.init(tiles);
     }
 
+    /// Prints the entire canvas to the terminal.
+    ///
+    /// It gets the content from each module, assembles it into a buffer,
+    /// and then prints the buffer to stdout.
     pub fn print(&self, structures: &Vec<common::StructureE>, map_zoom: Option<(usize, usize)>) {
         // PS: start by rendering the modules at the right
         // Positions debug

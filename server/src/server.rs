@@ -1,12 +1,19 @@
+//! # Server Core Logic
+//!
+//! This module contains the `Server` struct, which is the heart of the server application.
+//! It is responsible for listening for incoming TCP connections, managing game lobbies,
+//! and routing clients to the appropriate lobby.
+
 use std::sync::{Arc, Mutex};
 use std::thread;
-use tokio::net::{TcpListener, TcpStream};
+use tokio::net::TcpListener;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 use crate::lobby;
 use common::r#const::{IP_LOCAL, MAX_LOBBIES, ONLINE};
 use common::{self, stream};
 
+/// Messages sent from the main `Server` to a `Lobby` thread.
 pub enum S2L {
     IsFull(mpsc::Sender<bool>),
     NewClient(
@@ -39,6 +46,9 @@ impl Server {
         Self { threads, lobby_txs }
     }
 
+    /// Runs the main server loop.
+    ///
+    /// Listens for incoming TCP connections and spawns a new task to handle each client.
     pub async fn run(&mut self) {
         let listener;
         if ONLINE {
@@ -118,6 +128,11 @@ impl Server {
         }
     }
 
+    /// Handles a single client connection.
+    ///
+    /// This function finds a suitable lobby for the client, either an existing one
+    /// with space or a new one if possible. It establishes communication channels
+    /// between the client and the lobby.
     async fn handle_client(
         threads: Arc<Mutex<[Option<thread::JoinHandle<()>>; MAX_LOBBIES]>>,
         lobby_txs: Arc<Mutex<[Option<mpsc::UnboundedSender<S2L>>; MAX_LOBBIES]>>,

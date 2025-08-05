@@ -1,5 +1,9 @@
+//! # Game Lobby Management
+//!
+//! This module defines the `Lobby` struct, which represents a single game session.
+//! A lobby contains a group of players, a game instance, and manages the communication
+//! between them.
 use std::collections::HashMap;
-
 use tokio::sync::mpsc;
 use tokio::time;
 
@@ -9,6 +13,7 @@ use crate::server;
 use common;
 use common::r#const::MAX_LOBBY_PLAYERS;
 
+/// Represents errors that can occur within a `Lobby`.
 #[derive(Debug)]
 enum LobbyErr {
     AddClientFail,
@@ -44,6 +49,10 @@ impl Lobby {
         }
     }
 
+    /// Runs the main loop for the lobby.
+    ///
+    /// This loop listens for messages from the server, listens and responds to messages from clients,
+    /// and periodically updates the game state.
     pub async fn run(&mut self, mut main_rx: mpsc::UnboundedReceiver<server::S2L>) {
         let mut client_comunication_tick = time::interval(time::Duration::from_millis(100));
         let mut server_comunication_tick = time::interval(time::Duration::from_millis(1000));
@@ -74,20 +83,20 @@ impl Lobby {
         client_tx: mpsc::UnboundedSender<common::L2S4C>,
         client_rx: mpsc::UnboundedReceiver<common::C2S4L>,
     ) -> Result<(), LobbyErr> {
-        if self.num_players < MAX_LOBBY_PLAYERS {
-            for iter in 0..MAX_LOBBY_PLAYERS {
-                if self.players[iter].is_none() {
-                    let new_player = player::Player::new("No Name Set");
-                    self.players[iter] = Some(new_player);
-                    self.num_players += 1;
-                    self.clients.insert(client_id, (client_tx, client_rx));
-
-                    println!("New player joined in a lobby, ID: {}", client_id);
-                    return Ok(());
-                }
-            }
+        if self.num_players >= MAX_LOBBY_PLAYERS {
+            return Err(LobbyErr::AddClientFail);
         }
-        Err(LobbyErr::AddClientFail)
+        if let Some(player_slot) = self.players.iter_mut().find(|player| player.is_none()) {
+            *player_slot = Some(player::Player::new("No Name Set"));
+            self.num_players += 1;
+            self.clients.insert(client_id, (client_tx, client_rx));
+
+            println!("New player joined in a lobby, ID: {}", client_id);
+            return Ok(());
+        } else {
+            println!("This should never have been printed. Lobby num_players is incorrect.");
+            return Err(LobbyErr::AddClientFail);
+        }
     }
 
     async fn listen_server(
@@ -131,6 +140,6 @@ impl Lobby {
     }
 
     pub fn is_full(&self) -> bool {
-        self.num_players == MAX_LOBBY_PLAYERS
+        self.num_players >= MAX_LOBBY_PLAYERS
     }
 }

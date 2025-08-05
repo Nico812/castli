@@ -1,3 +1,8 @@
+//! # Core Game Logic and State
+//!
+//! This module defines the `Game` struct, which holds the entire state of a single
+//! game instance, including the map, structures, and units. It also contains the
+//! logic for procedural map generation.
 use rand::Rng;
 
 use crate::r#const::{CA_ITER, PERCENT_ARE_WALLS};
