@@ -7,16 +7,8 @@
 use rand::{self, Rng};
 
 use crate::ansi::*;
+use crate::r#const::*;
 use common::r#const::{self, MAP_COLS, MAP_ROWS};
-
-pub const CENTRAL_MODULE_ROWS: usize = r#const::MAP_ROWS / 16;
-pub const CENTRAL_MODULE_COLS: usize = r#const::MAP_COLS / 8;
-pub const LEFT_MODULE_ROWS: usize = r#const::MAP_ROWS / 16;
-pub const LEFT_MODULE_COLS: usize = 18;
-pub const RIGHT_MODULE_ROWS: usize = r#const::MAP_ROWS / 16;
-pub const RIGHT_MODULE_COLS: usize = 13;
-pub const BOTTOM_MODULE_ROWS: usize = 7;
-pub const BOTTOM_MODULE_COLS: usize = r#const::MAP_COLS / 8;
 
 pub struct CentralModule {
     // Stores the tiles for the rest of the game, since they should be immutable

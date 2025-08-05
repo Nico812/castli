@@ -8,17 +8,14 @@ use terminal_size::{Height, Width, terminal_size};
 
 use crate::ansi;
 use crate::canvas_modules;
+use crate::r#const::*;
 
 /// Represents the main drawing area for the TUI.
 ///
 /// It holds all the different UI modules and is responsible for positioning
 /// them correctly and printing them to the screen.
 pub struct Canvas {
-    canvas_size: (usize, usize),
-    central_module_pos: (usize, usize),
-    left_module_pos: (usize, usize),
-    right_module_pos: (usize, usize),
-    bottom_module_pos: (usize, usize),
+    canvas_pos: (usize, usize),
     central_module: canvas_modules::CentralModule,
     left_module: canvas_modules::LeftModule,
     right_module: canvas_modules::RightModule,
@@ -27,34 +24,33 @@ pub struct Canvas {
 
 impl Canvas {
     pub fn new() -> Self {
-        let canvas_size;
+        let canvas_pos;
         match terminal_size() {
-            Some((Width(w), Height(h))) => canvas_size = (h as usize, w as usize),
-            None => panic!(),
+            Some((Width(w), Height(h))) => {
+                if (h as usize) < CANVAS_ROWS || (w as usize) < CANVAS_COLS {
+                    println!(
+                        "Terminal size is too small, consider changing your terminal text size.."
+                    );
+                    canvas_pos = (0, 0);
+                } else {
+                    canvas_pos = (
+                        ((h as usize) - CANVAS_ROWS) / 2,
+                        ((w as usize) - CANVAS_COLS) / 2,
+                    );
+                }
+            }
+            None => {
+                println!("Could not detect the terminal size.");
+                canvas_pos = (0, 0);
+            }
         }
-        let central_module_pos = (
-            2,
-            (canvas_size.1 - canvas_modules::CENTRAL_MODULE_COLS - 2) / 2,
-        );
-        let left_module_pos = (2, 2);
-        let right_module_pos = (
-            2,
-            central_module_pos.1 + canvas_modules::CENTRAL_MODULE_COLS + 4,
-        );
-        let bottom_module_pos = (
-            central_module_pos.0 + canvas_modules::CENTRAL_MODULE_ROWS + 4,
-            central_module_pos.1,
-        );
+
         let central_module = canvas_modules::CentralModule::new();
         let left_module = canvas_modules::LeftModule::new();
         let right_module = canvas_modules::RightModule::new();
         let bottom_module = canvas_modules::BottomModule::new();
         Self {
-            canvas_size,
-            central_module_pos,
-            left_module_pos,
-            right_module_pos,
-            bottom_module_pos,
+            canvas_pos,
             central_module,
             left_module,
             right_module,
@@ -72,48 +68,11 @@ impl Canvas {
     /// and then prints the buffer to stdout.
     pub fn print(&self, structures: &Vec<common::StructureE>, map_zoom: Option<(usize, usize)>) {
         // PS: start by rendering the modules at the right
-        // Positions debug
-        print!("\n--- DEBUG POSIZIONI MODULI ---\n\r");
-        print!(
-            "CentralModule:   top-left=({}, {}), bottom-right=({}, {})\n\r",
-            self.central_module_pos.0,
-            self.central_module_pos.1,
-            self.central_module_pos.0 + canvas_modules::CENTRAL_MODULE_ROWS,
-            self.central_module_pos.1 + canvas_modules::CENTRAL_MODULE_COLS
-        );
-        print!(
-            "LeftModule:      top-left=({}, {}), bottom-right=({}, {})\n\r",
-            self.left_module_pos.0,
-            self.left_module_pos.1,
-            self.left_module_pos.0 + canvas_modules::LEFT_MODULE_ROWS,
-            self.left_module_pos.1 + canvas_modules::LEFT_MODULE_COLS
-        );
-        print!(
-            "RightModule:     top-left=({}, {}), bottom-right=({}, {})\n\r",
-            self.right_module_pos.0,
-            self.right_module_pos.1,
-            self.right_module_pos.0 + canvas_modules::RIGHT_MODULE_ROWS,
-            self.right_module_pos.1 + canvas_modules::RIGHT_MODULE_COLS
-        );
-        print!(
-            "BottomModule:    top-left=({}, {}), bottom-right=({}, {})\n\r",
-            self.bottom_module_pos.0,
-            self.bottom_module_pos.1,
-            self.bottom_module_pos.0 + canvas_modules::BOTTOM_MODULE_ROWS,
-            self.bottom_module_pos.1 + canvas_modules::BOTTOM_MODULE_COLS
-        );
-        print!(
-            "Canvas size:     rows={}, cols={}\n\r",
-            self.canvas_size.0, self.canvas_size.1
-        );
-        print!("--- FINE DEBUG POSIZIONI ---\n\r");
-
-        let mut buffer: Vec<String> = vec!["_".repeat(self.canvas_size.1); self.canvas_size.0];
+        let mut buffer: Vec<String> = vec!["_".repeat(CANVAS_COLS); CANVAS_ROWS];
 
         for (line, line_contents) in self.right_module.get_content().iter().enumerate() {
-            buffer[line + self.right_module_pos.0].replace_range(
-                self.right_module_pos.1
-                    ..self.right_module_pos.1 + canvas_modules::RIGHT_MODULE_COLS,
+            buffer[line + RIGHT_MOD_POS.0].replace_range(
+                RIGHT_MOD_POS.1..RIGHT_MOD_POS.1 + RIGHT_MODULE_COLS,
                 line_contents,
             );
         }
@@ -126,30 +85,32 @@ impl Canvas {
         {
             let replacement = format!("{}{}", line_contents.concat(), ansi::RESET_COLOR!());
 
-            buffer[line + self.central_module_pos.0].replace_range(
-                self.central_module_pos.1
-                    ..self.central_module_pos.1 + canvas_modules::CENTRAL_MODULE_COLS + 2,
+            buffer[line + CENTRAL_MOD_POS.0].replace_range(
+                CENTRAL_MOD_POS.1..CENTRAL_MOD_POS.1 + CENTRAL_MODULE_COLS + 2,
                 &replacement,
             );
         }
         for (line, line_contents) in self.left_module.get_content().iter().enumerate() {
-            buffer[line + self.left_module_pos.0].replace_range(
-                self.left_module_pos.1..self.left_module_pos.1 + canvas_modules::LEFT_MODULE_COLS,
+            buffer[line + LEFT_MOD_POS.0].replace_range(
+                LEFT_MOD_POS.1..LEFT_MOD_POS.1 + LEFT_MODULE_COLS,
                 line_contents,
             );
         }
 
         for (line, line_contents) in self.bottom_module.get_content().iter().enumerate() {
-            buffer[line + self.bottom_module_pos.0].replace_range(
-                self.bottom_module_pos.1
-                    ..self.bottom_module_pos.1 + canvas_modules::BOTTOM_MODULE_COLS,
+            buffer[line + BOTTOM_MOD_POS.0].replace_range(
+                BOTTOM_MOD_POS.1..BOTTOM_MOD_POS.1 + BOTTOM_MODULE_COLS,
                 line_contents,
             );
         }
 
         let buffer_len = buffer.len();
+        let top_margin = "\r\n".repeat(self.canvas_pos.0);
+        let left_term_margin = " ".repeat(self.canvas_pos.1);
+
+        print!("{}", top_margin);
         for (iter, line) in buffer.iter().enumerate() {
-            print!("{}", line);
+            print!("{}{}", left_term_margin, line);
             if iter != buffer_len - 1 {
                 print!("\r\n");
             };
