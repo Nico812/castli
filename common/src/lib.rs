@@ -40,6 +40,7 @@ pub enum C2S {
 pub enum C2S4L {
     GiveObjs,
     GiveMap,
+    GivePlayerData,
 }
 
 /// Exports:
