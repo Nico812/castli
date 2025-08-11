@@ -5,6 +5,7 @@
 //! map view, player information panel, or event log.
 
 use rand::{self, Rng};
+use std::collections::HashMap;
 
 use crate::ansi::*;
 use crate::r#const::*;
@@ -96,17 +97,17 @@ impl CentralModule {
 
     pub fn get_map(
         &self,
-        structures: &Vec<common::StructureE>,
+        game_objs: &HashMap<common::ID, common::GameObjE>,
         map_zoom: Option<(usize, usize)>,
     ) -> Vec<Vec<String>> {
         match map_zoom {
             Some(quadrant) => {
-                let mut content = self.add_structures_to_map(structures, quadrant);
+                let mut content = self.add_objs_to_map(game_objs, quadrant);
                 add_frame(&mut content, true);
                 content
             }
             None => {
-                let mut content = self.add_structures_to_world_map(structures);
+                let mut content = self.add_objs_to_world_map(game_objs);
                 add_frame(&mut content, false);
                 content
             }
@@ -215,16 +216,16 @@ impl CentralModule {
         self.world_map_tiles_formatted = format_tiles_core(&self.world_map_tiles);
     }
 
-    fn add_structures_to_world_map(
+    fn add_objs_to_world_map(
         &self,
-        structures: &Vec<common::StructureE>,
+        objs: &HashMap<common::ID, common::GameObjE>,
     ) -> Vec<Vec<String>> {
         let mut output = self.world_map_tiles_formatted.clone();
 
-        for structure in structures.iter() {
-            let term_pos = (structure.pos.0 / 16, structure.pos.1 / 8);
-            match structure.struc_type {
-                common::StructureTypeE::Castle => {
+        for obj in objs.values() {
+            match obj {
+                common::GameObjE::PlayerCastle(castle) => {
+                    let term_pos = (castle.pos.0 / 16, castle.pos.1 / 8);
                     for (row, ansi_row) in CASTLE_ART_WORLD.iter().enumerate() {
                         for (col, ansi_char) in ansi_row.iter().enumerate() {
                             output[term_pos.0 + row][term_pos.1 + col] = ansi_char.to_string();
@@ -237,9 +238,9 @@ impl CentralModule {
         output
     }
 
-    fn add_structures_to_map(
+    fn add_objs_to_map(
         &self,
-        structures: &Vec<common::StructureE>,
+        objs: &HashMap<common::ID, common::GameObjE>,
         quadrant: (usize, usize),
     ) -> Vec<Vec<String>> {
         let mut output: Vec<Vec<String>> = self.map_tiles_formatted
@@ -251,16 +252,16 @@ impl CentralModule {
             })
             .collect();
 
-        for structure in structures.iter() {
-            let str_term_pos = (structure.pos.0 / 2, structure.pos.1);
-            if str_term_pos.0 < (quadrant.0 + 1) * CENTRAL_MODULE_ROWS
-                && str_term_pos.0 >= (quadrant.0 * CENTRAL_MODULE_ROWS)
-            {
-                if str_term_pos.1 < (quadrant.1 + 1) * CENTRAL_MODULE_COLS
-                    && str_term_pos.1 >= (quadrant.1 * CENTRAL_MODULE_COLS)
-                {
-                    match structure.struc_type {
-                        common::StructureTypeE::Castle => {
+        for obj in objs.iter() {
+            match obj {
+                (_, common::GameObjE::PlayerCastle(castle)) => {
+                    let str_term_pos = (castle.pos.0 / 2, castle.pos.1);
+                    if str_term_pos.0 < (quadrant.0 + 1) * CENTRAL_MODULE_ROWS
+                        && str_term_pos.0 >= (quadrant.0 * CENTRAL_MODULE_ROWS)
+                    {
+                        if str_term_pos.1 < (quadrant.1 + 1) * CENTRAL_MODULE_COLS
+                            && str_term_pos.1 >= (quadrant.1 * CENTRAL_MODULE_COLS)
+                        {
                             for ansi_art_row in 0..r#const::CASTLE_SIZE / 2 {
                                 let output_row =
                                     str_term_pos.0 % CENTRAL_MODULE_ROWS + ansi_art_row;
@@ -272,9 +273,9 @@ impl CentralModule {
                                 }
                             }
                         }
-                        _ => {}
                     }
                 }
+                _ => {}
             }
         }
         output

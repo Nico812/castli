@@ -4,6 +4,7 @@
 //! rendering the different UI modules (central map, side panels, etc.) into
 //! a single view in the terminal.
 
+use std::collections::HashMap;
 use terminal_size::{Height, Width, terminal_size};
 
 use crate::ansi;
@@ -66,7 +67,11 @@ impl Canvas {
     ///
     /// It gets the content from each module, assembles it into a buffer,
     /// and then prints the buffer to stdout.
-    pub fn print(&self, structures: &Vec<common::StructureE>, map_zoom: Option<(usize, usize)>) {
+    pub fn print(
+        &self,
+        game_objs: &HashMap<common::ID, common::GameObjE>,
+        map_zoom: Option<(usize, usize)>,
+    ) {
         // PS: start by rendering the modules at the right
         let mut buffer: Vec<String> = vec!["_".repeat(CANVAS_COLS); CANVAS_ROWS];
 
@@ -79,7 +84,7 @@ impl Canvas {
 
         for (line, line_contents) in self
             .central_module
-            .get_map(structures, map_zoom)
+            .get_map(&game_objs, map_zoom)
             .iter()
             .enumerate()
         {

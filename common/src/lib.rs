@@ -8,6 +8,10 @@ pub mod r#const;
 pub mod stream;
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+/// Global IDs for game objects
+pub type ID = u32;
 
 /// Represents messages sent from the Server to the Client (S2C).
 #[derive(Serialize, Deserialize, Debug)]
@@ -23,7 +27,7 @@ pub enum S2C {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum L2S4C {
     Map(Vec<Vec<TileE>>),
-    MapObjs(MapObjsE),
+    GameObjs(HashMap<ID, GameObjE>),
     PlayerData(PlayerDataE),
 }
 
@@ -55,17 +59,27 @@ pub enum TileE {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct MapObjsE {
-    pub structures: Vec<StructureE>,
-    pub unit_groups: Vec<UnitGroupE>,
+pub enum GameObjE {
+    PlayerCastle(PlayerCastleE),
+    Structure(StructureE),
+    UnitGroup(UnitGroupE),
 }
 
+/// Exported information on a not-owned castle
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PlayerCastleE {
+    pub name: String,
+    pub pos: (usize, usize),
+}
+
+/// Exported information on the owned castle
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PlayerDataE {
     pub name: String,
     pub pos: (usize, usize),
 }
 
+/// Exported information on NPSs (non player structures)
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct StructureE {
     pub name: String,

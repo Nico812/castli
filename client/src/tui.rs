@@ -4,7 +4,7 @@
 //! rendering the game state to the terminal using the `canvas`, and processing
 //! player input.
 
-use std::{io::Write, process::Command};
+use std::{collections::HashMap, io::Write, process::Command};
 use tokio::{
     io::{self, AsyncReadExt, AsyncWriteExt},
     sync::mpsc,
@@ -31,7 +31,7 @@ impl Tui {
     /// with the main client logic. It also contains the player input loop.
     pub async fn run(
         tx: mpsc::UnboundedSender<PlayerInput>,
-        mut rx: mpsc::UnboundedReceiver<common::MapObjsE>,
+        mut rx: mpsc::UnboundedReceiver<HashMap<common::ID, common::GameObjE>>,
         tiles: Vec<Vec<common::TileE>>,
     ) {
         let map_objs = rx.recv().await.unwrap();
@@ -51,7 +51,7 @@ impl Tui {
                 let map_zoom = map_zoom_arc0.lock().await.clone();
                 let map_objs = map_objs_arc0.lock().await;
                 Self::clear_screen();
-                canvas.print(&map_objs.structures, map_zoom);
+                canvas.print(&map_objs, map_zoom);
 
                 print!("\r\x1b[0;0H");
                 let _ = std::io::stdout().flush();

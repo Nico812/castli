@@ -3,6 +3,7 @@
 //! This module contains the `Client` struct, which manages the client's
 //! connection to the server and orchestrates the different parts of the
 //! client application, such as the TUI and server communication.
+use std::collections::HashMap;
 use tokio::{self, net::TcpStream, sync::mpsc};
 
 use crate::tui;
@@ -62,7 +63,7 @@ impl Client {
     /// from the server and send player input.
     async fn comunicate_with_server(
         stream: &mut TcpStream,
-        tui_tx: &mpsc::UnboundedSender<common::MapObjsE>,
+        tui_tx: &mpsc::UnboundedSender<HashMap<common::ID, common::GameObjE>>,
         tui_rx: &mpsc::UnboundedReceiver<tui::PlayerInput>,
     ) {
         let _ = common::stream::send_msg_to_server(
@@ -75,7 +76,7 @@ impl Client {
             Err(err) => println!("client:33 ERROR: {}", err),
             Ok(msg) => {
                 match msg {
-                    common::S2C::L2S4C(common::L2S4C::MapObjs(objs)) => {
+                    common::S2C::L2S4C(common::L2S4C::GameObjs(objs)) => {
                         let _ = tui_tx.send(objs);
                     }
                     probably_printable_msg => println!("{:?}", probably_printable_msg),

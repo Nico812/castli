@@ -85,10 +85,10 @@ impl Server {
 
                         if let Some(msg) = client_rx.recv().await {
                             match msg {
-                                common::L2S4C::MapObjs(objs) => {
+                                common::L2S4C::GameObjs(objs) => {
                                     let _ = stream::send_msg_to_client(
                                         &mut stream,
-                                        &common::S2C::L2S4C(common::L2S4C::MapObjs(objs)),
+                                        &common::S2C::L2S4C(common::L2S4C::GameObjs(objs)),
                                     )
                                     .await;
                                 }

@@ -4,38 +4,73 @@
 //! game instance, including the map, structures, and units. It also contains the
 //! logic for procedural map generation.
 use rand::Rng;
+use std::collections::HashMap;
 
 use crate::r#const::{CA_ITER, PERCENT_ARE_WALLS};
-use common::r#const::{MAP_COLS, MAP_ROWS};
+use common::{
+    GameObjE,
+    r#const::{MAP_COLS, MAP_ROWS},
+};
+
+enum GameObj {
+    PlayerCastle(common::PlayerCastleE),
+    Structure(common::StructureE),
+    UnitGroup(common::UnitGroupE),
+}
 
 pub struct Game {
     map: Vec<Vec<common::TileE>>,
-    structures: Vec<common::StructureE>,
-    unit_groups: Vec<common::UnitGroupE>,
+    game_objs: HashMap<common::ID, GameObj>,
 }
 
 impl Game {
     pub fn new() -> Self {
         let map = Self::cellular_automata();
-        let structures = vec![common::StructureE {
-            name: "nico".to_string(),
-            struc_type: common::StructureTypeE::Castle,
-            pos: (42, 110),
-        }];
-        let unit_groups = Vec::new();
-        Self {
-            map,
-            structures,
-            unit_groups,
-        }
+        let mut game_objs = HashMap::new();
+
+        // For debugging
+        game_objs.insert(
+            1,
+            GameObj::PlayerCastle(common::PlayerCastleE {
+                name: "nico".to_string(),
+                pos: (2, 7),
+            }),
+        );
+
+        Self { map, game_objs }
     }
+
     pub fn export_map(&self) -> Vec<Vec<common::TileE>> {
         self.map.clone()
     }
-    pub fn export_objs(&self) -> common::MapObjsE {
-        common::MapObjsE {
-            structures: self.structures.clone(),
-            unit_groups: self.unit_groups.clone(),
+
+    pub fn export_objs(&self) -> HashMap<common::ID, common::GameObjE> {
+        let mut exports = HashMap::new();
+        for obj in &self.game_objs {
+            let obj_e;
+            match obj.1 {
+                GameObj::PlayerCastle(castle) => {
+                    println!("exporting a castle");
+                    obj_e = GameObjE::PlayerCastle(castle.clone());
+                }
+                GameObj::Structure(structure) => obj_e = GameObjE::Structure(structure.clone()),
+                GameObj::UnitGroup(unit_group) => obj_e = GameObjE::UnitGroup(unit_group.clone()),
+            }
+            exports.insert(*obj.0, obj_e);
+        }
+        exports
+    }
+
+    pub fn export_player_data(&self, id: common::ID) -> common::PlayerDataE {
+        match &self.game_objs[&id] {
+            GameObj::PlayerCastle(castle) => common::PlayerDataE {
+                name: castle.name.clone(),
+                pos: castle.pos,
+            },
+            _ => common::PlayerDataE {
+                name: "undefined".to_string(),
+                pos: (0, 0),
+            },
         }
     }
 
