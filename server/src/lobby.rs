@@ -134,6 +134,9 @@ impl Lobby {
                     common::C2S4L::GiveObjs => {
                         let _ = client_tx.send(common::L2S4C::MapObjs(self.game.export_objs()));
                     }
+                    common::C2S4L::GivePlayerData => {
+                        let _ = client_tx.send(common::L2S4C::PlayerData(self.game.export_player_data(client_id)));
+                    }
                 };
             }
         }
