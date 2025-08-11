@@ -24,6 +24,7 @@ pub enum S2C {
 pub enum L2S4C {
     Map(Vec<Vec<TileE>>),
     MapObjs(MapObjsE),
+    PlayerData(PlayerDataE),
 }
 
 /// Represents messages sent from the Client to the Server (C2S).
@@ -41,7 +42,9 @@ pub enum C2S4L {
     GiveMap,
 }
 
-/// Represents the different types of tiles on the game map.
+/// Exports:
+/// Those define the types of data of a game that are sent to the client
+
 /// These never change during a game.
 #[derive(Clone, Copy, PartialEq, Serialize, Deserialize, Debug)]
 pub enum TileE {
@@ -50,14 +53,18 @@ pub enum TileE {
     Woods,
 }
 
-/// A container for all dynamic objects on the map.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MapObjsE {
     pub structures: Vec<StructureE>,
     pub unit_groups: Vec<UnitGroupE>,
 }
 
-/// Represents a structure (e.g., a castle, a farm) on the map.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PlayerDataE {
+    pub name: String,
+    pub pos: (usize, usize),
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct StructureE {
     pub name: String,
@@ -65,14 +72,12 @@ pub struct StructureE {
     pub pos: (usize, usize),
 }
 
-/// The different types of structures that can exist in the game.
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum StructureTypeE {
     Castle,
     Farm,
 }
 
-/// Represents a group of units on the map.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UnitGroupE {
     pub owner: String,
