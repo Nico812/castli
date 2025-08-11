@@ -99,6 +99,13 @@ impl Server {
                                     )
                                     .await;
                                 }
+                                common::L2S4C::PlayerData(player_data) => {
+                                    let _ = stream::send_msg_to_client(
+                                        &mut stream,
+                                        &common::S2C::L2S4C(common::L2S4C::PlayerData(player_data)),
+                                    )
+                                    .await;
+                                }
                             };
                         }
                     },
