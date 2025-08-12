@@ -75,6 +75,7 @@ pub struct PlayerCastleE {
 /// Exported information on the owned castle
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PlayerDataE {
+    pub id: ID,
     pub name: String,
     pub pos: (usize, usize),
 }

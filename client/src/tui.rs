@@ -35,10 +35,15 @@ impl Tui {
         tiles: Vec<Vec<common::TileE>>,
     ) {
         let map_objs = rx.recv().await.unwrap();
+        let player_data = rx.recv().await.unwrap();
+        let map_zoom: Option<(usize, usize)> = Some((0, 0));
+
         let map_objs_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(map_objs));
         let map_objs_arc1 = std::sync::Arc::clone(&map_objs_arc0);
 
-        let map_zoom: Option<(usize, usize)> = Some((0, 0));
+        let player_data_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(player_data));
+        let player_data_arc1 = std::sync::Arc::clone(&player_data_arc0);
+
         let map_zoom_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(map_zoom));
         let map_zoom_arc1 = std::sync::Arc::clone(&map_zoom_arc0);
 
@@ -48,10 +53,11 @@ impl Tui {
             canvas.init(&tiles);
 
             loop {
-                let map_zoom = map_zoom_arc0.lock().await.clone();
                 let map_objs = map_objs_arc0.lock().await;
+                let player_data = player_data.lock().await;
+                let map_zoom = map_zoom_arc0.lock().await;
                 Self::clear_screen();
-                canvas.print(&map_objs, map_zoom);
+                canvas.print(&map_objs, &player_data, &map_zoom);
 
                 print!("\r\x1b[0;0H");
                 let _ = std::io::stdout().flush();
@@ -62,8 +68,15 @@ impl Tui {
 
         // Comunication with client uberstruct
         let com_handle = tokio::spawn(async move {
-            while let Some(objs) = rx.recv().await {
-                *map_objs_arc1.lock().await = objs;
+            while let Some(msg) = rx.recv().await {
+                match msg {
+                    common::S2C::L2S4C(common::L2S4C::GameObjs(objs)) => {
+                        *map_objs_arc1.lock().await = objs;
+                    }
+                    common::S2C::L2S4C(common::L2S4C::PlayerDataE(data)) => {
+                        *player_data_arc1.lock().await = data;
+                    }
+                }
             }
         });
 

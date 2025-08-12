@@ -64,10 +64,12 @@ impl Game {
     pub fn export_player_data(&self, id: common::ID) -> common::PlayerDataE {
         match &self.game_objs[&id] {
             GameObj::PlayerCastle(castle) => common::PlayerDataE {
+                id: &id,
                 name: castle.name.clone(),
                 pos: castle.pos,
             },
             _ => common::PlayerDataE {
+                id: 0,
                 name: "undefined".to_string(),
                 pos: (0, 0),
             },

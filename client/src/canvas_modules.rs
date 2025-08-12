@@ -21,7 +21,6 @@ pub struct CentralModule {
 
 pub struct LeftModule {
     // Player data
-    player_name: String,
 }
 
 pub struct RightModule {
@@ -286,20 +285,32 @@ impl LeftModule {
     const PADDING_LEFT: usize = 1;
 
     pub fn new() -> Self {
-        let player_name = "ni".to_owned();
-        Self { player_name }
+        Self {}
     }
 
-    pub fn get_content(&self) -> Vec<String> {
-        let mut content: Vec<String> = vec![" ".repeat(LEFT_MODULE_COLS); LEFT_MODULE_ROWS];
+    pub fn get_content(&self, player_data: &common::PlayerDataE) -> Vec<String> {
+        let mut content = vec![" ".repeat(LEFT_MODULE_COLS); LEFT_MODULE_ROWS];
 
-        let name_line = " ".repeat(Self::PADDING_LEFT).to_owned()
-            + &self.player_name.clone()
-            + &" "
-                .repeat(LEFT_MODULE_COLS - Self::PADDING_LEFT - &self.player_name.len())
-                .to_owned();
+        let name_line = format!(
+            "{}{}{}",
+            " ".repeat(Self::PADDING_LEFT),
+            player_data.name,
+            " ".repeat(LEFT_MODULE_COLS - Self::PADDING_LEFT - player_data.name.len())
+        );
+
+        let pos_str = format!("({}, {})", player_data.pos.0, player_data.pos.1);
+        let pos_line = format!(
+            "{}{}",
+            " ".repeat(Self::PADDING_LEFT),
+            format!(
+                "{}{}",
+                pos_str,
+                " ".repeat(LEFT_MODULE_COLS - Self::PADDING_LEFT - pos_str.len())
+            )
+        );
 
         content[3] = name_line;
+        content[5] = pos_line;
         content
     }
 }

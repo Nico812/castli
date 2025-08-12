@@ -79,6 +79,9 @@ impl Client {
                     common::S2C::L2S4C(common::L2S4C::GameObjs(objs)) => {
                         let _ = tui_tx.send(objs);
                     }
+                    common::S2C::L2S4C(common::L2S4C::PlayerDataE(data)) => {
+                        let _ = tui_tx.send(data);
+                    }
                     probably_printable_msg => println!("{:?}", probably_printable_msg),
                 };
             }

@@ -70,6 +70,7 @@ impl Canvas {
     pub fn print(
         &self,
         game_objs: &HashMap<common::ID, common::GameObjE>,
+        player_data: &common::PlayerDataE,
         map_zoom: Option<(usize, usize)>,
     ) {
         // PS: start by rendering the modules at the right
@@ -95,7 +96,7 @@ impl Canvas {
                 &replacement,
             );
         }
-        for (line, line_contents) in self.left_module.get_content().iter().enumerate() {
+        for (line, line_contents) in self.left_module.get_content(&player_data).iter().enumerate() {
             buffer[line + LEFT_MOD_POS.0].replace_range(
                 LEFT_MOD_POS.1..LEFT_MOD_POS.1 + LEFT_MODULE_COLS,
                 line_contents,
