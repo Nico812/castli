@@ -31,15 +31,25 @@ impl Tui {
     /// with the main client logic. It also contains the player input loop.
     pub async fn run(
         tx: mpsc::UnboundedSender<PlayerInput>,
-        mut rx: mpsc::UnboundedReceiver<HashMap<common::ID, common::GameObjE>>,
+        mut rx: mpsc::UnboundedReceiver<common::S2C>,
         tiles: Vec<Vec<common::TileE>>,
     ) {
-        let map_objs = rx.recv().await.unwrap();
-        let player_data = rx.recv().await.unwrap();
-        let map_zoom: Option<(usize, usize)> = Some((0, 0));
+        let completed = false;
+        let game_objs;
+        let player_data;
 
-        let map_objs_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(map_objs));
-        let map_objs_arc1 = std::sync::Arc::clone(&map_objs_arc0);
+        let map_zoom: Option<(usize, usize)> = Some((0, 0));
+        while !completed {
+            match rx.recv().await.unwrap() {
+                common::S2C::L2S4C(common::GameObjE(objs)) => game_objs = Some(objs),
+                common::S2C::L2S4C(common::PlayerDataE(data)) => player_data = Some(data),
+                _ => {}
+            }
+            completed = game_objs.is_some() && player_data.is_some();
+        }
+
+        let game_objs_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(game_objs));
+        let game_objs_arc1 = std::sync::Arc::clone(&game_objs_arc0);
 
         let player_data_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(player_data));
         let player_data_arc1 = std::sync::Arc::clone(&player_data_arc0);
@@ -53,11 +63,11 @@ impl Tui {
             canvas.init(&tiles);
 
             loop {
-                let map_objs = map_objs_arc0.lock().await;
-                let player_data = player_data.lock().await;
+                let game_objs = game_objs_arc0.lock().await;
+                let player_data = player_data_arc0.lock().await;
                 let map_zoom = map_zoom_arc0.lock().await;
                 Self::clear_screen();
-                canvas.print(&map_objs, &player_data, &map_zoom);
+                canvas.print(&game_objs, &player_data, &map_zoom);
 
                 print!("\r\x1b[0;0H");
                 let _ = std::io::stdout().flush();
@@ -71,11 +81,12 @@ impl Tui {
             while let Some(msg) = rx.recv().await {
                 match msg {
                     common::S2C::L2S4C(common::L2S4C::GameObjs(objs)) => {
-                        *map_objs_arc1.lock().await = objs;
+                        *game_objs_arc1.lock().await = objs;
                     }
-                    common::S2C::L2S4C(common::L2S4C::PlayerDataE(data)) => {
+                    common::S2C::L2S4C(common::L2S4C::PlayerData(data)) => {
                         *player_data_arc1.lock().await = data;
                     }
+                    _ => {}
                 }
             }
         });

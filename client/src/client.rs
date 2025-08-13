@@ -63,7 +63,7 @@ impl Client {
     /// from the server and send player input.
     async fn comunicate_with_server(
         stream: &mut TcpStream,
-        tui_tx: &mpsc::UnboundedSender<HashMap<common::ID, common::GameObjE>>,
+        tui_tx: &mpsc::UnboundedSender<common::S2C>,
         tui_rx: &mpsc::UnboundedReceiver<tui::PlayerInput>,
     ) {
         let _ = common::stream::send_msg_to_server(
@@ -75,15 +75,7 @@ impl Client {
         match common::stream::get_msg_from_server(stream).await {
             Err(err) => println!("client:33 ERROR: {}", err),
             Ok(msg) => {
-                match msg {
-                    common::S2C::L2S4C(common::L2S4C::GameObjs(objs)) => {
-                        let _ = tui_tx.send(objs);
-                    }
-                    common::S2C::L2S4C(common::L2S4C::PlayerDataE(data)) => {
-                        let _ = tui_tx.send(data);
-                    }
-                    probably_printable_msg => println!("{:?}", probably_printable_msg),
-                };
+                let _ = tui_tx.send(msg);
             }
         }
     }
