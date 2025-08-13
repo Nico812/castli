@@ -68,6 +68,7 @@ impl Server {
             let lobby_txs_copy = self.lobby_txs.clone();
 
             tokio::spawn(async move {
+                // ADD HERE LOGIN LOGIC BEFORE SENDING THE CLIENT TO A LOBBY
                 match Self::handle_client(threads_copy, lobby_txs_copy, client_id_cnt).await {
                     Ok((client_id, client_tx, mut client_rx)) => loop {
                         match stream::get_msg_from_client(&mut stream).await {
