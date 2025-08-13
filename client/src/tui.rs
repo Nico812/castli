@@ -34,24 +34,24 @@ impl Tui {
         mut rx: mpsc::UnboundedReceiver<common::S2C>,
         tiles: Vec<Vec<common::TileE>>,
     ) {
-        let completed = false;
-        let game_objs;
-        let player_data;
+        let mut completed = false;
+        let mut game_objs: Option<HashMap<u64, common::GameObj>> = None;
+        let mut player_data: Option<common::PlayerData> = None; 
 
         let map_zoom: Option<(usize, usize)> = Some((0, 0));
         while !completed {
             match rx.recv().await.unwrap() {
-                common::S2C::L2S4C(common::GameObjE(objs)) => game_objs = Some(objs),
-                common::S2C::L2S4C(common::PlayerDataE(data)) => player_data = Some(data),
+                common::S2C::L2S4C(common::L2S4C::GameObjs(objs)) => game_objs = Some(objs),
+                common::S2C::L2S4C(common::L2S4C::PlayerData(data)) => player_data = Some(data),
                 _ => {}
             }
             completed = game_objs.is_some() && player_data.is_some();
         }
 
-        let game_objs_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(game_objs));
+        let game_objs_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(game_objs.unwrap()));
         let game_objs_arc1 = std::sync::Arc::clone(&game_objs_arc0);
 
-        let player_data_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(player_data));
+        let player_data_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(player_data.unwrap()));
         let player_data_arc1 = std::sync::Arc::clone(&player_data_arc0);
 
         let map_zoom_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(map_zoom));
@@ -67,7 +67,7 @@ impl Tui {
                 let player_data = player_data_arc0.lock().await;
                 let map_zoom = map_zoom_arc0.lock().await;
                 Self::clear_screen();
-                canvas.print(&game_objs, &player_data, &map_zoom);
+                canvas.print(&*game_objs, &*player_data, &*map_zoom);
 
                 print!("\r\x1b[0;0H");
                 let _ = std::io::stdout().flush();
