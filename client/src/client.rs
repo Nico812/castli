@@ -78,6 +78,19 @@ impl Client {
                 let _ = tui_tx.send(msg);
             }
         }
+
+        let _ = common::stream::send_msg_to_server(
+            stream,
+            &common::C2S::C2S4L(common::C2S4L::GivePlayerData),
+        )
+        .await;
+
+        match common::stream::get_msg_from_server(stream).await {
+            Err(err) => println!("client:33 ERROR: {}", err),
+            Ok(msg) => {
+                let _ = tui_tx.send(msg);
+            }
+        }
     }
 
     fn login() -> String {

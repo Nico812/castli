@@ -35,8 +35,8 @@ impl Tui {
         tiles: Vec<Vec<common::TileE>>,
     ) {
         let mut completed = false;
-        let mut game_objs: Option<HashMap<u64, common::GameObj>> = None;
-        let mut player_data: Option<common::PlayerData> = None; 
+        let mut game_objs: Option<HashMap<u32, common::GameObjE>> = None;
+        let mut player_data: Option<common::PlayerDataE> = None;
 
         let map_zoom: Option<(usize, usize)> = Some((0, 0));
         while !completed {
@@ -67,7 +67,7 @@ impl Tui {
                 let player_data = player_data_arc0.lock().await;
                 let map_zoom = map_zoom_arc0.lock().await;
                 Self::clear_screen();
-                canvas.print(&*game_objs, &*player_data, &*map_zoom);
+                canvas.print(&*game_objs, &*player_data, *map_zoom);
 
                 print!("\r\x1b[0;0H");
                 let _ = std::io::stdout().flush();

@@ -96,7 +96,12 @@ impl Canvas {
                 &replacement,
             );
         }
-        for (line, line_contents) in self.left_module.get_content(&player_data).iter().enumerate() {
+        for (line, line_contents) in self
+            .left_module
+            .get_content(&player_data)
+            .iter()
+            .enumerate()
+        {
             buffer[line + LEFT_MOD_POS.0].replace_range(
                 LEFT_MOD_POS.1..LEFT_MOD_POS.1 + LEFT_MODULE_COLS,
                 line_contents,
