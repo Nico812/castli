@@ -34,28 +34,30 @@ impl Tui {
         mut rx: mpsc::UnboundedReceiver<common::S2C>,
         tiles: Vec<Vec<common::TileE>>,
     ) {
-        let mut completed = false;
+        let map_zoom: Option<(usize, usize)> = Some((0, 0));
+        let map_zoom_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(map_zoom));
+        let map_zoom_arc1 = std::sync::Arc::clone(&map_zoom_arc0);
+        
+        let map_look: Option<(usize, usize)> = None;
+        let map_look_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(map_look));
+        let map_look_arc1 = std::sync::Arc::clone(&map_look_arc0);
+
         let mut game_objs: Option<HashMap<u32, common::GameObjE>> = None;
         let mut player_data: Option<common::PlayerDataE> = None;
-
-        let map_zoom: Option<(usize, usize)> = Some((0, 0));
-        while !completed {
+        
+        // Waiting first required data from the server
+        while game_objs.is_none() && player_data.is_none() {
             match rx.recv().await.unwrap() {
                 common::S2C::L2S4C(common::L2S4C::GameObjs(objs)) => game_objs = Some(objs),
                 common::S2C::L2S4C(common::L2S4C::PlayerData(data)) => player_data = Some(data),
                 _ => {}
             }
-            completed = game_objs.is_some() && player_data.is_some();
         }
 
         let game_objs_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(game_objs.unwrap()));
         let game_objs_arc1 = std::sync::Arc::clone(&game_objs_arc0);
-
         let player_data_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(player_data.unwrap()));
         let player_data_arc1 = std::sync::Arc::clone(&player_data_arc0);
-
-        let map_zoom_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(map_zoom));
-        let map_zoom_arc1 = std::sync::Arc::clone(&map_zoom_arc0);
 
         // Actual UI
         let ui_handle = tokio::spawn(async move {
@@ -66,10 +68,11 @@ impl Tui {
                 let game_objs = game_objs_arc0.lock().await;
                 let player_data = player_data_arc0.lock().await;
                 let map_zoom = map_zoom_arc0.lock().await;
+                let map_look = map_look_arc0.lock().await;
+
                 Self::clear_screen();
                 canvas.print(&*game_objs, &*player_data, *map_zoom);
-
-                print!("\r\x1b[0;0H");
+                update_and_print_cursor(*map_look);
                 let _ = std::io::stdout().flush();
 
                 tokio::time::sleep(tokio::time::Duration::from_millis(1000 / 60)).await;
@@ -91,7 +94,7 @@ impl Tui {
             }
         });
 
-        Self::handle_player_input(tx, map_zoom_arc1).await;
+        Self::handle_player_input(tx, map_zoom_arc1, map_look_arc1).await;
 
         let _ = com_handle.abort();
         let _ = ui_handle.abort();
@@ -104,6 +107,20 @@ impl Tui {
             let _ = Command::new("cmd").arg("/c").arg("cls").status();
         } else {
             let _ = Command::new("clear").status();
+        }
+    }
+
+    fn update_and_print_cursor(
+        map_look: <Option<(usize, usize)>,
+    ) {
+        let mut map_look = map_look_arc.lock().await;
+
+        if let Some((row, col)) = *map_look {
+            // Terminal coord are 1-indexed
+            print!("\r\x1b[{};{}H", r#const::CENTRAL_MOD_POS.0 + row + 1, r#const::CENTRAL_MOD_POS.1 + col + 1);
+        }
+        else {
+            print!("\r\x1b[0;0H");
         }
     }
 
@@ -125,16 +142,13 @@ impl Tui {
     async fn handle_player_input(
         tx: mpsc::UnboundedSender<PlayerInput>,
         map_zoom_arc: std::sync::Arc<tokio::sync::Mutex<Option<(usize, usize)>>>,
+        map_look_arc: std::sync::Arc<tokio::sync::Mutex<Option<(usize, usize)>>>,
     ) {
         loop {
             let mut buf = [0u8; 3];
             let n = io::stdin().read(&mut buf).await.unwrap();
             if n == 1 {
                 match buf[0] as char {
-                    'a' => {
-                        println!("CACCAAAAA");
-                        let _ = tx.send(PlayerInput::Caccaaa);
-                    }
                     'q' => {
                         break;
                     }
@@ -145,33 +159,70 @@ impl Tui {
                             Some(_) => None,
                         };
                     }
+                    'l' => {
+                        let mut map_look = map_look_arc.lock().await;
+                        *map_look = match *map_look {
+                            None => Some((0, 0)),
+                            Some(_) => None,
+                        };
+                    }
+                    'a' => {
+                        println!("CACCAAAAA");
+                        let _ = tx.send(PlayerInput::Caccaaa);
+                    }
                     _ => {}
                 }
             }
+            // Special characters
             if n == 3 {
                 match buf {
+                    // Arrow keys
                     [0x1b, b'[', b'C'] => {
-                        let mut map_zoom = map_zoom_arc.lock().await;
-                        if let Some((row, col)) = *map_zoom {
-                            *map_zoom = Some((row, std::cmp::min(col + 1, 7)));
+                        let mut map_look = map_look_arc.lock().await;
+                        if let Some((row, col)) = *map_look {
+                            *map_look = Some((row, std::cmp::min(col + 1, r#const::CENTRAL_MODULE_COLS -1)));
+                        }
+                        else {
+                            let mut map_zoom = map_zoom_arc.lock().await;
+                            if let Some((row, col)) = *map_zoom {
+                                *map_zoom = Some((row, std::cmp::min(col + 1, 7)));
+                            }
                         }
                     }
                     [0x1b, b'[', b'D'] => {
-                        let mut map_zoom = map_zoom_arc.lock().await;
-                        if let Some((row, col)) = *map_zoom {
-                            *map_zoom = Some((row, col.saturating_sub(1)));
+                        let mut map_look = map_look_arc.lock().await;
+                        if let Some((row, col)) = *map_look {
+                            *map_look = Some((row, col.saturating_sub(1)));
+                        }
+                        else {
+                            let mut map_zoom = map_zoom_arc.lock().await;
+                            if let Some((row, col)) = *map_zoom {
+                                *map_zoom = Some((row, col.saturating_sub(1)));
+                            }
                         }
                     }
                     [0x1b, b'[', b'A'] => {
-                        let mut map_zoom = map_zoom_arc.lock().await;
-                        if let Some((row, col)) = *map_zoom {
-                            *map_zoom = Some((row.saturating_sub(1), col));
+                        let mut map_look = map_look_arc.lock().await;
+                        if let Some((row, col)) = *map_look {
+                            *map_look = Some((row.saturating_sub(1), col));
+                        }
+                        else {
+                            let mut map_zoom = map_zoom_arc.lock().await;
+                            if let Some((row, col)) = *map_zoom {
+                                *map_zoom = Some((row.saturating_sub(1), col));
+                            }
                         }
                     }
                     [0x1b, b'[', b'B'] => {
-                        let mut map_zoom = map_zoom_arc.lock().await;
-                        if let Some((row, col)) = *map_zoom {
-                            *map_zoom = Some((std::cmp::min(row + 1, 7), col));
+                        let mut map_look = map_look_arc.lock().await;
+                        if let Some((row, col)) = *map_look {
+                            *map_look = Some((std::cmp::min(row + 1, r#const::CENTRAL_MODULE_ROWS -1), col));
+                        }
+                        else {
+                            let mut map_zoom = map_zoom_arc.lock().await;
+                            if let Some((row, col)) = *map_zoom {
+                                *map_zoom = Some((std::cmp::min(row + 1, 7), col));
+                            }
                         }
                     }
                     _ => {}
