@@ -74,7 +74,7 @@ impl Tui {
 
                 Self::clear_screen();
                 canvas.print(&*game_objs, &*player_data, *map_zoom);
-                Self::update_and_print_cursor(*map_look);
+                canvas.update_and_print_cursor(*map_look);
                 let _ = std::io::stdout().flush();
             }
         });
@@ -107,19 +107,6 @@ impl Tui {
             let _ = Command::new("cmd").arg("/c").arg("cls").status();
         } else {
             let _ = Command::new("clear").status();
-        }
-    }
-
-    fn update_and_print_cursor(map_look: Option<(usize, usize)>) {
-        if let Some((row, col)) = map_look {
-            // Terminal coord are 1-indexed
-            print!(
-                "\r\x1b[{};{}H",
-                crate::r#const::CENTRAL_MOD_POS.0 + row + 1,
-                crate::r#const::CENTRAL_MOD_POS.1 + col + 1
-            );
-        } else {
-            print!("\r\x1b[0;0H");
         }
     }
 

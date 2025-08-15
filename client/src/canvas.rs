@@ -127,4 +127,18 @@ impl Canvas {
             };
         }
     }
+
+    pub fn update_and_print_cursor(&self, map_look: Option<(usize, usize)>) {
+        if let Some((row, col)) = map_look {
+            // Terminal coord are 1-indexed
+            // + 2 to account for that and the module frame
+            print!(
+                "\r\x1b[{};{}H",
+                crate::r#const::CENTRAL_MOD_POS.0 + row + self.canvas_pos.0 + 2,
+                crate::r#const::CENTRAL_MOD_POS.1 + col + self.canvas_pos.1 + 2
+            );
+        } else {
+            print!("\r\x1b[0;0H");
+        }
+    }
 }
