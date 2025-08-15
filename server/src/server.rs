@@ -6,7 +6,7 @@
 
 use std::sync::{Arc, Mutex};
 use std::thread;
-use tokio::net::TcpListener;
+use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 use crate::lobby;
@@ -16,6 +16,7 @@ use common::{self, stream};
 /// Messages sent from the main `Server` to a `Lobby` thread.
 pub enum S2L {
     IsFull(mpsc::Sender<bool>),
+    HaveClient((String, mpsc::Sender<bool>)),
     NewClient(
         ClientID,
         UnboundedSender<common::L2S4C>,
@@ -63,13 +64,24 @@ impl Server {
         while let Ok((mut stream, socket_addr)) = listener.accept().await {
             println!("Connection established, socket address:, {}", socket_addr);
 
-            client_id_cnt += 1;
             let threads_copy = self.threads.clone();
             let lobby_txs_copy = self.lobby_txs.clone();
 
             tokio::spawn(async move {
-                // ADD HERE LOGIN LOGIC BEFORE SENDING THE CLIENT TO A LOBBY
-                match Self::handle_client(threads_copy, lobby_txs_copy, client_id_cnt).await {
+                // Autentication
+                let authentication = match Self::wait_authentication(&mut stream).await {
+                    Ok(name) => {
+                        println!("[{}] Player '{}' authenticated.", socket_addr, name);
+                        name
+                    }
+                    Err(_) => {
+                        eprintln!("[{}] Authentication failed. Closing connection.", socket_addr);
+                        let _ = stream::send_msg_to_client(&mut stream, &common::S2C::ConnectionFailed).await;
+                        return;
+                    }
+                };
+                // Send the player to the lobby
+                match Self::handle_client(threads_copy, lobby_txs_copy, authentication, client_id_cnt).await {
                     Ok((client_id, client_tx, mut client_rx)) => loop {
                         match stream::get_msg_from_client(&mut stream).await {
                             Ok(msg) => match msg {
@@ -144,6 +156,7 @@ impl Server {
     async fn handle_client(
         threads: Arc<Mutex<[Option<thread::JoinHandle<()>>; MAX_LOBBIES]>>,
         lobby_txs: Arc<Mutex<[Option<mpsc::UnboundedSender<S2L>>; MAX_LOBBIES]>>,
+        autentication: &String,
         client_id_cnt: ClientID,
     ) -> Result<
         (
@@ -153,8 +166,7 @@ impl Server {
         ),
         ServerErr,
     > {
-        // Login
-        let client_id = client_id_cnt;
+        let client_id;
         let client_tx;
         let client_rx;
 
@@ -228,5 +240,18 @@ impl Server {
             }
         }
         Err(ServerErr::ServerFull)
+    }
+
+    let async wait_autentication(stream: &mut TcpStream) -> Result<(), String> {
+        let mut authentication: Result<String> = Err;
+        tokio::select!{
+            let msg = stream::get_msg_from_client(&mut stream) => {
+                if let Some(common::C2S::Login(name)) == msg {
+                    authentication = Ok(name);
+                }
+            }
+            tokio::time::sleep(tokio::time::Duration::from_millis(10000)).await => {}
+        }
+        authentication
     }
 }

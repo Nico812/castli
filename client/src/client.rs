@@ -41,19 +41,22 @@ impl Client {
         }
 
         let _name = Self::login();
-        let map = Self::ask_for_map(&mut stream).await.unwrap();
 
         let (tx1, rx1) = mpsc::unbounded_channel();
         let (tx2, rx2) = mpsc::unbounded_channel();
+        
+        // Autentication
+        let tui = tui::Tui::new();
+        let map = Self::ask_for_map(&mut stream).await.unwrap();
+        tui::Tui::login();
 
+        // Actual game starts
         let _ = tokio::spawn(async move {
             loop {
                 Self::comunicate_with_server(&mut stream, &tx1, &rx2).await;
                 tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
             }
         });
-
-        let tui = tui::Tui::new();
         tui::Tui::run(tx2, rx1, map).await;
     }
 

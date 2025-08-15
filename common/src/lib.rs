@@ -26,6 +26,7 @@ pub enum S2C {
 /// These are game-specific messages.
 #[derive(Serialize, Deserialize, Debug)]
 pub enum L2S4C {
+    CreateCastle(Vec<Vec<TileE>>),
     Map(Vec<Vec<TileE>>),
     GameObjs(HashMap<ID, GameObjE>),
     PlayerData(PlayerDataE),
