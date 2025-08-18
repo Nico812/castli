@@ -16,7 +16,6 @@ use common::{self, stream};
 /// Messages sent from the main `Server` to a `Lobby` thread.
 pub enum S2L {
     IsFull(mpsc::Sender<bool>),
-    HaveClient((String, mpsc::Sender<bool>)),
     NewClient(
         ClientID,
         UnboundedSender<common::L2S4C>,
@@ -30,9 +29,10 @@ pub enum ServerErr {
     PoisonedMutex,
     MissingLobbyTx,
     ServerFull,
+    AuthFailed,
 }
 
-pub type ClientID = u32;
+pub type ClientID = usize;
 
 pub struct Server {
     threads: Arc<Mutex<[Option<thread::JoinHandle<()>>; MAX_LOBBIES]>>,
@@ -75,22 +75,33 @@ impl Server {
                         name
                     }
                     Err(_) => {
-                        eprintln!("[{}] Authentication failed. Closing connection.", socket_addr);
-                        let _ = stream::send_msg_to_client(&mut stream, &common::S2C::ConnectionFailed).await;
+                        eprintln!(
+                            "[{}] Authentication failed. Closing connection.",
+                            socket_addr
+                        );
+                        let _ =
+                            stream::send_msg_to_client(&mut stream, &common::S2C::ConnectionFailed)
+                                .await;
                         return;
                     }
                 };
-                client_id = client_id_cnt;
+                let client_id = client_id_cnt;
                 client_id_cnt += client_id_cnt;
                 // Send the player to the lobby
-                match Self::handle_client(threads_copy, lobby_txs_copy, authentication, client_id).await {
+                match Self::handle_client(threads_copy, lobby_txs_copy, &authentication, client_id)
+                    .await
+                {
                     Ok((client_id, client_tx, mut client_rx)) => loop {
+                        println!("cazzo sta succedendo");
                         match stream::get_msg_from_client(&mut stream).await {
                             Ok(msg) => match msg {
                                 common::C2S::C2S4L(msg4l) => {
+                                    println!("got a msg");
                                     let _ = client_tx.send(msg4l);
                                 }
-                                _ => {}
+                                _ => {
+                                    println!("ricevuto messaggio inaspettato");
+                                }
                             },
                             Err(_) => {
                                 eprintln!("CLIENT (ID: {}) DISCONNECTED.", client_id);
@@ -108,6 +119,7 @@ impl Server {
                                     .await;
                                 }
                                 common::L2S4C::Map(map) => {
+                                    println!("Sending map");
                                     let _ = stream::send_msg_to_client(
                                         &mut stream,
                                         &common::S2C::L2S4C(common::L2S4C::Map(map)),
@@ -142,6 +154,7 @@ impl Server {
                                 )
                                 .await;
                             }
+                            _ => {}
                         }
                         eprintln!("\x1b[35mSERVER ERROR: {:?}\x1b[0m", err);
                     }
@@ -202,6 +215,7 @@ impl Server {
                         client_tx = tx2;
 
                         let _ = lobby_tx.send(S2L::NewClient(client_id, tx1, rx2));
+                        println!("Found an existing lobby with space for the client");
                         return Ok((client_id, client_tx, client_rx));
                     }
                 }
@@ -234,6 +248,7 @@ impl Server {
                         }
                         Ok(mut lobby_txs) => {
                             lobby_txs[iter] = Some(lobby_tx);
+                            println!("Created a new lobby with space for the client");
                             return Ok((client_id, client_tx2, client_rx1));
                         }
                     }
@@ -243,16 +258,17 @@ impl Server {
         Err(ServerErr::ServerFull)
     }
 
-    let async wait_autentication(stream: &mut TcpStream) -> Result<(), String> {
-        let mut authentication: Result<String> = Err;
-        tokio::select!{
-            let msg = stream::get_msg_from_client(&mut stream) => {
-                if let Some(common::C2S::Login(name)) == msg {
+    async fn wait_authentication(stream: &mut TcpStream) -> Result<String, ServerErr> {
+        let mut authentication = Err(ServerErr::AuthFailed);
+        tokio::select! {
+            msg = stream::get_msg_from_client(stream) => {
+                if let Ok(common::C2S::Login(name)) = msg {
                     authentication = Ok(name);
                 }
+            },
+            _ = tokio::time::sleep(tokio::time::Duration::from_millis(10000)) => {
             }
-            tokio::time::sleep(tokio::time::Duration::from_millis(10000)).await => {}
-        }
+        };
         authentication
     }
 }

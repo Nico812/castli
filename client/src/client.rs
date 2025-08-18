@@ -40,24 +40,22 @@ impl Client {
             println!("Connection established");
         }
 
-        let _name = Self::login();
-
         let (tx1, rx1) = mpsc::unbounded_channel();
         let (tx2, rx2) = mpsc::unbounded_channel();
-        
+
         // Autentication
-        let tui = tui::Tui::new();
-        let map = Self::ask_for_map(&mut stream).await.unwrap();
-        tui::Tui::login();
+        let name = tui::Tui::login();
+        let _ = common::stream::send_msg_to_server(&mut stream, &common::C2S::Login(name)).await;
 
         // Actual game starts
+        let map = Self::ask_for_map(&mut stream).await.unwrap();
+        let _tui = tui::Tui::new(tx2, rx1, map).await;
         let _ = tokio::spawn(async move {
             loop {
                 Self::comunicate_with_server(&mut stream, &tx1, &rx2).await;
                 tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
             }
         });
-        tui::Tui::run(tx2, rx1, map).await;
     }
 
     /// Handles the ongoing communication with the server.
@@ -67,7 +65,7 @@ impl Client {
     async fn comunicate_with_server(
         stream: &mut TcpStream,
         tui_tx: &mpsc::UnboundedSender<common::S2C>,
-        tui_rx: &mpsc::UnboundedReceiver<tui::PlayerInput>,
+        tui_rx: &mpsc::UnboundedReceiver<tui::T2C>,
     ) {
         let _ = common::stream::send_msg_to_server(
             stream,
@@ -96,20 +94,17 @@ impl Client {
         }
     }
 
-    fn login() -> String {
-        let mut input = String::new();
-
-        println!("Login:");
-
-        std::io::stdin().read_line(&mut input).unwrap();
-
-        input.trim().to_string()
-    }
-
     async fn ask_for_map(stream: &mut TcpStream) -> Result<Vec<Vec<common::TileE>>, ClientErr> {
+        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+        println!("sending map request");
         let _ =
             common::stream::send_msg_to_server(stream, &common::C2S::C2S4L(common::C2S4L::GiveMap))
                 .await;
+
+        let _ =
+            common::stream::send_msg_to_server(stream, &common::C2S::C2S4L(common::C2S4L::GiveMap))
+                .await;
+
         match common::stream::get_msg_from_server(stream).await {
             Err(_) => Err(ClientErr::MapNotReceived),
             Ok(msg) => match msg {

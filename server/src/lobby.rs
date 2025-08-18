@@ -69,13 +69,10 @@ impl Lobby {
                     self.listen_clients().await;
                 }
                 _ = game_tick.tick() => {
-                    self.step();
                 }
             }
         }
     }
-
-    fn step(&mut self) {}
 
     async fn add_client(
         &mut self,
@@ -129,22 +126,27 @@ impl Lobby {
                 match msg {
                     common::C2S4L::NewCastle(pos) => {
                         println!("Player requested to build a new castle, ID: {}", client_id);
-                        self.game.players[client_id].new_castle(pos);
+                        if let Some(Some(player)) = self.players.get_mut(*client_id) {
+                            player.new_castle(pos)
+                        };
                     }
                     common::C2S4L::GiveMap => {
                         println!("Player requested to give map, ID: {}", client_id);
                         let _ = client_tx.send(common::L2S4C::Map(self.game.export_map()));
                     }
                     common::C2S4L::GiveObjs => {
-                        println!("objs request");
+                        println!("Player requested to give objs, ID: {}", client_id);
                         let _ = client_tx.send(common::L2S4C::GameObjs(self.game.export_objs()));
                     }
                     common::C2S4L::GivePlayerData => {
-                        if !self.players[client_id].has_castle() continue;
-
-                        let _ = client_tx.send(common::L2S4C::PlayerData(
-                            self.game.export_player_data(*client_id),
-                        ));
+                        println!("Player requested to give player data, ID: {}", client_id);
+                        if let Some(Some(player)) = self.players.get(*client_id) {
+                            if player.has_castle() {
+                                let _ = client_tx.send(common::L2S4C::PlayerData(
+                                    self.game.export_player_data(*client_id),
+                                ));
+                            }
+                        };
                     }
                 };
             }

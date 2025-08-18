@@ -14,12 +14,13 @@ impl Player {
         Self { name, pos: None }
     }
 
-    pub fn has_castle(&self) {
-        pos.is_some()
+    pub fn has_castle(&self) -> bool {
+        self.pos.is_some()
     }
 
     pub fn new_castle(&mut self, pos: (usize, usize)) {
-        self.pos = pos;
+        self.pos = Some(pos);
         println!("New castle created by {}", self.name);
     }
 }
+

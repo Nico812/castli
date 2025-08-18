@@ -11,17 +11,59 @@ use tokio::{
 };
 
 use crate::canvas;
-use common;
+use common::{self, stream};
 
-pub enum PlayerInput {
-    Caccaaa,
+pub enum T2C {
+    NewCastle((usize, usize)),
 }
 
 pub struct Tui {}
 
 impl Tui {
-    pub fn new() -> Self {
+    pub async fn new(
+        tx: mpsc::UnboundedSender<T2C>,
+        mut rx: mpsc::UnboundedReceiver<common::S2C>,
+        tiles: Vec<Vec<common::TileE>>,
+    ) -> Self {
+        let map_zoom = Some((0, 0));
+        let map_look = None;
+        let mut game_objs = None;
+        let mut player_data = None;
+
+        // Waiting first required data from the server
+        while game_objs.is_none() {
+            match rx.recv().await.unwrap() {
+                common::S2C::L2S4C(common::L2S4C::GameObjs(objs)) => {
+                    println!("got objs");
+                    game_objs = Some(objs);
+                }
+                _ => {}
+            }
+        }
+
+        let _ = tx.send(T2C::NewCastle((1, 3)));
+
+        while player_data.is_none() {
+            match rx.recv().await.unwrap() {
+                common::S2C::L2S4C(common::L2S4C::PlayerData(data)) => {
+                    println!("got player data");
+                    player_data = Some(data);
+                }
+                _ => {}
+            }
+        }
+
         Self::set_raw_mode();
+        Self::run(
+            tx,
+            rx,
+            tiles,
+            map_zoom,
+            map_look,
+            game_objs.unwrap(),
+            player_data.unwrap(),
+        )
+        .await;
         Self {}
     }
 
@@ -29,34 +71,23 @@ impl Tui {
     ///
     /// This function spawns tasks for rendering the UI and handling communication
     /// with the main client logic. It also contains the player input loop.
-    pub async fn run(
-        tx: mpsc::UnboundedSender<PlayerInput>,
+    async fn run(
+        tx: mpsc::UnboundedSender<T2C>,
         mut rx: mpsc::UnboundedReceiver<common::S2C>,
         tiles: Vec<Vec<common::TileE>>,
+        map_zoom: Option<(usize, usize)>,
+        map_look: Option<(usize, usize)>,
+        game_objs: HashMap<usize, common::GameObjE>,
+        player_data: common::PlayerDataE,
     ) {
-        let map_zoom: Option<(usize, usize)> = Some((0, 0));
         let map_zoom_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(map_zoom));
         let map_zoom_arc1 = std::sync::Arc::clone(&map_zoom_arc0);
-
-        let map_look: Option<(usize, usize)> = None;
         let map_look_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(map_look));
         let map_look_arc1 = std::sync::Arc::clone(&map_look_arc0);
 
-        let mut game_objs: Option<HashMap<u32, common::GameObjE>> = None;
-        let mut player_data: Option<common::PlayerDataE> = None;
-
-        // Waiting first required data from the server
-        while game_objs.is_none() || player_data.is_none() {
-            match rx.recv().await.unwrap() {
-                common::S2C::L2S4C(common::L2S4C::GameObjs(objs)) => game_objs = Some(objs),
-                common::S2C::L2S4C(common::L2S4C::PlayerData(data)) => player_data = Some(data),
-                _ => {}
-            }
-        }
-
-        let game_objs_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(game_objs.unwrap()));
+        let game_objs_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(game_objs));
         let game_objs_arc1 = std::sync::Arc::clone(&game_objs_arc0);
-        let player_data_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(player_data.unwrap()));
+        let player_data_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(player_data));
         let player_data_arc1 = std::sync::Arc::clone(&player_data_arc0);
 
         // Actual UI
@@ -102,6 +133,16 @@ impl Tui {
         Self::reset_mode();
     }
 
+    pub fn login() -> String {
+        let mut input = String::new();
+
+        println!("Login:");
+
+        std::io::stdin().read_line(&mut input).unwrap();
+
+        input.trim().to_string()
+    }
+
     fn clear_screen() {
         if cfg!(target_os = "windows") {
             let _ = Command::new("cmd").arg("/c").arg("cls").status();
@@ -126,7 +167,7 @@ impl Tui {
     }
 
     async fn handle_player_input(
-        tx: mpsc::UnboundedSender<PlayerInput>,
+        tx: mpsc::UnboundedSender<T2C>,
         map_zoom_arc: std::sync::Arc<tokio::sync::Mutex<Option<(usize, usize)>>>,
         map_look_arc: std::sync::Arc<tokio::sync::Mutex<Option<(usize, usize)>>>,
     ) {
@@ -154,7 +195,6 @@ impl Tui {
                     }
                     'a' => {
                         println!("CACCAAAAA");
-                        let _ = tx.send(PlayerInput::Caccaaa);
                     }
                     _ => {}
                 }
