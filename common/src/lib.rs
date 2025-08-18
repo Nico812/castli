@@ -26,7 +26,6 @@ pub enum S2C {
 /// These are game-specific messages.
 #[derive(Serialize, Deserialize, Debug)]
 pub enum L2S4C {
-    CreateCastle(Vec<Vec<TileE>>),
     Map(Vec<Vec<TileE>>),
     GameObjs(HashMap<ID, GameObjE>),
     PlayerData(PlayerDataE),
@@ -37,12 +36,12 @@ pub enum L2S4C {
 pub enum C2S {
     C2S4L(C2S4L),
     Login(String),
-    NewCastle((usize, usize)),
 }
 
 /// Represents messages sent from a Client, to the Server, for the Lobby (C2S4L).
 #[derive(Serialize, Deserialize, Debug)]
 pub enum C2S4L {
+    NewCastle((usize, usize)),
     GiveObjs,
     GiveMap,
     GivePlayerData,

@@ -80,8 +80,10 @@ impl Server {
                         return;
                     }
                 };
+                client_id = client_id_cnt;
+                client_id_cnt += client_id_cnt;
                 // Send the player to the lobby
-                match Self::handle_client(threads_copy, lobby_txs_copy, authentication, client_id_cnt).await {
+                match Self::handle_client(threads_copy, lobby_txs_copy, authentication, client_id).await {
                     Ok((client_id, client_tx, mut client_rx)) => loop {
                         match stream::get_msg_from_client(&mut stream).await {
                             Ok(msg) => match msg {
@@ -157,7 +159,7 @@ impl Server {
         threads: Arc<Mutex<[Option<thread::JoinHandle<()>>; MAX_LOBBIES]>>,
         lobby_txs: Arc<Mutex<[Option<mpsc::UnboundedSender<S2L>>; MAX_LOBBIES]>>,
         autentication: &String,
-        client_id_cnt: ClientID,
+        client_id: ClientID,
     ) -> Result<
         (
             ClientID,
@@ -166,7 +168,6 @@ impl Server {
         ),
         ServerErr,
     > {
-        let client_id;
         let client_tx;
         let client_rx;
 

@@ -127,6 +127,10 @@ impl Lobby {
         for (client_id, (client_tx, client_rx)) in self.clients.iter_mut() {
             if let Ok(msg) = client_rx.try_recv() {
                 match msg {
+                    common::C2S4L::NewCastle(pos) => {
+                        println!("Player requested to build a new castle, ID: {}", client_id);
+                        self.game.players[client_id].new_castle(pos);
+                    }
                     common::C2S4L::GiveMap => {
                         println!("Player requested to give map, ID: {}", client_id);
                         let _ = client_tx.send(common::L2S4C::Map(self.game.export_map()));
@@ -136,6 +140,8 @@ impl Lobby {
                         let _ = client_tx.send(common::L2S4C::GameObjs(self.game.export_objs()));
                     }
                     common::C2S4L::GivePlayerData => {
+                        if !self.players[client_id].has_castle() continue;
+
                         let _ = client_tx.send(common::L2S4C::PlayerData(
                             self.game.export_player_data(*client_id),
                         ));
