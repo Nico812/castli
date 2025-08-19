@@ -7,16 +7,16 @@
 use crate::{C2S, S2C};
 use serde_json;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::net::tcp::{ReadHalf, WriteHalf};
+use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 
-pub async fn send_msg_to_server(stream: &mut WriteHalf<'_>, msg: &C2S) -> tokio::io::Result<()> {
+pub async fn send_msg_to_server(stream: &mut OwnedWriteHalf, msg: &C2S) -> tokio::io::Result<()> {
     let json = serde_json::to_string(msg).expect("Serialization failed");
     stream.write_all(json.as_bytes()).await?;
     stream.write_all(b"\n").await?;
     Ok(())
 }
 
-pub async fn send_msg_to_client(stream: &mut WriteHalf<'_>, msg: &S2C) -> tokio::io::Result<()> {
+pub async fn send_msg_to_client(stream: &mut OwnedWriteHalf, msg: &S2C) -> tokio::io::Result<()> {
     let json = serde_json::to_string(msg).expect("Serialization failed");
     stream.write_all(json.as_bytes()).await?;
     stream.write_all(b"\n").await?;
@@ -24,7 +24,7 @@ pub async fn send_msg_to_client(stream: &mut WriteHalf<'_>, msg: &S2C) -> tokio:
 }
 
 pub async fn get_msg_from_server(
-    reader: &mut BufReader<ReadHalf<'_>>,
+    reader: &mut BufReader<OwnedReadHalf>,
 ) -> Result<S2C, serde_json::Error> {
     let mut buf = String::new();
     reader.read_line(&mut buf).await.unwrap();
@@ -32,7 +32,7 @@ pub async fn get_msg_from_server(
 }
 
 pub async fn get_msg_from_client(
-    reader: &mut BufReader<ReadHalf<'_>>,
+    reader: &mut BufReader<OwnedReadHalf>,
 ) -> Result<C2S, serde_json::Error> {
     let mut buf = String::new();
     reader.read_line(&mut buf).await.unwrap();
