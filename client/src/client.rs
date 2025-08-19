@@ -5,6 +5,7 @@
 //! client application, such as the TUI and server communication.
 use std::collections::HashMap;
 use tokio::{self, io::BufReader, net::TcpStream, sync::mpsc};
+use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 
 use crate::tui;
 use common;
@@ -65,8 +66,8 @@ impl Client {
     /// This function is typically run in a loop to periodically request updates
     /// from the server and send player input.
     async fn comunicate_with_server(
-        writer: &mut tokio::net::tcp::WriteHalf<'_>,
-        reader: &mut tokio::io::BufReader<tokio::net::tcp::ReadHalf<'_>>,
+        writer: &mut OwnedWriteHalf,
+        reader: &mut BufReader<OwnedReadHalf>,
         tui_tx: &mpsc::UnboundedSender<common::S2C>,
         tui_rx: &mpsc::UnboundedReceiver<tui::T2C>,
     ) {
@@ -98,8 +99,8 @@ impl Client {
     }
 
     async fn ask_for_map(
-        writer: &mut tokio::net::tcp::WriteHalf<'_>,
-        reader: &mut tokio::io::BufReader<tokio::net::tcp::ReadHalf<'_>>,
+        writer: &mut OwnedWriteHalf,
+        reader: &mut BufReader<OwnedReadHalf>,
     ) -> Result<Vec<Vec<common::TileE>>, ClientErr> {
         tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
         println!("sending map request");

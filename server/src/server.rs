@@ -88,7 +88,7 @@ impl Server {
                         return;
                     }
                 };
-                let client_id = client_id_cnt;
+                let client_id = 1;
                 client_id_cnt += client_id_cnt;
                 // Send the player to the lobby
                 match Self::handle_client(threads_copy, lobby_txs_copy, &authentication, client_id)
@@ -261,7 +261,7 @@ impl Server {
         Err(ServerErr::ServerFull)
     }
 
-    async fn wait_authentication(buf_reader: &mut BufReader<tokio::net::tcp::ReadHalf<'_>>,) -> Result<String, ServerErr> {
+    async fn wait_authentication(buf_reader: &mut BufReader<OwnedReadHalf>,) -> Result<String, ServerErr> {
         let mut authentication = Err(ServerErr::AuthFailed);
         tokio::select! {
             msg = stream::get_msg_from_client(buf_reader) => {
