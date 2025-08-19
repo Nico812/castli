@@ -100,7 +100,7 @@ impl Client {
 
     async fn ask_for_map(
         writer: &mut OwnedWriteHalf,
-        reader: &mut BufReader<OwnedReadHalf>,
+        buf_reader: &mut BufReader<OwnedReadHalf>,
     ) -> Result<Vec<Vec<common::TileE>>, ClientErr> {
         tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
         println!("sending map request");
