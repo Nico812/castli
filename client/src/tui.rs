@@ -1,261 +1,170 @@
-//! # Terminal User Interface (TUI)
+//! # Client Core Logic
 //!
-//! This module manages the entire terminal user interface. It handles raw mode,
-//! rendering the game state to the terminal using the `canvas`, and processing
-//! player input.
+//! This module contains the `Client` struct, which manages the client's
+//! connection to the server and orchestrates the different parts of the
+//! client application, such as the TUI and server communication.
+use std::collections::HashMap;
+use tokio::{self, io::BufReader, net::TcpStream, sync::mpsc};
+use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 
-use std::{collections::HashMap, io::Write, process::Command};
-use tokio::{
-    io::{self, AsyncReadExt},
-    sync::mpsc,
-};
+use crate::tui;
+use common;
+use common::r#const;
 
-use crate::canvas;
-use common::{self, stream};
-
-pub enum T2C {
-    NewCastle((usize, usize)),
+#[derive(Debug)]
+pub enum ClientErr {
+    ConnectionFailed,
+    DataNotReceived,
 }
 
-pub struct Tui {}
+//==============================================================================================
+//  Client Connection
+//==============================================================================================
 
-impl Tui {
-    pub async fn new(
-        tx: mpsc::UnboundedSender<T2C>,
-        mut rx: mpsc::UnboundedReceiver<common::S2C>,
-        tiles: Vec<Vec<common::TileE>>,
-    ) -> Self {
-        let map_zoom = Some((0, 0));
-        let map_look = None;
-        let mut game_objs = None;
-        let mut player_data = None;
+/// Manages the state and logic for the TCP connection to the server.
+struct ClientConnection {
+    writer: OwnedWriteHalf,
+    reader: BufReader<OwnedReadHalf>,
+}
 
-        // Waiting first required data from the server
-        while game_objs.is_none() {
-            match rx.recv().await.unwrap() {
-                common::S2C::L2S4C(common::L2S4C::GameObjs(objs)) => {
-                    println!("got objs");
-                    game_objs = Some(objs);
+impl ClientConnection {
+    /// Handles the ongoing communication with the server in a loop.
+    async fn communicate_with_server(
+        &mut self,
+        s2c_tx: &mpsc::UnboundedSender<common::S2C>,
+        t2c_rx: &mut mpsc::UnboundedReceiver<tui::T2C>,
+    ) {
+        tokio::select! {
+            // Check for messages from the TUI to send to the server
+            Some(msg_from_tui) = t2c_rx.recv() => {
+                let msg = match msg_from_tui {
+                    tui::T2C::NewCastle(pos) => common::C2S::C2S4L(common::C2S4L::NewCastle(pos))
+                };
+                let _ = common::stream::send_msg_to_server(&mut self.writer, &msg).await;
+            },
+            // Otherwise, run the periodic update requests
+            _ = tokio::time::sleep(tokio::time::Duration::from_secs(1)) => {
+                // Request game objects
+                let _ = common::stream::send_msg_to_server(
+                    &mut self.writer,
+                    &common::C2S::C2S4L(common::C2S4L::GiveObjs),
+                ).await;
+                if let Ok(msg) = common::stream::get_msg_from_server(&mut self.reader).await {
+                    let _ = s2c_tx.send(msg);
                 }
-                _ => {}
+
+                // Request player data
+                let _ = common::stream::send_msg_to_server(
+                    &mut self.writer,
+                    &common::C2S::C2S4L(common::C2S4L::GivePlayerData),
+                ).await;
+                if let Ok(msg) = common::stream::get_msg_from_server(&mut self.reader).await {
+                    let _ = s2c_tx.send(msg);
+                }
             }
         }
+    }
 
-        let _ = tx.send(T2C::NewCastle((1, 3)));
+    /// Makes the initial request to get the game map from the server.
+    async fn ask_for_map(&mut self) -> Result<Vec<Vec<common::TileE>>, ClientErr> {
+        let _ =
+            common::stream::send_msg_to_server(&mut self.writer, &common::C2S::C2S4L(common::C2S4L::GiveMap))
+                .await;
 
-        while player_data.is_none() {
-            match rx.recv().await.unwrap() {
-                common::S2C::L2S4C(common::L2S4C::PlayerData(data)) => {
-                    println!("got player data");
-                    player_data = Some(data);
-                }
-                _ => {}
-            }
+        match common::stream::get_msg_from_server(&mut self.reader).await {
+            Ok(common::S2C::L2S4C(common::L2S4C::Map(map))) => Ok(map),
+            _ => Err(ClientErr::DataNotReceived),
         }
+    }
 
-        Self::set_raw_mode();
-        Self::run(
-            tx,
-            rx,
-            tiles,
-            map_zoom,
-            map_look,
-            game_objs.unwrap(),
-            player_data.unwrap(),
-        )
-        .await;
+    /// Fetches the initial game objects and player data required to start the TUI.
+    async fn fetch_initial_state(
+        &mut self,
+    ) -> Result<(HashMap<usize, common::GameObjE>, common::PlayerDataE), ClientErr> {
+        // Request game objects
+        let _ = common::stream::send_msg_to_server(
+            &mut self.writer,
+            &common::C2S::C2S4L(common::C2S4L::GiveObjs),
+        ).await;
+        let game_objs = match common::stream::get_msg_from_server(&mut self.reader).await {
+            Ok(common::S2C::L2S4C(common::L2S4C::GameObjs(objs))) => objs,
+            _ => return Err(ClientErr::DataNotReceived),
+        };
+
+        // Request player data (this is a placeholder until the castle is built)
+        let _ = common::stream::send_msg_to_server(
+            &mut self.writer,
+            &common::C2S::C2S4L(common::C2S4L::GivePlayerData),
+        ).await;
+        let player_data = match common::stream::get_msg_from_server(&mut self.reader).await {
+            Ok(common::S2C::L2S4C(common::L2S4C::PlayerData(data))) => data,
+            _ => return Err(ClientErr::DataNotReceived),
+        };
+
+        Ok((game_objs, player_data))
+    }
+}
+
+
+//==============================================================================================
+//  Client
+//==============================================================================================
+
+/// The main Client struct acts as the application's orchestrator.
+pub struct Client {}
+
+impl Client {
+    pub fn new() -> Self {
         Self {}
     }
 
-    /// Runs the main TUI loop.
-    ///
-    /// This function spawns tasks for rendering the UI and handling communication
-    /// with the main client logic. It also contains the player input loop.
-    async fn run(
-        tx: mpsc::UnboundedSender<T2C>,
-        mut rx: mpsc::UnboundedReceiver<common::S2C>,
-        tiles: Vec<Vec<common::TileE>>,
-        map_zoom: Option<(usize, usize)>,
-        map_look: Option<(usize, usize)>,
-        game_objs: HashMap<usize, common::GameObjE>,
-        player_data: common::PlayerDataE,
-    ) {
-        let map_zoom_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(map_zoom));
-        let map_zoom_arc1 = std::sync::Arc::clone(&map_zoom_arc0);
-        let map_look_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(map_look));
-        let map_look_arc1 = std::sync::Arc::clone(&map_look_arc0);
+    /// Runs the main client application.
+    pub async fn run(&mut self) {
+        // 1. Connect to the Server
+        let addr = if r#const::ONLINE { r#const::IP_LOCAL } else { r#const::IP_LOCAL };
+        let stream = match TcpStream::connect(addr).await {
+            Ok(s) => s,
+            Err(e) => {
+                println!("Failed to connect to server: {}", e);
+                return;
+            }
+        };
+        let (reader, mut writer) = stream.into_split();
+        
+        // 2. Authenticate
+        println!("Connection established. Please log in.");
+        let name = tui::Tui::login();
+        let _ = common::stream::send_msg_to_server(&mut writer, &common::C2S::Login(name)).await;
 
-        let game_objs_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(game_objs));
-        let game_objs_arc1 = std::sync::Arc::clone(&game_objs_arc0);
-        let player_data_arc0 = std::sync::Arc::new(tokio::sync::Mutex::new(player_data));
-        let player_data_arc1 = std::sync::Arc::clone(&player_data_arc0);
+        // 3. Create the connection manager
+        let mut connection = ClientConnection {
+            writer,
+            reader: BufReader::new(reader),
+        };
 
-        // Actual UI
-        let ui_handle = tokio::spawn(async move {
-            let mut canvas = canvas::Canvas::new();
-            canvas.init(&tiles);
+        // 4. Fetch all initial state required for the TUI
+        println!("Fetching initial game state...");
+        let map = connection.ask_for_map().await.expect("Failed to receive map.");
+        let (initial_objs, initial_data) = connection.fetch_initial_state().await.expect("Failed to receive initial state.");
+        println!("Game state received.");
 
+        // 5. Set up communication channels
+        let (s2c_tx, s2c_rx) = mpsc::unbounded_channel(); // Server -> TUI
+        let (t2c_tx, mut t2c_rx) = mpsc::unbounded_channel(); // TUI -> Server
+
+        // 6. Spawn the dedicated network task
+        let communication_handle = tokio::spawn(async move {
             loop {
-                tokio::time::sleep(tokio::time::Duration::from_millis(1000 / 60)).await;
-
-                let game_objs = game_objs_arc0.lock().await;
-                let player_data = player_data_arc0.lock().await;
-                let map_zoom = map_zoom_arc0.lock().await;
-                let map_look = map_look_arc0.lock().await;
-
-                Self::clear_screen();
-                canvas.print(&*game_objs, &*player_data, *map_zoom);
-                canvas.update_and_print_cursor(*map_look);
-                let _ = std::io::stdout().flush();
+                connection.communicate_with_server(&s2c_tx, &mut t2c_rx).await;
             }
         });
 
-        // Comunication with client uberstruct
-        let com_handle = tokio::spawn(async move {
-            while let Some(msg) = rx.recv().await {
-                match msg {
-                    common::S2C::L2S4C(common::L2S4C::GameObjs(objs)) => {
-                        *game_objs_arc1.lock().await = objs;
-                    }
-                    common::S2C::L2S4C(common::L2S4C::PlayerData(data)) => {
-                        *player_data_arc1.lock().await = data;
-                    }
-                    _ => {}
-                }
-            }
-        });
+        // 7. Create and run the TUI. The main thread will now be dedicated to the UI.
+        let tui = tui::Tui::new(t2c_tx, s2c_rx, map, initial_objs, initial_data);
+        tui.run().await; // This blocks until the user quits the TUI.
 
-        Self::handle_player_input(tx, map_zoom_arc1, map_look_arc1).await;
-
-        let _ = com_handle.abort();
-        let _ = ui_handle.abort();
-
-        Self::reset_mode();
-    }
-
-    pub fn login() -> String {
-        let mut input = String::new();
-
-        println!("Login:");
-
-        std::io::stdin().read_line(&mut input).unwrap();
-
-        input.trim().to_string()
-    }
-
-    fn clear_screen() {
-        if cfg!(target_os = "windows") {
-            let _ = Command::new("cmd").arg("/c").arg("cls").status();
-        } else {
-            let _ = Command::new("clear").status();
-        }
-    }
-
-    fn set_raw_mode() {
-        Command::new("stty")
-            .arg("raw")
-            .arg("-echo")
-            .status()
-            .expect("Failed to set terminal to raw mode");
-    }
-
-    fn reset_mode() {
-        Command::new("stty")
-            .arg("sane")
-            .status()
-            .expect("Failed to reset terminal mode");
-    }
-
-    async fn handle_player_input(
-        tx: mpsc::UnboundedSender<T2C>,
-        map_zoom_arc: std::sync::Arc<tokio::sync::Mutex<Option<(usize, usize)>>>,
-        map_look_arc: std::sync::Arc<tokio::sync::Mutex<Option<(usize, usize)>>>,
-    ) {
-        loop {
-            let mut buf = [0u8; 3];
-            let n = io::stdin().read(&mut buf).await.unwrap();
-            if n == 1 {
-                match buf[0] as char {
-                    'q' => {
-                        break;
-                    }
-                    'z' => {
-                        let mut map_zoom = map_zoom_arc.lock().await;
-                        *map_zoom = match *map_zoom {
-                            None => Some((0, 0)),
-                            Some(_) => None,
-                        };
-                    }
-                    'l' => {
-                        let mut map_look = map_look_arc.lock().await;
-                        *map_look = match *map_look {
-                            None => Some((0, 0)),
-                            Some(_) => None,
-                        };
-                    }
-                    'a' => {
-                        println!("CACCAAAAA");
-                    }
-                    _ => {}
-                }
-            }
-            // Special characters
-            if n == 3 {
-                match buf {
-                    // Arrow keys
-                    [0x1b, b'[', b'C'] => {
-                        let mut map_look = map_look_arc.lock().await;
-                        if let Some((row, col)) = *map_look {
-                            *map_look = Some((
-                                row,
-                                std::cmp::min(col + 1, crate::r#const::CENTRAL_MODULE_COLS - 1),
-                            ));
-                        } else {
-                            let mut map_zoom = map_zoom_arc.lock().await;
-                            if let Some((row, col)) = *map_zoom {
-                                *map_zoom = Some((row, std::cmp::min(col + 1, 7)));
-                            }
-                        }
-                    }
-                    [0x1b, b'[', b'D'] => {
-                        let mut map_look = map_look_arc.lock().await;
-                        if let Some((row, col)) = *map_look {
-                            *map_look = Some((row, col.saturating_sub(1)));
-                        } else {
-                            let mut map_zoom = map_zoom_arc.lock().await;
-                            if let Some((row, col)) = *map_zoom {
-                                *map_zoom = Some((row, col.saturating_sub(1)));
-                            }
-                        }
-                    }
-                    [0x1b, b'[', b'A'] => {
-                        let mut map_look = map_look_arc.lock().await;
-                        if let Some((row, col)) = *map_look {
-                            *map_look = Some((row.saturating_sub(1), col));
-                        } else {
-                            let mut map_zoom = map_zoom_arc.lock().await;
-                            if let Some((row, col)) = *map_zoom {
-                                *map_zoom = Some((row.saturating_sub(1), col));
-                            }
-                        }
-                    }
-                    [0x1b, b'[', b'B'] => {
-                        let mut map_look = map_look_arc.lock().await;
-                        if let Some((row, col)) = *map_look {
-                            *map_look = Some((
-                                std::cmp::min(row + 1, crate::r#const::CENTRAL_MODULE_ROWS - 1),
-                                col,
-                            ));
-                        } else {
-                            let mut map_zoom = map_zoom_arc.lock().await;
-                            if let Some((row, col)) = *map_zoom {
-                                *map_zoom = Some((std::cmp::min(row + 1, 7), col));
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-            }
-        }
+        // 8. Cleanup
+        communication_handle.abort();
+        println!("\nClient shutting down. Goodbye!");
     }
 }
