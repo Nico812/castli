@@ -6,6 +6,7 @@
 
 use std::sync::{Arc, Mutex};
 use std::thread;
+use tokio::io::BufReader;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
@@ -68,8 +69,10 @@ impl Server {
             let lobby_txs_copy = self.lobby_txs.clone();
 
             tokio::spawn(async move {
+                let (reader, mut writer) = stream.into_split();
+                let mut buf_reader = BufReader::new(reader);
                 // Autentication
-                let authentication = match Self::wait_authentication(&mut stream).await {
+                let authentication = match Self::wait_authentication(&mut buf_reader).await {
                     Ok(name) => {
                         println!("[{}] Player '{}' authenticated.", socket_addr, name);
                         name
@@ -80,7 +83,7 @@ impl Server {
                             socket_addr
                         );
                         let _ =
-                            stream::send_msg_to_client(&mut stream, &common::S2C::ConnectionFailed)
+                            stream::send_msg_to_client(&mut writer, &common::S2C::ConnectionFailed)
                                 .await;
                         return;
                     }
@@ -93,7 +96,7 @@ impl Server {
                 {
                     Ok((client_id, client_tx, mut client_rx)) => loop {
                         println!("cazzo sta succedendo");
-                        match stream::get_msg_from_client(&mut stream).await {
+                        match stream::get_msg_from_client(&mut buf_reader).await {
                             Ok(msg) => match msg {
                                 common::C2S::C2S4L(msg4l) => {
                                     println!("got a msg");
@@ -113,7 +116,7 @@ impl Server {
                             match msg {
                                 common::L2S4C::GameObjs(objs) => {
                                     let _ = stream::send_msg_to_client(
-                                        &mut stream,
+                                        &mut writer,
                                         &common::S2C::L2S4C(common::L2S4C::GameObjs(objs)),
                                     )
                                     .await;
@@ -121,14 +124,14 @@ impl Server {
                                 common::L2S4C::Map(map) => {
                                     println!("Sending map");
                                     let _ = stream::send_msg_to_client(
-                                        &mut stream,
+                                        &mut writer,
                                         &common::S2C::L2S4C(common::L2S4C::Map(map)),
                                     )
                                     .await;
                                 }
                                 common::L2S4C::PlayerData(player_data) => {
                                     let _ = stream::send_msg_to_client(
-                                        &mut stream,
+                                        &mut writer,
                                         &common::S2C::L2S4C(common::L2S4C::PlayerData(player_data)),
                                     )
                                     .await;
@@ -141,7 +144,7 @@ impl Server {
                         match err {
                             ServerErr::MissingLobbyTx | ServerErr::PoisonedMutex => {
                                 let _ = stream::send_msg_to_client(
-                                    &mut stream,
+                                    &mut writer,
                                     &common::S2C::ConnectionFailed,
                                 )
                                 .await;
@@ -149,7 +152,7 @@ impl Server {
 
                             ServerErr::ServerFull => {
                                 let _ = stream::send_msg_to_client(
-                                    &mut stream,
+                                    &mut writer,
                                     &common::S2C::ServerFull,
                                 )
                                 .await;
@@ -258,10 +261,10 @@ impl Server {
         Err(ServerErr::ServerFull)
     }
 
-    async fn wait_authentication(stream: &mut TcpStream) -> Result<String, ServerErr> {
+    async fn wait_authentication(buf_reader: &mut BufReader<tokio::net::tcp::ReadHalf<'_>>,) -> Result<String, ServerErr> {
         let mut authentication = Err(ServerErr::AuthFailed);
         tokio::select! {
-            msg = stream::get_msg_from_client(stream) => {
+            msg = stream::get_msg_from_client(buf_reader) => {
                 if let Ok(common::C2S::Login(name)) = msg {
                     authentication = Ok(name);
                 }
