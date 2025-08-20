@@ -7,7 +7,10 @@
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tokio::io::BufReader;
-use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf, TcpListener};
+use tokio::net::{
+    TcpListener,
+    tcp::{OwnedReadHalf, OwnedWriteHalf},
+};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 use crate::lobby;
@@ -54,7 +57,13 @@ impl LobbyManager {
     async fn assign_client_to_lobby(
         &self,
         client_id: ClientID,
-    ) -> Result<(UnboundedSender<common::C2S4L>, UnboundedReceiver<common::L2S4C>), ServerErr> {
+    ) -> Result<
+        (
+            UnboundedSender<common::C2S4L>,
+            UnboundedReceiver<common::L2S4C>,
+        ),
+        ServerErr,
+    > {
         // First, check for an existing lobby with space
         for i in 0..MAX_LOBBIES {
             let lobby_tx = self.lobby_txs.lock().unwrap()[i].clone();
@@ -79,12 +88,15 @@ impl LobbyManager {
             if threads_guard[i].is_none() {
                 let (lobby_tx, lobby_rx) = mpsc::unbounded_channel();
                 let mut lobby = lobby::Lobby::new();
-                
+
                 threads_guard[i] = Some(thread::spawn(move || {
-                    let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .unwrap();
                     rt.block_on(async move { lobby.run(lobby_rx).await });
                 }));
-                
+
                 lobby_txs_guard[i] = Some(lobby_tx.clone());
 
                 let (c2s_tx, c2s_rx) = mpsc::unbounded_channel();
@@ -97,7 +109,6 @@ impl LobbyManager {
         Err(ServerErr::ServerFull)
     }
 }
-
 
 //==============================================================================================
 //  Client Handler
@@ -142,7 +153,6 @@ impl ClientHandler {
     }
 }
 
-
 //==============================================================================================
 //  Server
 //==============================================================================================
@@ -183,7 +193,9 @@ impl Server {
                     }
                     Err(_) => {
                         eprintln!("[{}] Authentication failed.", socket_addr);
-                        let _ = stream::send_msg_to_client(&mut writer, &common::S2C::ConnectionFailed).await;
+                        let _ =
+                            stream::send_msg_to_client(&mut writer, &common::S2C::ConnectionFailed)
+                                .await;
                         return;
                     }
                 };
@@ -222,8 +234,10 @@ impl Server {
             });
         }
     }
-    
-    async fn wait_authentication(buf_reader: &mut BufReader<OwnedReadHalf>) -> Result<String, ServerErr> {
+
+    async fn wait_authentication(
+        buf_reader: &mut BufReader<OwnedReadHalf>,
+    ) -> Result<String, ServerErr> {
         tokio::select! {
             biased;
             msg = stream::get_msg_from_client(buf_reader) => {
@@ -239,3 +253,4 @@ impl Server {
         }
     }
 }
+

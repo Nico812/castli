@@ -4,8 +4,8 @@
 //! connection to the server and orchestrates the different parts of the
 //! client application, such as the TUI and server communication.
 use std::collections::HashMap;
-use tokio::{self, io::BufReader, net::TcpStream, sync::mpsc};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
+use tokio::{self, io::BufReader, net::TcpStream, sync::mpsc};
 
 use crate::tui;
 use common;
@@ -67,9 +67,11 @@ impl ClientConnection {
 
     /// Makes the initial request to get the game map from the server.
     async fn ask_for_map(&mut self) -> Result<Vec<Vec<common::TileE>>, ClientErr> {
-        let _ =
-            common::stream::send_msg_to_server(&mut self.writer, &common::C2S::C2S4L(common::C2S4L::GiveMap))
-                .await;
+        let _ = common::stream::send_msg_to_server(
+            &mut self.writer,
+            &common::C2S::C2S4L(common::C2S4L::GiveMap),
+        )
+        .await;
 
         match common::stream::get_msg_from_server(&mut self.reader).await {
             Ok(common::S2C::L2S4C(common::L2S4C::Map(map))) => Ok(map),
@@ -85,7 +87,8 @@ impl ClientConnection {
         let _ = common::stream::send_msg_to_server(
             &mut self.writer,
             &common::C2S::C2S4L(common::C2S4L::GiveObjs),
-        ).await;
+        )
+        .await;
         let game_objs = match common::stream::get_msg_from_server(&mut self.reader).await {
             Ok(common::S2C::L2S4C(common::L2S4C::GameObjs(objs))) => objs,
             _ => return Err(ClientErr::DataNotReceived),
@@ -95,7 +98,8 @@ impl ClientConnection {
         let _ = common::stream::send_msg_to_server(
             &mut self.writer,
             &common::C2S::C2S4L(common::C2S4L::GivePlayerData),
-        ).await;
+        )
+        .await;
         let player_data = match common::stream::get_msg_from_server(&mut self.reader).await {
             Ok(common::S2C::L2S4C(common::L2S4C::PlayerData(data))) => data,
             _ => return Err(ClientErr::DataNotReceived),
@@ -104,7 +108,6 @@ impl ClientConnection {
         Ok((game_objs, player_data))
     }
 }
-
 
 //==============================================================================================
 //  Client
@@ -121,7 +124,11 @@ impl Client {
     /// Runs the main client application.
     pub async fn run(&mut self) {
         // 1. Connect to the Server
-        let addr = if r#const::ONLINE { r#const::IP_LOCAL } else { r#const::IP_LOCAL };
+        let addr = if r#const::ONLINE {
+            r#const::IP_LOCAL
+        } else {
+            r#const::IP_LOCAL
+        };
         let stream = match TcpStream::connect(addr).await {
             Ok(s) => s,
             Err(e) => {
@@ -130,7 +137,7 @@ impl Client {
             }
         };
         let (reader, mut writer) = stream.into_split();
-        
+
         // 2. Authenticate
         println!("Connection established. Please log in.");
         let name = tui::Tui::login();
@@ -144,8 +151,14 @@ impl Client {
 
         // 4. Fetch all initial state required for the TUI
         println!("Fetching initial game state...");
-        let map = connection.ask_for_map().await.expect("Failed to receive map.");
-        let (initial_objs, initial_data) = connection.fetch_initial_state().await.expect("Failed to receive initial state.");
+        let map = connection
+            .ask_for_map()
+            .await
+            .expect("Failed to receive map.");
+        let (initial_objs, initial_data) = connection
+            .fetch_initial_state()
+            .await
+            .expect("Failed to receive initial state.");
         println!("Game state received.");
 
         // 5. Set up communication channels
@@ -155,7 +168,9 @@ impl Client {
         // 6. Spawn the dedicated network task
         let communication_handle = tokio::spawn(async move {
             loop {
-                connection.communicate_with_server(&s2c_tx, &mut t2c_rx).await;
+                connection
+                    .communicate_with_server(&s2c_tx, &mut t2c_rx)
+                    .await;
             }
         });
 
@@ -168,3 +183,4 @@ impl Client {
         println!("\nClient shutting down. Goodbye!");
     }
 }
+
