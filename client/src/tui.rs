@@ -18,8 +18,15 @@ pub enum T2C {
     NewCastle((usize, usize)),
 }
 
+enum TuiState {
+    InGame,
+    CastleCreation,
+}
+
 /// The Tui struct now holds all the state required for the UI to function.
 pub struct Tui {
+    // Tui state
+    state: TuiState,
     // Communication channels
     to_server_tx: mpsc::UnboundedSender<T2C>,
     from_server_rx: Arc<Mutex<mpsc::UnboundedReceiver<common::S2C>>>,
@@ -40,19 +47,32 @@ impl Tui {
         rx: mpsc::UnboundedReceiver<common::S2C>,
         tiles: Vec<Vec<common::TileE>>,
         initial_game_objs: HashMap<usize, common::GameObjE>,
-        initial_player_data: common::PlayerDataE,
+        initial_player_data: Option<common::PlayerDataE>,
     ) -> Self {
         let mut canvas = canvas::Canvas::new();
         canvas.init(&tiles);
+        let tui_state = TuiState::InGame;
+        let map_look = None;
+        let map_zoom = Some((0, 0));
+
+        let player_data = match initial_player_data {
+            Some(player_data) => player_data,
+            None => {
+                tui_state = TuiState::CastleCreation;
+                map_look = Some((0, 0));
+                common::L2S4C::PlayerData{id: 0, name: "Undefined".to_string(), pos: (0, 0),}
+            }
+        }
 
         Self {
+            tui_state,
             to_server_tx: tx,
             from_server_rx: Arc::new(Mutex::new(rx)),
             canvas,
             game_objs: Arc::new(Mutex::new(initial_game_objs)),
             player_data: Arc::new(Mutex::new(initial_player_data)),
-            map_zoom: Arc::new(Mutex::new(Some((0, 0)))),
-            map_look: Arc::new(Mutex::new(None)),
+            map_zoom: Arc::new(Mutex::new(map_zoom)),
+            map_look: Arc::new(Mutex::new(map_look)),
         }
     }
 
@@ -112,7 +132,6 @@ impl Tui {
         }
     }
 
-    /// Listens for and applies updates from the server.
     async fn listen_for_server_updates(
         from_server_rx: Arc<Mutex<mpsc::UnboundedReceiver<common::S2C>>>,
         game_objs_arc: Arc<Mutex<HashMap<usize, common::GameObjE>>>,
@@ -131,19 +150,19 @@ impl Tui {
         }
     }
 
-    /// Handles blocking stdin for player input.
     async fn handle_player_input(
         tx: mpsc::UnboundedSender<T2C>,
         map_zoom_arc: Arc<Mutex<Option<(usize, usize)>>>,
         map_look_arc: Arc<Mutex<Option<(usize, usize)>>>,
     ) {
-        // ... (This function's internal logic remains the same)
         loop {
             let mut buf = [0u8; 3];
             let n = io::stdin().read(&mut buf).await.unwrap();
             if n == 1 {
                 match buf[0] as char {
-                    'q' => break,
+                    'q' => {
+                        break;
+                    }
                     'z' => {
                         let mut map_zoom = map_zoom_arc.lock().await;
                         *map_zoom = match *map_zoom {
@@ -158,10 +177,70 @@ impl Tui {
                             Some(_) => None,
                         };
                     }
+                    'a' => {
+                        println!("CACCAAAAA");
+                        let _ = tx.send(T2C::NewCastle((4, 4)));
+                    }
                     _ => {}
                 }
             }
-            // ... (arrow key logic) ...
+            // Special characters
+            if n == 3 {
+                match buf {
+                    // Arrow keys
+                    [0x1b, b'[', b'C'] => {
+                        let mut map_look = map_look_arc.lock().await;
+                        if let Some((row, col)) = *map_look {
+                            *map_look = Some((
+                                row,
+                                std::cmp::min(col + 1, crate::r#const::CENTRAL_MODULE_COLS - 1),
+                            ));
+                        } else {
+                            let mut map_zoom = map_zoom_arc.lock().await;
+                            if let Some((row, col)) = *map_zoom {
+                                *map_zoom = Some((row, std::cmp::min(col + 1, 7)));
+                            }
+                        }
+                    }
+                    [0x1b, b'[', b'D'] => {
+                        let mut map_look = map_look_arc.lock().await;
+                        if let Some((row, col)) = *map_look {
+                            *map_look = Some((row, col.saturating_sub(1)));
+                        } else {
+                            let mut map_zoom = map_zoom_arc.lock().await;
+                            if let Some((row, col)) = *map_zoom {
+                                *map_zoom = Some((row, col.saturating_sub(1)));
+                            }
+                        }
+                    }
+                    [0x1b, b'[', b'A'] => {
+                        let mut map_look = map_look_arc.lock().await;
+                        if let Some((row, col)) = *map_look {
+                            *map_look = Some((row.saturating_sub(1), col));
+                        } else {
+                            let mut map_zoom = map_zoom_arc.lock().await;
+                            if let Some((row, col)) = *map_zoom {
+                                *map_zoom = Some((row.saturating_sub(1), col));
+                            }
+                        }
+                    }
+                    [0x1b, b'[', b'B'] => {
+                        let mut map_look = map_look_arc.lock().await;
+                        if let Some((row, col)) = *map_look {
+                            *map_look = Some((
+                                std::cmp::min(row + 1, crate::r#const::CENTRAL_MODULE_ROWS - 1),
+                                col,
+                            ));
+                        } else {
+                            let mut map_zoom = map_zoom_arc.lock().await;
+                            if let Some((row, col)) = *map_zoom {
+                                *map_zoom = Some((std::cmp::min(row + 1, 7), col));
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
         }
     }
     

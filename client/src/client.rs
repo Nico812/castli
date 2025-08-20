@@ -101,7 +101,8 @@ impl ClientConnection {
         )
         .await;
         let player_data = match common::stream::get_msg_from_server(&mut self.reader).await {
-            Ok(common::S2C::L2S4C(common::L2S4C::PlayerData(data))) => data,
+            Ok(common::S2C::L2S4C(common::L2S4C::PlayerData(data))) => Some(data),
+            Ok(common::S2C::L2S4C(common::L2S4C::CreateCastle)) => None,
             _ => return Err(ClientErr::DataNotReceived),
         };
 

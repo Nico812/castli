@@ -146,6 +146,9 @@ impl Lobby {
                                     self.game.export_player_data(*client_id),
                                 ));
                             }
+                            else {
+                                let _ = client_tx.send(common::L2S4C::CreateCastle);
+                            }
                         };
                     }
                 };

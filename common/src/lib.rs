@@ -29,6 +29,7 @@ pub enum L2S4C {
     Map(Vec<Vec<TileE>>),
     GameObjs(HashMap<ID, GameObjE>),
     PlayerData(PlayerDataE),
+    CreateCastle,
 }
 
 /// Represents messages sent from the Client to the Server (C2S).
