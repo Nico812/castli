@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use crate::r#const::{CA_ITER, PERCENT_ARE_WALLS};
 use common::{
-    GameObjE,
+    GameObjE, PlayerCastleE,
     r#const::{MAP_COLS, MAP_ROWS},
 };
 
@@ -26,18 +26,17 @@ pub struct Game {
 impl Game {
     pub fn new() -> Self {
         let map = Self::cellular_automata();
-        let mut game_objs = HashMap::new();
-
-        // For debugging
-        game_objs.insert(
-            1,
-            GameObj::PlayerCastle(common::PlayerCastleE {
-                name: "nico".to_string(),
-                pos: (2, 7),
-            }),
-        );
+        let game_objs = HashMap::new();
 
         Self { map, game_objs }
+    }
+
+    pub fn add_player_castle(&mut self, id: common::ID, pos: (usize, usize)) {
+        let castle = PlayerCastleE {
+            name: "cactus".to_string(),
+            pos,
+        };
+        self.game_objs.insert(id, GameObj::PlayerCastle(castle));
     }
 
     pub fn export_map(&self) -> Vec<Vec<common::TileE>> {
@@ -62,6 +61,10 @@ impl Game {
     }
 
     pub fn export_player_data(&self, id: common::ID) -> common::PlayerDataE {
+        println!(
+            "Game is trying to export player_data for client_id {:?}",
+            id
+        );
         match &self.game_objs[&id] {
             GameObj::PlayerCastle(castle) => common::PlayerDataE {
                 id,

@@ -127,7 +127,8 @@ impl Lobby {
                     common::C2S4L::NewCastle(pos) => {
                         println!("Player requested to build a new castle, ID: {}", client_id);
                         if let Some(Some(player)) = self.players.get_mut(*client_id) {
-                            player.new_castle(pos)
+                            player.new_castle(pos);
+                            self.game.add_player_castle(*client_id, pos);
                         };
                     }
                     common::C2S4L::GiveMap => {
@@ -145,8 +146,7 @@ impl Lobby {
                                 let _ = client_tx.send(common::L2S4C::PlayerData(
                                     self.game.export_player_data(*client_id),
                                 ));
-                            }
-                            else {
+                            } else {
                                 let _ = client_tx.send(common::L2S4C::CreateCastle);
                             }
                         };

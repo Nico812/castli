@@ -7,7 +7,7 @@
 use std::{collections::HashMap, io::Write, process::Command, sync::Arc};
 use tokio::{
     io::{self, AsyncReadExt},
-    sync::{mpsc, Mutex},
+    sync::{Mutex, mpsc},
 };
 
 use crate::canvas;
@@ -51,26 +51,30 @@ impl Tui {
     ) -> Self {
         let mut canvas = canvas::Canvas::new();
         canvas.init(&tiles);
-        let tui_state = TuiState::InGame;
-        let map_look = None;
-        let map_zoom = Some((0, 0));
+        let mut state = TuiState::InGame;
+        let mut map_look = None;
+        let mut map_zoom = Some((0, 0));
 
         let player_data = match initial_player_data {
             Some(player_data) => player_data,
             None => {
-                tui_state = TuiState::CastleCreation;
+                state = TuiState::CastleCreation;
                 map_look = Some((0, 0));
-                common::L2S4C::PlayerData{id: 0, name: "Undefined".to_string(), pos: (0, 0),}
+                common::PlayerDataE {
+                    id: 0,
+                    name: "Undefined".to_string(),
+                    pos: (0, 0),
+                }
             }
-        }
+        };
 
         Self {
-            tui_state,
+            state,
             to_server_tx: tx,
             from_server_rx: Arc::new(Mutex::new(rx)),
             canvas,
             game_objs: Arc::new(Mutex::new(initial_game_objs)),
-            player_data: Arc::new(Mutex::new(initial_player_data)),
+            player_data: Arc::new(Mutex::new(player_data)),
             map_zoom: Arc::new(Mutex::new(map_zoom)),
             map_look: Arc::new(Mutex::new(map_look)),
         }
@@ -125,7 +129,7 @@ impl Tui {
             canvas.print(&game_objs, &player_data, *map_zoom);
             canvas.update_and_print_cursor(*map_look);
             let _ = std::io::stdout().flush();
-            
+
             // Drop locks automatically here at the end of the scope
 
             tokio::time::sleep(tokio::time::Duration::from_millis(1000 / 60)).await;
@@ -243,7 +247,7 @@ impl Tui {
             }
         }
     }
-    
+
     // --- Utility Functions ---
 
     pub fn login() -> String {
@@ -280,3 +284,4 @@ impl Tui {
             .expect("Failed to reset terminal mode");
     }
 }
+

@@ -128,30 +128,31 @@ impl ClientHandler {
     async fn run(mut self) {
         loop {
             tokio::select! {
-                result = stream::get_msg_from_client(&mut self.reader) => {
-                    match result {
-                        Ok(common::C2S::C2S4L(msg)) => {
-                            if self.lobby_tx.send(msg).is_err() {
-                                println!("Failed to send msg {:?} from client {:?} to lobby", s2c_msg, self.client_id);
-                                break;
+                            result = stream::get_msg_from_client(&mut self.reader) => {
+                                match result {
+                                    Ok(common::C2S::C2S4L(msg)) => {
+                                        println!("Sending msg {:?} from client {:?} to lobby", msg, self.client_id);
+                                        if self.lobby_tx.send(msg).is_err() {
+                                            println!("Failed...");
+                                            break;
+                                        }
+                                    },
+                                    Ok(_) => {},
+                                    Err(_) => {
+                                        eprintln!("CLIENT (ID: {}) DISCONNECTED.", self.client_id);
+                                        break;
+                                    }
+                                }
+                            },
+                            Some(msg) = self.lobby_rx.recv() => {
+                                let s2c_msg = common::S2C::L2S4C(msg);
+                                println!("Received a msg {:?} from lobby for client {:?}", s2c_msg, self.client_id);
+            ;                    if stream::send_msg_to_client(&mut self.writer, &s2c_msg).await.is_err() {
+                                    println!("Failed to send msg {:?} to client {:?}", s2c_msg, self.client_id);
+                                    break;
+                                }
                             }
-                        },
-                        Ok(_) => {},
-                        Err(_) => {
-                            eprintln!("CLIENT (ID: {}) DISCONNECTED.", self.client_id);
-                            break;
                         }
-                    }
-                },
-                Some(msg) = self.lobby_rx.recv() => {
-                    let s2c_msg = common::S2C::L2S4C(msg);
-                    println!("Received a msg {:?} from client {:?}", s2c_msg, self.client_id);
-;                    if stream::send_msg_to_client(&mut self.writer, &s2c_msg).await.is_err() {
-                        println!("Failed to send msg {:?} to client {:?}", s2c_msg, self.client_id);
-                        break;
-                    }
-                }
-            }
         }
     }
 }
@@ -256,4 +257,3 @@ impl Server {
         }
     }
 }
-

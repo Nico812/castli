@@ -82,7 +82,13 @@ impl ClientConnection {
     /// Fetches the initial game objects and player data required to start the TUI.
     async fn fetch_initial_state(
         &mut self,
-    ) -> Result<(HashMap<usize, common::GameObjE>, common::PlayerDataE), ClientErr> {
+    ) -> Result<
+        (
+            HashMap<usize, common::GameObjE>,
+            Option<common::PlayerDataE>,
+        ),
+        ClientErr,
+    > {
         // Request game objects
         let _ = common::stream::send_msg_to_server(
             &mut self.writer,
@@ -184,4 +190,3 @@ impl Client {
         println!("\nClient shutting down. Goodbye!");
     }
 }
-
