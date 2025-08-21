@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Global IDs for game objects
-pub type ID = usize;
+pub type GameID = usize;
 
 /// Represents messages sent from the Server to the Client (S2C).
 #[derive(Serialize, Deserialize, Debug)]

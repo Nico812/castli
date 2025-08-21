@@ -21,6 +21,7 @@ pub enum S2L {
     IsFull(mpsc::Sender<bool>),
     NewClient(
         ClientID,
+        String,
         UnboundedSender<common::L2S4C>,
         UnboundedReceiver<common::C2S4L>,
     ),
@@ -57,6 +58,7 @@ impl LobbyManager {
     async fn assign_client_to_lobby(
         &self,
         client_id: ClientID,
+        player_name: String,
     ) -> Result<
         (
             UnboundedSender<common::C2S4L>,
@@ -101,7 +103,7 @@ impl LobbyManager {
 
                 let (c2s_tx, c2s_rx) = mpsc::unbounded_channel();
                 let (s2c_tx, s2c_rx) = mpsc::unbounded_channel();
-                let _ = lobby_tx.send(S2L::NewClient(client_id, s2c_tx, c2s_rx));
+                let _ = lobby_tx.send(S2L::NewClient(client_id, player_name, s2c_tx, c2s_rx));
                 return Ok((c2s_tx, s2c_rx));
             }
         }
@@ -212,7 +214,7 @@ impl Server {
                     id
                 };
 
-                let lobby_channels = lobby_manager_clone.assign_client_to_lobby(client_id).await;
+                let lobby_channels = lobby_manager_clone.assign_client_to_lobby(client_id, user_name).await;
                 match lobby_channels {
                     Ok((lobby_tx, lobby_rx)) => {
                         // 3. Hand off to Client Handler

@@ -4,23 +4,23 @@
 //! about a single player in the game.
 pub struct Player {
     name: String,
-    pos: Option<(usize, usize)>,
+    castle_id: Option<common::GameID>,
 }
 
 impl Player {
     pub fn new(name: &str) -> Self {
         let name = name.into();
         println!("New player joined with the name: {}", name);
-        Self { name, pos: None }
+        Self { name, castle_id: None }
     }
 
     pub fn has_castle(&self) -> bool {
-        self.pos.is_some()
+        self.castle_id.is_some()
     }
 
-    pub fn new_castle(&mut self, pos: (usize, usize)) {
-        self.pos = Some(pos);
-        println!("New castle created by {}", self.name);
+    pub fn set_castle_id(&mut self, castle_id: common::GameID) {
+        self.castle_id = Some(castle_id);
+        println!("Player {} just got a new castle with GameID {}", self.name, castle_id);
     }
 }
 

@@ -27,7 +27,7 @@ pub struct Lobby {
             mpsc::UnboundedReceiver<common::C2S4L>,
         ),
     >,
-    players: Box<[Option<player::Player>; MAX_LOBBY_PLAYERS]>,
+    players: HashMap<Server::ClientID, player::Player>,
     num_players: usize,
     game: game::Game,
 }
@@ -35,7 +35,7 @@ pub struct Lobby {
 impl Lobby {
     pub fn new() -> Self {
         let clients = HashMap::new();
-        let players = Box::new([const { None }; MAX_LOBBY_PLAYERS]);
+        let players = HashMap::new();
         let num_players = 0;
         let game = game::Game::new();
 
@@ -77,22 +77,20 @@ impl Lobby {
     async fn add_client(
         &mut self,
         client_id: server::ClientID,
+        player_name: String,
         client_tx: mpsc::UnboundedSender<common::L2S4C>,
         client_rx: mpsc::UnboundedReceiver<common::C2S4L>,
     ) -> Result<(), LobbyErr> {
         if self.num_players >= MAX_LOBBY_PLAYERS {
-            return Err(LobbyErr::AddClientFail);
+            Err(LobbyErr::AddClientFail)
         }
-        if let Some(player_slot) = self.players.iter_mut().find(|player| player.is_none()) {
-            *player_slot = Some(player::Player::new("No Name Set"));
-            self.num_players += 1;
+        else {
+            let player = player::Player::new(player_name);
             self.clients.insert(client_id, (client_tx, client_rx));
-
+            self.players.insert(client_id, player);
+            self.num_players += 1;
             println!("New player joined in a lobby, ID: {}", client_id);
-            return Ok(());
-        } else {
-            println!("This should never have been printed. Lobby num_players is incorrect.");
-            return Err(LobbyErr::AddClientFail);
+            Ok(())
         }
     }
 
@@ -106,9 +104,9 @@ impl Lobby {
                 server::S2L::IsFull(temp_tx) => {
                     let _ = temp_tx.send(self.is_full()).await;
                 }
-                server::S2L::NewClient(client_id, client_tx, client_rx) => {
+                server::S2L::NewClient(client_id, player_name, client_tx, client_rx) => {
                     let _ = self
-                        .add_client(client_id, client_tx, client_rx)
+                        .add_client(client_id, player_name, client_tx, client_rx)
                         .await
                         .inspect_err(|err| eprintln!("\x1b[35mLOBBY ERROR: {:?}\x1b[0m", err));
                 }
@@ -126,9 +124,11 @@ impl Lobby {
                 match msg {
                     common::C2S4L::NewCastle(pos) => {
                         println!("Player requested to build a new castle, ID: {}", client_id);
-                        if let Some(Some(player)) = self.players.get_mut(*client_id) {
-                            player.new_castle(pos);
-                            self.game.add_player_castle(*client_id, pos);
+                        // Here i should get the ClientID and updating the Players with the new castle GameID. The two ID are different.
+                        // The game itself should manage the castle ID! So i wont pass clientId
+                        if let Some(player) = self.players.get(*client_id) {
+                            let castle_id = self.game.add_player_castle(player.name, pos);
+                            player.set_castle_id(castle_id);
                         };
                     }
                     common::C2S4L::GiveMap => {
@@ -141,7 +141,7 @@ impl Lobby {
                     }
                     common::C2S4L::GivePlayerData => {
                         println!("Player requested to give player data, ID: {}", client_id);
-                        if let Some(Some(player)) = self.players.get(*client_id) {
+                        if let Some(player) = self.players.get(*client_id) {
                             if player.has_castle() {
                                 let _ = client_tx.send(common::L2S4C::PlayerData(
                                     self.game.export_player_data(*client_id),

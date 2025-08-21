@@ -13,30 +13,41 @@ use common::{
 };
 
 enum GameObj {
-    PlayerCastle(common::PlayerCastleE),
+    PlayerCastle(PlayerCastle),
     Structure(common::StructureE),
     UnitGroup(common::UnitGroupE),
+}
+
+struct PlayerCastle {
+    name: String,
+    pos: (usize, usize),
 }
 
 pub struct Game {
     map: Vec<Vec<common::TileE>>,
     game_objs: HashMap<common::ID, GameObj>,
+    id_counter: common::GameID,
 }
 
 impl Game {
     pub fn new() -> Self {
         let map = Self::cellular_automata();
         let game_objs = HashMap::new();
+        let id_counter = 0;
 
-        Self { map, game_objs }
+        Self { map, game_objs, id_counter }
     }
 
-    pub fn add_player_castle(&mut self, id: common::ID, pos: (usize, usize)) {
-        let castle = PlayerCastleE {
-            name: "cactus".to_string(),
+    pub fn add_player_castle(&mut self, name: String, pos: (usize, usize)) -> common::GameID {
+        let id = self.id_counter;
+        self.id_counter += 1;
+
+        let castle = PlayerCastle {
+            name,
             pos,
         };
         self.game_objs.insert(id, GameObj::PlayerCastle(castle));
+        id
     }
 
     pub fn export_map(&self) -> Vec<Vec<common::TileE>> {
