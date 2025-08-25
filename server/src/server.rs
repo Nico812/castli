@@ -76,7 +76,7 @@ impl LobbyManager {
                     if !is_full {
                         let (c2s_tx, c2s_rx) = mpsc::unbounded_channel();
                         let (s2c_tx, s2c_rx) = mpsc::unbounded_channel();
-                        let _ = tx.send(S2L::NewClient(client_id, s2c_tx, c2s_rx));
+                        let _ = tx.send(S2L::NewClient(client_id, player_name, s2c_tx, c2s_rx));
                         return Ok((c2s_tx, s2c_rx));
                     }
                 }
@@ -214,7 +214,9 @@ impl Server {
                     id
                 };
 
-                let lobby_channels = lobby_manager_clone.assign_client_to_lobby(client_id, user_name).await;
+                let lobby_channels = lobby_manager_clone
+                    .assign_client_to_lobby(client_id, user_name)
+                    .await;
                 match lobby_channels {
                     Ok((lobby_tx, lobby_rx)) => {
                         // 3. Hand off to Client Handler

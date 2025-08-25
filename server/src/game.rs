@@ -25,7 +25,7 @@ struct PlayerCastle {
 
 pub struct Game {
     map: Vec<Vec<common::TileE>>,
-    game_objs: HashMap<common::ID, GameObj>,
+    game_objs: HashMap<common::GameID, GameObj>,
     id_counter: common::GameID,
 }
 
@@ -35,15 +35,19 @@ impl Game {
         let game_objs = HashMap::new();
         let id_counter = 0;
 
-        Self { map, game_objs, id_counter }
+        Self {
+            map,
+            game_objs,
+            id_counter,
+        }
     }
 
-    pub fn add_player_castle(&mut self, name: String, pos: (usize, usize)) -> common::GameID {
+    pub fn add_player_castle(&mut self, name: &String, pos: (usize, usize)) -> common::GameID {
         let id = self.id_counter;
         self.id_counter += 1;
 
         let castle = PlayerCastle {
-            name,
+            name: name.to_string(),
             pos,
         };
         self.game_objs.insert(id, GameObj::PlayerCastle(castle));
@@ -54,14 +58,18 @@ impl Game {
         self.map.clone()
     }
 
-    pub fn export_objs(&self) -> HashMap<common::ID, common::GameObjE> {
+    pub fn export_objs(&self) -> HashMap<common::GameID, common::GameObjE> {
         let mut exports = HashMap::new();
         for obj in &self.game_objs {
             let obj_e;
             match obj.1 {
                 GameObj::PlayerCastle(castle) => {
                     println!("exporting a castle");
-                    obj_e = GameObjE::PlayerCastle(castle.clone());
+                    let castle_export = common::PlayerCastleE {
+                        name: castle.name.clone(),
+                        pos: castle.pos,
+                    };
+                    obj_e = GameObjE::PlayerCastle(castle_export);
                 }
                 GameObj::Structure(structure) => obj_e = GameObjE::Structure(structure.clone()),
                 GameObj::UnitGroup(unit_group) => obj_e = GameObjE::UnitGroup(unit_group.clone()),
@@ -71,7 +79,7 @@ impl Game {
         exports
     }
 
-    pub fn export_player_data(&self, id: common::ID) -> common::PlayerDataE {
+    pub fn export_player_data(&self, id: common::GameID) -> common::PlayerDataE {
         println!(
             "Game is trying to export player_data for client_id {:?}",
             id

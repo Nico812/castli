@@ -10,7 +10,10 @@ use tokio::{
     sync::{Mutex, mpsc},
 };
 
-use crate::canvas;
+use crate::{
+    canvas,
+    r#const::{CENTRAL_MODULE_COLS, CENTRAL_MODULE_ROWS},
+};
 use common;
 
 /// Messages sent from the TUI to the client's network task.
@@ -181,9 +184,18 @@ impl Tui {
                             Some(_) => None,
                         };
                     }
-                    'a' => {
-                        println!("CACCAAAAA");
-                        let _ = tx.send(T2C::NewCastle((4, 4)));
+                    'n' => {
+                        let Some(map_look) = *map_look_arc.lock().await else {
+                            return;
+                        };
+                        let Some(map_zoom) = *map_zoom_arc.lock().await else {
+                            return;
+                        };
+                        let new_castle_coords = (
+                            (map_zoom.0 * CENTRAL_MODULE_ROWS + map_look.0) * 2,
+                            map_zoom.1 * CENTRAL_MODULE_COLS + map_look.1,
+                        );
+                        let _ = tx.send(T2C::NewCastle(new_castle_coords));
                     }
                     _ => {}
                 }
@@ -191,55 +203,42 @@ impl Tui {
             // Special characters
             if n == 3 {
                 match buf {
-                    // Arrow keys
-                    [0x1b, b'[', b'C'] => {
-                        let mut map_look = map_look_arc.lock().await;
-                        if let Some((row, col)) = *map_look {
-                            *map_look = Some((
-                                row,
-                                std::cmp::min(col + 1, crate::r#const::CENTRAL_MODULE_COLS - 1),
-                            ));
-                        } else {
-                            let mut map_zoom = map_zoom_arc.lock().await;
-                            if let Some((row, col)) = *map_zoom {
-                                *map_zoom = Some((row, std::cmp::min(col + 1, 7)));
-                            }
-                        }
-                    }
-                    [0x1b, b'[', b'D'] => {
-                        let mut map_look = map_look_arc.lock().await;
-                        if let Some((row, col)) = *map_look {
-                            *map_look = Some((row, col.saturating_sub(1)));
-                        } else {
-                            let mut map_zoom = map_zoom_arc.lock().await;
-                            if let Some((row, col)) = *map_zoom {
-                                *map_zoom = Some((row, col.saturating_sub(1)));
-                            }
-                        }
-                    }
+                    // Up Arrow Key
                     [0x1b, b'[', b'A'] => {
-                        let mut map_look = map_look_arc.lock().await;
-                        if let Some((row, col)) = *map_look {
-                            *map_look = Some((row.saturating_sub(1), col));
-                        } else {
-                            let mut map_zoom = map_zoom_arc.lock().await;
-                            if let Some((row, col)) = *map_zoom {
-                                *map_zoom = Some((row.saturating_sub(1), col));
-                            }
+                        if let Some(ref mut map_look) = *map_look_arc.lock().await {
+                            map_look.0 = map_look.0.saturating_sub(1);
+                        } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
+                            map_zoom.0 = map_zoom.0.saturating_sub(1);
                         }
                     }
+                    // Left Arrow Key
                     [0x1b, b'[', b'B'] => {
-                        let mut map_look = map_look_arc.lock().await;
-                        if let Some((row, col)) = *map_look {
-                            *map_look = Some((
-                                std::cmp::min(row + 1, crate::r#const::CENTRAL_MODULE_ROWS - 1),
-                                col,
-                            ));
-                        } else {
-                            let mut map_zoom = map_zoom_arc.lock().await;
-                            if let Some((row, col)) = *map_zoom {
-                                *map_zoom = Some((std::cmp::min(row + 1, 7), col));
-                            }
+                        if let Some(ref mut map_look) = *map_look_arc.lock().await {
+                            map_look.0 = std::cmp::min(
+                                map_look.0 + 1,
+                                crate::r#const::CENTRAL_MODULE_ROWS - 1,
+                            );
+                        } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
+                            map_zoom.0 = std::cmp::min(map_zoom.0 + 1, 7);
+                        }
+                    }
+                    // Left Arrow Key
+                    [0x1b, b'[', b'D'] => {
+                        if let Some(ref mut map_look) = *map_look_arc.lock().await {
+                            map_look.1 = map_look.1.saturating_sub(1);
+                        } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
+                            map_zoom.1 = map_zoom.1.saturating_sub(1);
+                        }
+                    }
+                    // Right Arrow Key
+                    [0x1b, b'[', b'C'] => {
+                        if let Some(ref mut map_look) = *map_look_arc.lock().await {
+                            map_look.1 = std::cmp::min(
+                                map_look.1 + 1,
+                                crate::r#const::CENTRAL_MODULE_COLS - 1,
+                            );
+                        } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
+                            map_zoom.1 = std::cmp::min(map_zoom.1 + 1, 7);
                         }
                     }
                     _ => {}
@@ -284,4 +283,3 @@ impl Tui {
             .expect("Failed to reset terminal mode");
     }
 }
-

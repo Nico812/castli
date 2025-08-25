@@ -10,6 +10,7 @@ use terminal_size::{Height, Width, terminal_size};
 use crate::ansi;
 use crate::canvas_modules;
 use crate::r#const::*;
+use common;
 
 /// Represents the main drawing area for the TUI.
 ///
@@ -69,7 +70,7 @@ impl Canvas {
     /// and then prints the buffer to stdout.
     pub fn print(
         &self,
-        game_objs: &HashMap<common::ID, common::GameObjE>,
+        game_objs: &HashMap<common::GameID, common::GameObjE>,
         player_data: &common::PlayerDataE,
         map_zoom: Option<(usize, usize)>,
     ) {

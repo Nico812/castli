@@ -27,7 +27,7 @@ pub enum S2C {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum L2S4C {
     Map(Vec<Vec<TileE>>),
-    GameObjs(HashMap<ID, GameObjE>),
+    GameObjs(HashMap<GameID, GameObjE>),
     PlayerData(PlayerDataE),
     CreateCastle,
 }
@@ -76,7 +76,7 @@ pub struct PlayerCastleE {
 /// Exported information on the owned castle
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PlayerDataE {
-    pub id: ID,
+    pub id: GameID,
     pub name: String,
     pub pos: (usize, usize),
 }
@@ -99,4 +99,3 @@ pub enum StructureTypeE {
 pub struct UnitGroupE {
     pub owner: String,
 }
-

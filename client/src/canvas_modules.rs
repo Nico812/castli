@@ -96,7 +96,7 @@ impl CentralModule {
 
     pub fn get_map(
         &self,
-        game_objs: &HashMap<common::ID, common::GameObjE>,
+        game_objs: &HashMap<common::GameID, common::GameObjE>,
         map_zoom: Option<(usize, usize)>,
     ) -> Vec<Vec<String>> {
         match map_zoom {
@@ -217,7 +217,7 @@ impl CentralModule {
 
     fn add_objs_to_world_map(
         &self,
-        objs: &HashMap<common::ID, common::GameObjE>,
+        objs: &HashMap<common::GameID, common::GameObjE>,
     ) -> Vec<Vec<String>> {
         let mut output = self.world_map_tiles_formatted.clone();
 
@@ -239,7 +239,7 @@ impl CentralModule {
 
     fn add_objs_to_map(
         &self,
-        objs: &HashMap<common::ID, common::GameObjE>,
+        objs: &HashMap<common::GameID, common::GameObjE>,
         quadrant: (usize, usize),
     ) -> Vec<Vec<String>> {
         let mut output: Vec<Vec<String>> = self.map_tiles_formatted

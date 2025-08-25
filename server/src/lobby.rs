@@ -27,7 +27,7 @@ pub struct Lobby {
             mpsc::UnboundedReceiver<common::C2S4L>,
         ),
     >,
-    players: HashMap<Server::ClientID, player::Player>,
+    players: HashMap<server::ClientID, player::Player>,
     num_players: usize,
     game: game::Game,
 }
@@ -83,8 +83,7 @@ impl Lobby {
     ) -> Result<(), LobbyErr> {
         if self.num_players >= MAX_LOBBY_PLAYERS {
             Err(LobbyErr::AddClientFail)
-        }
-        else {
+        } else {
             let player = player::Player::new(player_name);
             self.clients.insert(client_id, (client_tx, client_rx));
             self.players.insert(client_id, player);
@@ -126,8 +125,8 @@ impl Lobby {
                         println!("Player requested to build a new castle, ID: {}", client_id);
                         // Here i should get the ClientID and updating the Players with the new castle GameID. The two ID are different.
                         // The game itself should manage the castle ID! So i wont pass clientId
-                        if let Some(player) = self.players.get(*client_id) {
-                            let castle_id = self.game.add_player_castle(player.name, pos);
+                        if let Some(player) = self.players.get_mut(client_id) {
+                            let castle_id = self.game.add_player_castle(&player.name, pos);
                             player.set_castle_id(castle_id);
                         };
                     }
@@ -141,7 +140,7 @@ impl Lobby {
                     }
                     common::C2S4L::GivePlayerData => {
                         println!("Player requested to give player data, ID: {}", client_id);
-                        if let Some(player) = self.players.get(*client_id) {
+                        if let Some(player) = self.players.get(client_id) {
                             if player.has_castle() {
                                 let _ = client_tx.send(common::L2S4C::PlayerData(
                                     self.game.export_player_data(*client_id),
