@@ -1,184 +1,54 @@
-//! # ANSI Escape Codes and Constants
-//!
-//! This module provides a set of macros and constants for working with ANSI
-//! escape codes, which are used to add color and style to the terminal output.
-//! It also defines constants for the visual representation of game elements.
+//! # ANSI Escape Codes, Constants, Colors
 
-// === ANSI COLOR MACROS ===
+#![allow(dead_code)]
 
-macro_rules! FG_BLACK {
-    () => {
-        "\x1b[30m"
-    };
-}
-macro_rules! BG_BLACK {
-    () => {
-        "\x1b[40m"
-    };
-}
-macro_rules! FG_RED {
-    () => {
-        "\x1b[31m"
-    };
-}
-macro_rules! BG_RED {
-    () => {
-        "\x1b[41m"
-    };
-}
-macro_rules! FG_GREEN {
-    () => {
-        "\x1b[32m"
-    };
-}
-macro_rules! BG_GREEN {
-    () => {
-        "\x1b[42m"
-    };
-}
-macro_rules! FG_YELLOW {
-    () => {
-        "\x1b[33m"
-    };
-}
-macro_rules! BG_YELLOW {
-    () => {
-        "\x1b[43m"
-    };
-}
-macro_rules! FG_BLUE {
-    () => {
-        "\x1b[34m"
-    };
-}
-macro_rules! BG_BLUE {
-    () => {
-        "\x1b[44m"
-    };
-}
-macro_rules! FG_MAGENTA {
-    () => {
-        "\x1b[35m"
-    };
-}
-macro_rules! BG_MAGENTA {
-    () => {
-        "\x1b[45m"
-    };
-}
-macro_rules! FG_CYAN {
-    () => {
-        "\x1b[36m"
-    };
-}
-macro_rules! BG_CYAN {
-    () => {
-        "\x1b[46m"
-    };
-}
-macro_rules! FG_WHITE {
-    () => {
-        "\x1b[37m"
-    };
-}
-macro_rules! BG_WHITE {
-    () => {
-        "\x1b[47m"
-    };
-}
+// === ANSI COLORS ===
+// Foreground colors
+pub const FG_BLACK: &str = "\x1b[30m";
+pub const FG_RED: &str = "\x1b[31m";
+pub const FG_GREEN: &str = "\x1b[32m";
+pub const FG_YELLOW: &str = "\x1b[33m";
+pub const FG_BLUE: &str = "\x1b[34m";
+pub const FG_MAGENTA: &str = "\x1b[35m";
+pub const FG_CYAN: &str = "\x1b[36m";
+pub const FG_WHITE: &str = "\x1b[37m";
 
-macro_rules! FG_BRIGHT_BLACK {
-    () => {
-        "\x1b[90m"
-    };
-}
-macro_rules! BG_BRIGHT_BLACK {
-    () => {
-        "\x1b[100m"
-    };
-}
-macro_rules! FG_BRIGHT_RED {
-    () => {
-        "\x1b[91m"
-    };
-}
-macro_rules! BG_BRIGHT_RED {
-    () => {
-        "\x1b[101m"
-    };
-}
-macro_rules! FG_BRIGHT_GREEN {
-    () => {
-        "\x1b[92m"
-    };
-}
-macro_rules! BG_BRIGHT_GREEN {
-    () => {
-        "\x1b[102m"
-    };
-}
-macro_rules! FG_BRIGHT_YELLOW {
-    () => {
-        "\x1b[93m"
-    };
-}
-macro_rules! BG_BRIGHT_YELLOW {
-    () => {
-        "\x1b[103m"
-    };
-}
-macro_rules! FG_BRIGHT_BLUE {
-    () => {
-        "\x1b[94m"
-    };
-}
-macro_rules! BG_BRIGHT_BLUE {
-    () => {
-        "\x1b[104m"
-    };
-}
-macro_rules! FG_BRIGHT_MAGENTA {
-    () => {
-        "\x1b[95m"
-    };
-}
-macro_rules! BG_BRIGHT_MAGENTA {
-    () => {
-        "\x1b[105m"
-    };
-}
-macro_rules! FG_BRIGHT_CYAN {
-    () => {
-        "\x1b[96m"
-    };
-}
-macro_rules! BG_BRIGHT_CYAN {
-    () => {
-        "\x1b[106m"
-    };
-}
-macro_rules! FG_BRIGHT_WHITE {
-    () => {
-        "\x1b[97m"
-    };
-}
-macro_rules! BG_BRIGHT_WHITE {
-    () => {
-        "\x1b[107m"
-    };
-}
+// Background colors
+pub const BG_BLACK: &str = "\x1b[40m";
+pub const BG_RED: &str = "\x1b[41m";
+pub const BG_GREEN: &str = "\x1b[42m";
+pub const BG_YELLOW: &str = "\x1b[43m";
+pub const BG_BLUE: &str = "\x1b[44m";
+pub const BG_MAGENTA: &str = "\x1b[45m";
+pub const BG_CYAN: &str = "\x1b[46m";
+pub const BG_WHITE: &str = "\x1b[47m";
 
-// Reset / Default
+// Bright foreground colors
+pub const FG_BRIGHT_BLACK: &str = "\x1b[90m";
+pub const FG_BRIGHT_RED: &str = "\x1b[91m";
+pub const FG_BRIGHT_GREEN: &str = "\x1b[92m";
+pub const FG_BRIGHT_YELLOW: &str = "\x1b[93m";
+pub const FG_BRIGHT_BLUE: &str = "\x1b[94m";
+pub const FG_BRIGHT_MAGENTA: &str = "\x1b[95m";
+pub const FG_BRIGHT_CYAN: &str = "\x1b[96m";
+pub const FG_BRIGHT_WHITE: &str = "\x1b[97m";
 
-macro_rules! RESET_COLOR {
-    () => {
-        "\x1b[0m"
-    };
-}
-pub(crate) use RESET_COLOR;
+// Bright background colors
+pub const BG_BRIGHT_BLACK: &str = "\x1b[100m";
+pub const BG_BRIGHT_RED: &str = "\x1b[101m";
+pub const BG_BRIGHT_GREEN: &str = "\x1b[102m";
+pub const BG_BRIGHT_YELLOW: &str = "\x1b[103m";
+pub const BG_BRIGHT_BLUE: &str = "\x1b[104m";
+pub const BG_BRIGHT_MAGENTA: &str = "\x1b[105m";
+pub const BG_BRIGHT_CYAN: &str = "\x1b[106m";
+pub const BG_BRIGHT_WHITE: &str = "\x1b[107m";
+
+// === ANSI LEMENTS AND CODES ===
+pub const RESET_COLOR: &str = "\x1b[0m";
 pub const BLOCK: &str = "▀";
 
-// Game ansi elements. Variants are used when the full terminal character block is occupied by the
+// === ANSI GAME ELEMENTS ===
+// Variants are used when the full terminal character block is occupied by the
 // game element (example: two grass tiles one on top of the other)
 pub const ERR_COLOR: (&str, &str) = (FG_MAGENTA!(), BG_MAGENTA!());
 pub const ERR_VARIANT: &str = "?";
