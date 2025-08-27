@@ -62,8 +62,7 @@ impl Canvas {
     }
 
     pub fn init(&mut self, tiles: &Vec<Vec<common::TileE>>) {
-        let tiles_formatted = format_tiles(tiles);
-        self.central_module.init(tiles_formatted);
+        self.central_module.init(tiles);
     }
 
     /// Prints the entire canvas to the terminal.
@@ -78,56 +77,52 @@ impl Canvas {
     ) {
         let mut new_frame: Vec<Vec<TermCell>> = vec![vec![BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
 
-        // Fill right module
+        // TODO: refactor modules logic
         for (row, line_contents) in self.right_module.get_content().iter().enumerate() {
             for (col, cell) in line_contents.chars().enumerate() {
                 new_frame[row + RIGHT_MOD_POS.0][col + RIGHT_MOD_POS.1] = cell;
             }
         }
 
-        for (line, line_contents) in self
-            .central_module
-            .get_map(&game_objs, map_zoom)
-            .iter()
-            .enumerate()
-        {
-            let replacement = format!("{}{}", line_contents.concat(), ansi::RESET_COLOR!());
-
-            buffer[line + CENTRAL_MOD_POS.0].replace_range(
-                CENTRAL_MOD_POS.1..CENTRAL_MOD_POS.1 + CENTRAL_MODULE_COLS + 2,
-                &replacement,
-            );
-        }
-        for (line, line_contents) in self
-            .left_module
-            .get_content(&player_data)
-            .iter()
-            .enumerate()
-        {
-            buffer[line + LEFT_MOD_POS.0].replace_range(
-                LEFT_MOD_POS.1..LEFT_MOD_POS.1 + LEFT_MODULE_COLS,
-                line_contents,
-            );
+        for (row, line_contents) in self.central_module.get_content().iter().enumerate() {
+            for (col, cell) in line_contents.chars().enumerate() {
+                new_frame[row + CENTRAL_MOD_POS.0][col + CENTRAL_MOD_POS.1] = cell;
+            }
         }
 
-        for (line, line_contents) in self.bottom_module.get_content().iter().enumerate() {
-            buffer[line + BOTTOM_MOD_POS.0].replace_range(
-                BOTTOM_MOD_POS.1..BOTTOM_MOD_POS.1 + BOTTOM_MODULE_COLS,
-                line_contents,
-            );
+        for (row, line_contents) in self.left_module.get_content().iter().enumerate() {
+            for (col, cell) in line_contents.chars().enumerate() {
+                new_frame[row + LEFT_MOD_POS.0][col + LEFT_MOD_POS.1] = cell;
+            }
         }
 
-        let buffer_len = buffer.len();
-        let top_margin = "\r\n".repeat(self.canvas_pos.0);
-        let left_term_margin = " ".repeat(self.canvas_pos.1);
-
-        print!("{}", top_margin);
-        for (iter, line) in buffer.iter().enumerate() {
-            print!("{}{}", left_term_margin, line);
-            if iter != buffer_len - 1 {
-                print!("\r\n");
-            };
+        for (row, line_contents) in self.bottom_module.get_content().iter().enumerate() {
+            for (col, cell) in line_contents.chars().enumerate() {
+                new_frame[row + BOTTOM_MOD_POS.0][col + BOTTOM_MOD_POS.1] = cell;
+            }
         }
+        
+        // is the terminal by default iterable even if theres nothjing printed?
+        //let top_margin = "\r\n".repeat(self.canvas_pos.0);
+        //let left_term_margin = " ".repeat(self.canvas_pos.1);
+
+        for row in 0..CANVAS_ROWS {
+            for col in 0..CANVAS_COLS {
+                let new_cell = &new_frame[row][col];
+                let last_cell = &self.prev_frame[row][col];
+                if new_cell != last_cell {
+                    // Move cursor and print changed cell
+                    print!(
+                        "\x1b[{};{}H{}",
+                        self.canvas_pos.0 + row + 1,
+                        self.canvas_pos.1 + col + 1,
+                        new_cell.as_string()
+                    );
+                }
+            }
+        }
+
+        self.prev_frame = new_frame;
     }
 
     pub fn update_and_print_cursor(&self, map_look: Option<(usize, usize)>) {
