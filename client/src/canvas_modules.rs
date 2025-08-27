@@ -9,14 +9,13 @@ use std::collections::HashMap;
 
 use crate::ansi::*;
 use crate::r#const::*;
+use crate::assets::TermCell;
 use common::r#const::{self, MAP_COLS, MAP_ROWS};
 
 pub struct CentralModule {
     // Stores the tiles for the rest of the game, since they should be immutable
     map_tiles: Vec<Vec<common::TileE>>,
     world_map_tiles: Vec<Vec<common::TileE>>,
-    map_tiles_formatted: Vec<Vec<String>>,
-    world_map_tiles_formatted: Vec<Vec<String>>,
 }
 
 pub struct LeftModule {
@@ -98,7 +97,7 @@ impl CentralModule {
         &self,
         game_objs: &HashMap<common::GameID, common::GameObjE>,
         map_zoom: Option<(usize, usize)>,
-    ) -> Vec<Vec<String>> {
+    ) -> Vec<Vec<TermCell>> {
         match map_zoom {
             Some(quadrant) => {
                 let mut content = self.add_objs_to_map(game_objs, quadrant);

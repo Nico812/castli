@@ -10,7 +10,6 @@ use terminal_size::{Height, Width, terminal_size};
 use crate::ansi;
 use crate::canvas_modules;
 use crate::r#const::*;
-use crate::assets;
 use common;
 
 /// Represents the main drawing area for the TUI.
@@ -18,6 +17,7 @@ use common;
 /// It holds all the different UI modules and is responsible for positioning
 /// them correctly and printing them to the screen.
 pub struct Canvas {
+    last_frame: Vec<Vec<TermCell>>,
     canvas_pos: (usize, usize),
     central_module: canvas_modules::CentralModule,
     left_module: canvas_modules::LeftModule,
@@ -70,20 +70,19 @@ impl Canvas {
     ///
     /// It gets the content from each module, assembles it into a buffer,
     /// and then prints the buffer to stdout.
-    pub fn print(
+    pub fn render(
         &self,
         game_objs: &HashMap<common::GameID, common::GameObjE>,
         player_data: &common::PlayerDataE,
         map_zoom: Option<(usize, usize)>,
     ) {
-        // PS: start by rendering the modules at the right
-        let mut buffer: Vec<String> = vec!["_".repeat(CANVAS_COLS); CANVAS_ROWS];
+        let mut new_frame: Vec<Vec<TermCell>> = vec![vec![BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
 
-        for (line, line_contents) in self.right_module.get_content().iter().enumerate() {
-            buffer[line + RIGHT_MOD_POS.0].replace_range(
-                RIGHT_MOD_POS.1..RIGHT_MOD_POS.1 + RIGHT_MODULE_COLS,
-                line_contents,
-            );
+        // Fill right module
+        for (row, line_contents) in self.right_module.get_content().iter().enumerate() {
+            for (col, cell) in line_contents.chars().enumerate() {
+                new_frame[row + RIGHT_MOD_POS.0][col + RIGHT_MOD_POS.1] = cell;
+            }
         }
 
         for (line, line_contents) in self
@@ -144,9 +143,4 @@ impl Canvas {
             print!("\r\x1b[0;0H");
         }
     }
-}
-
-format_tiles(tiles: &Vec<Vec<common::TileE>>) -> Vec<Vec<TermCell>> {
-    let tiles_formatted
-
 }
