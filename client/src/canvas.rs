@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use terminal_size::{Height, Width, terminal_size};
 
 use crate::ansi;
+use crate::assets;
 use crate::canvas_modules;
 use crate::r#const::*;
 use common;
@@ -17,7 +18,7 @@ use common;
 /// It holds all the different UI modules and is responsible for positioning
 /// them correctly and printing them to the screen.
 pub struct Canvas {
-    prev_frame: Vec<Vec<TermCell>>,
+    prev_frame: Vec<Vec<assets::TermCell>>,
     canvas_pos: (usize, usize),
     central_module: canvas_modules::CentralModule,
     left_module: canvas_modules::LeftModule,
@@ -47,7 +48,7 @@ impl Canvas {
                 canvas_pos = (0, 0);
             }
         }
-        let prev_frame = vec![ERR_EL.repeat(CANVAS_COLS); CANVAS_ROWS];
+        let prev_frame = vec![vec![assets::ERR_EL; CANVAS_COLS]; CANVAS_ROWS];
         let central_module = canvas_modules::CentralModule::new();
         let left_module = canvas_modules::LeftModule::new();
         let right_module = canvas_modules::RightModule::new();
@@ -58,6 +59,7 @@ impl Canvas {
             left_module,
             right_module,
             bottom_module,
+            prev_frame,
         }
     }
 
@@ -75,33 +77,39 @@ impl Canvas {
         player_data: &common::PlayerDataE,
         map_zoom: Option<(usize, usize)>,
     ) {
-        let mut new_frame: Vec<Vec<TermCell>> = vec![vec![BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
+        let mut new_frame: Vec<Vec<assets::TermCell>> =
+            vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
 
         // TODO: refactor modules logic
         for (row, line_contents) in self.right_module.get_content().iter().enumerate() {
             for (col, cell) in line_contents.iter().enumerate() {
-                new_frame[row + RIGHT_MOD_POS.0][col + RIGHT_MOD_POS.1] = cell;
+                new_frame[row + RIGHT_MOD_POS.0][col + RIGHT_MOD_POS.1] = cell.clone();
             }
         }
 
-        for (row, line_contents) in self.central_module.get_content().iter().enumerate() {
+        for (row, line_contents) in self
+            .central_module
+            .get_content(game_objs, map_zoom)
+            .iter()
+            .enumerate()
+        {
             for (col, cell) in line_contents.iter().enumerate() {
-                new_frame[row + CENTRAL_MOD_POS.0][col + CENTRAL_MOD_POS.1] = cell;
+                new_frame[row + CENTRAL_MOD_POS.0][col + CENTRAL_MOD_POS.1] = cell.clone();
             }
         }
 
-        for (row, line_contents) in self.left_module.get_content().iter().enumerate() {
+        for (row, line_contents) in self.left_module.get_content(player_data).iter().enumerate() {
             for (col, cell) in line_contents.iter().enumerate() {
-                new_frame[row + LEFT_MOD_POS.0][col + LEFT_MOD_POS.1] = cell;
+                new_frame[row + LEFT_MOD_POS.0][col + LEFT_MOD_POS.1] = cell.clone();
             }
         }
 
         for (row, line_contents) in self.bottom_module.get_content().iter().enumerate() {
             for (col, cell) in line_contents.iter().enumerate() {
-                new_frame[row + BOTTOM_MOD_POS.0][col + BOTTOM_MOD_POS.1] = cell;
+                new_frame[row + BOTTOM_MOD_POS.0][col + BOTTOM_MOD_POS.1] = cell.clone();
             }
         }
-        
+
         // is the terminal by default iterable even if theres nothjing printed?
         //let top_margin = "\r\n".repeat(self.canvas_pos.0);
         //let left_term_margin = " ".repeat(self.canvas_pos.1);

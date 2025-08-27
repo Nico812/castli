@@ -127,7 +127,7 @@ impl Tui {
             let map_look = map_look_arc.lock().await;
 
             Self::clear_screen();
-            canvas.print(&game_objs, &player_data, *map_zoom);
+            canvas.render(&game_objs, &player_data, *map_zoom);
             canvas.update_and_print_cursor(*map_look);
             let _ = std::io::stdout().flush();
 

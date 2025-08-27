@@ -21,7 +21,7 @@ impl<'a> TermCell<'a> {
         Self { ch, fg, bg }
     }
 
-    pub fn as_string(&self) -> &str {
+    pub fn as_string(&self) -> String {
         format!("{}{}{}", self.fg, self.bg, self.ch)
     }
 }
@@ -30,6 +30,8 @@ impl<'a> TermCell<'a> {
 pub const ERR_FG: &str = FG_MAGENTA;
 pub const ERR_BG: &str = BG_BRIGHT_MAGENTA;
 pub const ERR_EL: TermCell<'static> = TermCell::new('?', FG_MAGENTA, BG_BRIGHT_MAGENTA);
+pub const BKG_FG: &str = FG_BLACK;
+pub const BKG_BG: &str = BG_BLACK;
 pub const BKG_EL: TermCell<'static> = TermCell::new('_', FG_BRIGHT_BLACK, BG_BLACK);
 
 pub const GRASS_FG: &str = FG_GREEN;
@@ -47,28 +49,44 @@ pub const CASTLE_BG: &str = BG_BLACK;
 
 pub const CASTLE_ART: [[TermCell<'static>; 8]; 4] = [
     [
-        TermCell::new('M', CASTLE_FG, CASTLE_BG), TermCell::new('_', CASTLE_FG, CASTLE_BG),
-        TermCell::new('M', CASTLE_FG, CASTLE_BG), TermCell::new('_', CASTLE_FG, CASTLE_BG),
-        TermCell::new('_', CASTLE_FG, CASTLE_BG), TermCell::new('M', CASTLE_FG, CASTLE_BG),
-        TermCell::new('_', CASTLE_FG, CASTLE_BG), TermCell::new('M', CASTLE_FG, CASTLE_BG),
+        TermCell::new('M', CASTLE_FG, CASTLE_BG),
+        TermCell::new('_', CASTLE_FG, CASTLE_BG),
+        TermCell::new('M', CASTLE_FG, CASTLE_BG),
+        TermCell::new('_', CASTLE_FG, CASTLE_BG),
+        TermCell::new('_', CASTLE_FG, CASTLE_BG),
+        TermCell::new('M', CASTLE_FG, CASTLE_BG),
+        TermCell::new('_', CASTLE_FG, CASTLE_BG),
+        TermCell::new('M', CASTLE_FG, CASTLE_BG),
     ],
     [
-        TermCell::new('|', CASTLE_FG, CASTLE_BG), TermCell::new('▒', CASTLE_FG, CASTLE_BG),
-        TermCell::new('▒', CASTLE_FG, CASTLE_BG), TermCell::new('░', CASTLE_FG, CASTLE_BG),
-        TermCell::new('░', CASTLE_FG, CASTLE_BG), TermCell::new('░', CASTLE_FG, CASTLE_BG),
-        TermCell::new('░', CASTLE_FG, CASTLE_BG), TermCell::new('|', CASTLE_FG, CASTLE_BG),
+        TermCell::new('|', CASTLE_FG, CASTLE_BG),
+        TermCell::new('▒', CASTLE_FG, CASTLE_BG),
+        TermCell::new('▒', CASTLE_FG, CASTLE_BG),
+        TermCell::new('░', CASTLE_FG, CASTLE_BG),
+        TermCell::new('░', CASTLE_FG, CASTLE_BG),
+        TermCell::new('░', CASTLE_FG, CASTLE_BG),
+        TermCell::new('░', CASTLE_FG, CASTLE_BG),
+        TermCell::new('|', CASTLE_FG, CASTLE_BG),
     ],
     [
-        TermCell::new('|', CASTLE_FG, CASTLE_BG), TermCell::new('▒', CASTLE_FG, CASTLE_BG),
-        TermCell::new('▒', CASTLE_FG, CASTLE_BG), TermCell::new('X', CASTLE_FG, CASTLE_BG),
-        TermCell::new('_', CASTLE_FG, CASTLE_BG), TermCell::new('_', CASTLE_FG, CASTLE_BG),
-        TermCell::new('░', CASTLE_FG, CASTLE_BG), TermCell::new('|', CASTLE_FG, CASTLE_BG),
+        TermCell::new('|', CASTLE_FG, CASTLE_BG),
+        TermCell::new('▒', CASTLE_FG, CASTLE_BG),
+        TermCell::new('▒', CASTLE_FG, CASTLE_BG),
+        TermCell::new('X', CASTLE_FG, CASTLE_BG),
+        TermCell::new('_', CASTLE_FG, CASTLE_BG),
+        TermCell::new('_', CASTLE_FG, CASTLE_BG),
+        TermCell::new('░', CASTLE_FG, CASTLE_BG),
+        TermCell::new('|', CASTLE_FG, CASTLE_BG),
     ],
     [
-        TermCell::new('|', CASTLE_FG, CASTLE_BG), TermCell::new('▒', CASTLE_FG, CASTLE_BG),
-        TermCell::new('▒', CASTLE_FG, CASTLE_BG), TermCell::new('░', CASTLE_FG, CASTLE_BG),
-        TermCell::new('|', CASTLE_FG, CASTLE_BG), TermCell::new('|', CASTLE_FG, CASTLE_BG),
-        TermCell::new('░', CASTLE_FG, CASTLE_BG), TermCell::new('|', CASTLE_FG, CASTLE_BG),
+        TermCell::new('|', CASTLE_FG, CASTLE_BG),
+        TermCell::new('▒', CASTLE_FG, CASTLE_BG),
+        TermCell::new('▒', CASTLE_FG, CASTLE_BG),
+        TermCell::new('░', CASTLE_FG, CASTLE_BG),
+        TermCell::new('|', CASTLE_FG, CASTLE_BG),
+        TermCell::new('|', CASTLE_FG, CASTLE_BG),
+        TermCell::new('░', CASTLE_FG, CASTLE_BG),
+        TermCell::new('|', CASTLE_FG, CASTLE_BG),
     ],
 ];
 

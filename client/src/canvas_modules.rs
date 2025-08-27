@@ -8,8 +8,8 @@ use rand::{self, Rng};
 use std::collections::HashMap;
 
 use crate::ansi::*;
-use crate::r#const::*;
 use crate::assets::*;
+use crate::r#const::*;
 use common::r#const::{self, MAP_COLS, MAP_ROWS};
 
 pub struct CentralModule {
@@ -54,13 +54,13 @@ impl CentralModule {
         match map_zoom {
             Some(quadrant) => {
                 let cut_map = self.get_map_cut(quadrant);
-                let mut content = Self::tiles_to_cells(cut_map);
+                let mut content = Self::tiles_to_cells(&cut_map);
                 Self::add_objs_to_map(&mut content, game_objs, quadrant);
                 //add_frame(&mut content, true);
                 content
             }
             None => {
-                let mut content = Self::tiles_to_cells(self.world_map_tiles);
+                let mut content = Self::tiles_to_cells(&self.world_map_tiles);
                 Self::add_objs_to_world_map(&mut content, game_objs);
                 //add_frame(&mut content, false);
                 content
@@ -101,68 +101,67 @@ impl CentralModule {
         self.map_tiles = tiles.clone();
     }
 
-    fn tiles_to_cells(tiles: &Vec<Vec<common::TileE>>)-> Vec<Vec<TermCell>> {
+    fn tiles_to_cells(tiles: &Vec<Vec<common::TileE>>) -> Vec<Vec<TermCell>> {
         let mut rng = rand::rng();
-            let mut cells =
-                vec![vec![ERR_EL; tiles[0].len()]; tiles.len() / 2];
-            let mut tiles_row;
-            let mut tiles_col;
-            for term_row in 0..tiles.len() / 2 {
-                tiles_row = term_row * 2;
-                for term_col in 0..tiles[tiles_row].len() {
-                    tiles_col = term_col;
-                    if tiles[tiles_row][tiles_col] == tiles[tiles_row + 1][tiles_col] {
-                        let cell;
-                        match tiles[tiles_row][tiles_col] {
-                            common::TileE::Grass => {
-                                if rng.random_bool(0.2) {
-                                    cell = GRASS_EL_1;
-                                } else {
-                                    cell = GRASS_EL_2;
-                                }
-                            }
-                            common::TileE::Water => {
-                                if rng.random_bool(0.2) {
-                                    cell = WATER_EL_1;
-                                } else {
-                                    cell = WATER_EL_2;
-                                }
-                            }
-                            _ => {
-                                cell = ERR_EL;
+        let mut cells = vec![vec![ERR_EL; tiles[0].len()]; tiles.len() / 2];
+        let mut tiles_row;
+        let mut tiles_col;
+        for term_row in 0..tiles.len() / 2 {
+            tiles_row = term_row * 2;
+            for term_col in 0..tiles[tiles_row].len() {
+                tiles_col = term_col;
+                if tiles[tiles_row][tiles_col] == tiles[tiles_row + 1][tiles_col] {
+                    let cell;
+                    match tiles[tiles_row][tiles_col] {
+                        common::TileE::Grass => {
+                            if rng.random_bool(0.2) {
+                                cell = GRASS_EL_1;
+                            } else {
+                                cell = GRASS_EL_2;
                             }
                         }
-                        cells[term_row][term_col] = cell;
-                    } else {
-                        let fg_color;
-                        let bg_color;
-                        match tiles[tiles_row][tiles_col] {
-                            common::TileE::Grass => {
-                                fg_color = GRASS_FG;
-                            }
-                            common::TileE::Water => {
-                                fg_color = WATER_FG;
-                            }
-                            _ => {
-                                fg_color = ERR_FG;
+                        common::TileE::Water => {
+                            if rng.random_bool(0.2) {
+                                cell = WATER_EL_1;
+                            } else {
+                                cell = WATER_EL_2;
                             }
                         }
-                        match tiles[tiles_row + 1][tiles_col] {
-                            common::TileE::Grass => {
-                                bg_color = GRASS_BG;
-                            }
-                            common::TileE::Water => {
-                                bg_color = WATER_BG;
-                            }
-                            _ => {
-                                bg_color = ERR_BG;
-                            }
+                        _ => {
+                            cell = ERR_EL;
                         }
-                        cells[term_row][term_col] = TermCell::new(BLOCK, fg_color, bg_color);
                     }
+                    cells[term_row][term_col] = cell;
+                } else {
+                    let fg_color;
+                    let bg_color;
+                    match tiles[tiles_row][tiles_col] {
+                        common::TileE::Grass => {
+                            fg_color = GRASS_FG;
+                        }
+                        common::TileE::Water => {
+                            fg_color = WATER_FG;
+                        }
+                        _ => {
+                            fg_color = ERR_FG;
+                        }
+                    }
+                    match tiles[tiles_row + 1][tiles_col] {
+                        common::TileE::Grass => {
+                            bg_color = GRASS_BG;
+                        }
+                        common::TileE::Water => {
+                            bg_color = WATER_BG;
+                        }
+                        _ => {
+                            bg_color = ERR_BG;
+                        }
+                    }
+                    cells[term_row][term_col] = TermCell::new(BLOCK, fg_color, bg_color);
                 }
             }
-            cells
+        }
+        cells
     }
 
     fn add_objs_to_world_map(
@@ -175,7 +174,7 @@ impl CentralModule {
                     let term_pos = (castle.pos.0 / 16, castle.pos.1 / 8);
                     for (row, cells_row) in CASTLE_ART_WORLD.iter().enumerate() {
                         for (col, cell) in cells_row.iter().enumerate() {
-                            world_map[term_pos.0 + row][term_pos.1 + col] = cell;
+                            world_map[term_pos.0 + row][term_pos.1 + col] = cell.clone();
                         }
                     }
                 }
@@ -184,9 +183,8 @@ impl CentralModule {
         }
     }
 
-    fn get_map_cut(&self, quadrant: (usize, usize)) -> Vec<Vec<TileE>> {
-        self.map_tiles
-            [quadrant.0 * CENTRAL_MODULE_ROWS..(quadrant.0 + 1) * CENTRAL_MODULE_ROWS]
+    fn get_map_cut(&self, quadrant: (usize, usize)) -> Vec<Vec<common::TileE>> {
+        self.map_tiles[quadrant.0 * CENTRAL_MODULE_ROWS..(quadrant.0 + 1) * CENTRAL_MODULE_ROWS]
             .iter()
             .map(|row| {
                 row[quadrant.1 * CENTRAL_MODULE_COLS..(quadrant.1 + 1) * CENTRAL_MODULE_COLS]
@@ -236,28 +234,20 @@ impl LeftModule {
         Self {}
     }
 
-    pub fn get_content(&self, player_data: &common::PlayerDataE) -> Vec<TermCell> {
+    pub fn get_content(&self, player_data: &common::PlayerDataE) -> Vec<Vec<TermCell>> {
         let blank_row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); LEFT_MODULE_COLS];
         let mut content = vec![blank_row.clone(); LEFT_MODULE_ROWS];
 
         let name = &player_data.name;
         for (i, ch) in name.chars().enumerate() {
             if Self::PADDING_LEFT + i < LEFT_MODULE_COLS {
-                content[3][Self::PADDING_LEFT + i] = TermCell::new(
-                    ch,
-                    TEXT_FG,
-                    BKG_BG
-                );
+                content[3][Self::PADDING_LEFT + i] = TermCell::new(ch, BKG_FG, BKG_BG);
             }
         }
         let pos_str = format!("({}, {})", player_data.pos.0, player_data.pos.1);
         for (i, ch) in pos_str.chars().enumerate() {
             if Self::PADDING_LEFT + i < LEFT_MODULE_COLS {
-                content[5][Self::PADDING_LEFT + i] = TermCell::new(
-                    ch,
-                    TEXT_FG,
-                    BKG_BG
-                );
+                content[5][Self::PADDING_LEFT + i] = TermCell::new(ch, BKG_FG, BKG_BG);
             }
         }
         content
@@ -272,7 +262,10 @@ impl RightModule {
     }
 
     pub fn get_content(&self) -> Vec<Vec<TermCell>> {
-        let mut content = vec![TermCell::new(' ', FG_BLACK, BG_BLACK).repeat(RIGHT_MODULE_COLS); RIGHT_MODULE_ROWS];
+        let content = vec![
+            vec![TermCell::new(' ', FG_BLACK, BG_BLACK); RIGHT_MODULE_COLS];
+            RIGHT_MODULE_ROWS
+        ];
         content
     }
 }
@@ -285,7 +278,10 @@ impl BottomModule {
     }
 
     pub fn get_content(&self) -> Vec<Vec<TermCell>> {
-        let mut content = vec![TermCell::new(' ', FG_BLACK, BG_BLACK).repeat(BOTTOM_MODULE_COLS); BOTTOM_MODULE_ROWS];
+        let mut content = vec![
+            vec![TermCell::new(' ', FG_BLACK, BG_BLACK); BOTTOM_MODULE_COLS];
+            BOTTOM_MODULE_ROWS
+        ];
         content
     }
 }
