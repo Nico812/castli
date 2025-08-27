@@ -86,19 +86,22 @@ impl CentralModule {
         self.set_tiles(tiles);
     }
 
-    pub fn get_map(
+    pub fn get_content(
         &self,
         game_objs: &HashMap<common::GameID, common::GameObjE>,
         map_zoom: Option<(usize, usize)>,
     ) -> Vec<Vec<TermCell>> {
         match map_zoom {
             Some(quadrant) => {
-                let mut content = self.add_objs_to_map(game_objs, quadrant);
+                let cut_map = self.get_map_cut(quadrant);
+                let mut content = Self::tiles_to_cells(cut_map);
+                Self::add_objs_to_map(content);
                 add_frame(&mut content, true);
                 content
             }
             None => {
-                let mut content = self.add_objs_to_world_map(game_objs);
+                let mut content = Self::tiles_to_cells(self.world_map);
+                Self::add_objs_to_world_map(content);
                 add_frame(&mut content, false);
                 content
             }
@@ -264,7 +267,6 @@ impl CentralModule {
                 _ => {}
             }
         }
-        output
     }
 }
 
