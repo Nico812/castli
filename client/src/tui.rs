@@ -113,7 +113,6 @@ impl Tui {
         Self::reset_mode();
     }
 
-    /// The UI rendering loop, now in its own focused async function.
     async fn render_loop(
         canvas: canvas::Canvas,
         game_objs_arc: Arc<Mutex<HashMap<usize, common::GameObjE>>>,
@@ -122,7 +121,6 @@ impl Tui {
         map_look_arc: Arc<Mutex<Option<(usize, usize)>>>,
     ) {
         loop {
-            // Lock resources only for the brief moment they are needed for drawing
             let game_objs = game_objs_arc.lock().await;
             let player_data = player_data_arc.lock().await;
             let map_zoom = map_zoom_arc.lock().await;
@@ -132,8 +130,6 @@ impl Tui {
             canvas.print(&game_objs, &player_data, *map_zoom);
             canvas.update_and_print_cursor(*map_look);
             let _ = std::io::stdout().flush();
-
-            // Drop locks automatically here at the end of the scope
 
             tokio::time::sleep(tokio::time::Duration::from_millis(1000 / 60)).await;
         }

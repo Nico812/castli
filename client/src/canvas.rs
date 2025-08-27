@@ -10,6 +10,7 @@ use terminal_size::{Height, Width, terminal_size};
 use crate::ansi;
 use crate::canvas_modules;
 use crate::r#const::*;
+use crate::assets;
 use common;
 
 /// Represents the main drawing area for the TUI.
@@ -61,7 +62,8 @@ impl Canvas {
     }
 
     pub fn init(&mut self, tiles: &Vec<Vec<common::TileE>>) {
-        self.central_module.init(tiles);
+        let tiles_formatted = format_tiles(tiles);
+        self.central_module.init(tiles_formatted);
     }
 
     /// Prints the entire canvas to the terminal.
@@ -142,4 +144,9 @@ impl Canvas {
             print!("\r\x1b[0;0H");
         }
     }
+}
+
+format_tiles(tiles: &Vec<Vec<common::TileE>>) -> Vec<Vec<TermCell>> {
+    let tiles_formatted
+
 }

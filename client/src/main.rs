@@ -9,6 +9,7 @@ mod canvas_modules;
 mod client;
 mod r#const;
 mod tui;
+mod assets;
 
 use client::Client;
 
