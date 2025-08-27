@@ -45,4 +45,4 @@ pub const BG_BRIGHT_WHITE: &str = "\x1b[107m";
 
 // === ANSI ELEMENTS AND CODES ===
 pub const RESET_COLOR: &str = "\x1b[0m";
-pub const BLOCK: &str = "▀";
+pub const BLOCK: char = '▀';
