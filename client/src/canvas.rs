@@ -72,7 +72,7 @@ impl Canvas {
     /// It gets the content from each module, assembles it into a buffer,
     /// and then prints the buffer to stdout.
     pub fn render(
-        &self,
+        &mut self,
         game_objs: &HashMap<common::GameID, common::GameObjE>,
         player_data: &common::PlayerDataE,
         map_zoom: Option<(usize, usize)>,

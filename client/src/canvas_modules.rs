@@ -101,7 +101,7 @@ impl CentralModule {
         self.map_tiles = tiles.clone();
     }
 
-    fn tiles_to_cells(tiles: &Vec<Vec<common::TileE>>) -> Vec<Vec<TermCell>> {
+    fn tiles_to_cells<'a>(tiles: &Vec<Vec<common::TileE>>) -> Vec<Vec<TermCell>> {
         let mut rng = rand::rng();
         let mut cells = vec![vec![ERR_EL; tiles[0].len()]; tiles.len() / 2];
         let mut tiles_row;

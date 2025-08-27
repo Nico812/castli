@@ -182,7 +182,7 @@ impl Client {
         });
 
         // 7. Create and run the TUI. The main thread will now be dedicated to the UI.
-        let tui = tui::Tui::new(t2c_tx, s2c_rx, map, initial_objs, initial_data);
+        let mut tui = tui::Tui::new(t2c_tx, s2c_rx, map, initial_objs, initial_data);
         tui.run().await; // This blocks until the user quits the TUI.
 
         // 8. Cleanup

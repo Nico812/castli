@@ -35,7 +35,7 @@ pub struct Tui {
     from_server_rx: Arc<Mutex<mpsc::UnboundedReceiver<common::S2C>>>,
 
     // UI and Game State
-    canvas: canvas::Canvas,
+    canvas: Arc<Mutex<canvas::Canvas>>,
     game_objs: Arc<Mutex<HashMap<usize, common::GameObjE>>>,
     player_data: Arc<Mutex<common::PlayerDataE>>,
     map_zoom: Arc<Mutex<Option<(usize, usize)>>>,
@@ -75,7 +75,7 @@ impl Tui {
             state,
             to_server_tx: tx,
             from_server_rx: Arc::new(Mutex::new(rx)),
-            canvas,
+            canvas: Arc::new(Mutex::new(canvas)),
             game_objs: Arc::new(Mutex::new(initial_game_objs)),
             player_data: Arc::new(Mutex::new(player_data)),
             map_zoom: Arc::new(Mutex::new(map_zoom)),
@@ -85,7 +85,7 @@ impl Tui {
 
     /// The run method is now the main entry point for the TUI. It takes
     /// ownership of `self` and runs until the user quits.
-    pub async fn run(self) {
+    pub async fn run(&mut self) {
         Self::set_raw_mode();
 
         // Spawn a task to listen for updates from the server
@@ -97,7 +97,7 @@ impl Tui {
 
         // Spawn a task to render the UI
         let ui_handle = tokio::spawn(Self::render_loop(
-            self.canvas,
+            Arc::clone(&self.canvas),
             Arc::clone(&self.game_objs),
             Arc::clone(&self.player_data),
             Arc::clone(&self.map_zoom),
@@ -105,7 +105,12 @@ impl Tui {
         ));
 
         // The main TUI task now only handles player input
-        Self::handle_player_input(self.to_server_tx, self.map_zoom, self.map_look).await;
+        Self::handle_player_input(
+            &self.to_server_tx,
+            Arc::clone(&self.map_zoom),
+            Arc::clone(&self.map_look),
+        )
+        .await;
 
         // When input handling ends (e.g., user presses 'q'), abort other tasks and clean up.
         com_handle.abort();
@@ -114,21 +119,22 @@ impl Tui {
     }
 
     async fn render_loop(
-        canvas: canvas::Canvas,
+        canvas_arc: Arc<Mutex<canvas::Canvas>>,
         game_objs_arc: Arc<Mutex<HashMap<usize, common::GameObjE>>>,
         player_data_arc: Arc<Mutex<common::PlayerDataE>>,
         map_zoom_arc: Arc<Mutex<Option<(usize, usize)>>>,
         map_look_arc: Arc<Mutex<Option<(usize, usize)>>>,
     ) {
         loop {
+            let mut canvas = canvas_arc.lock().await;
             let game_objs = game_objs_arc.lock().await;
             let player_data = player_data_arc.lock().await;
             let map_zoom = map_zoom_arc.lock().await;
             let map_look = map_look_arc.lock().await;
 
             Self::clear_screen();
-            canvas.render(&game_objs, &player_data, *map_zoom);
-            canvas.update_and_print_cursor(*map_look);
+            &canvas.render(&game_objs, &player_data, *map_zoom);
+            &canvas.update_and_print_cursor(*map_look);
             let _ = std::io::stdout().flush();
 
             tokio::time::sleep(tokio::time::Duration::from_millis(1000 / 60)).await;
@@ -154,7 +160,7 @@ impl Tui {
     }
 
     async fn handle_player_input(
-        tx: mpsc::UnboundedSender<T2C>,
+        tx: &mpsc::UnboundedSender<T2C>,
         map_zoom_arc: Arc<Mutex<Option<(usize, usize)>>>,
         map_look_arc: Arc<Mutex<Option<(usize, usize)>>>,
     ) {
