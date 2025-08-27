@@ -9,7 +9,7 @@ use std::collections::HashMap;
 
 use crate::ansi::*;
 use crate::r#const::*;
-use crate::assets::TermCell;
+use crate::assets::*;
 use common::r#const::{self, MAP_COLS, MAP_ROWS};
 
 pub struct CentralModule {
@@ -28,46 +28,6 @@ pub struct RightModule {
 
 pub struct BottomModule {
     // Game events
-}
-
-fn add_frame(content: &mut Vec<Vec<String>>, with_markers: bool) {
-    let content_rows = content.len();
-    let content_cols = content[0].len();
-
-    let top_right_corner = "+".to_owned();
-    let bottom_left_corner = top_right_corner.clone();
-    let bottom_right_corner = top_right_corner.clone();
-    let top_left_corner = match with_markers {
-        true => "0".to_owned(),
-        false => top_right_corner.clone(),
-    };
-
-    let mut bottom_border = vec!["-".to_owned(); content_cols];
-    let right_border = vec![concat!(RESET_COLOR!(), "|").to_owned(); content_rows];
-    let mut top_border = bottom_border.clone();
-    let mut left_border = right_border.clone();
-    if with_markers {
-        for col_marker in 1..content_cols / 8 {
-            top_border[col_marker * 8] = col_marker.to_string();
-        }
-        for row_marker in 1..content_rows / 4 {
-            left_border[row_marker * 4] = row_marker.to_string();
-        }
-    }
-
-    for row in 0..content_rows {
-        content[row].insert(0, left_border[row].clone());
-        content[row].push(right_border[row].clone());
-    }
-    let mut top_row = vec![top_left_corner];
-    top_row.append(&mut top_border);
-    top_row.push(top_right_corner);
-    let mut bottom_row = vec![bottom_left_corner];
-    bottom_row.append(&mut bottom_border);
-    bottom_row.push(bottom_right_corner);
-
-    content.insert(0, top_row);
-    content.push(bottom_row);
 }
 
 impl CentralModule {
@@ -95,14 +55,14 @@ impl CentralModule {
             Some(quadrant) => {
                 let cut_map = self.get_map_cut(quadrant);
                 let mut content = Self::tiles_to_cells(cut_map);
-                Self::add_objs_to_map(content);
-                add_frame(&mut content, true);
+                Self::add_objs_to_map(&mut content, game_objs, quadrant);
+                //add_frame(&mut content, true);
                 content
             }
             None => {
-                let mut content = Self::tiles_to_cells(self.world_map);
-                Self::add_objs_to_world_map(content);
-                add_frame(&mut content, false);
+                let mut content = Self::tiles_to_cells(self.world_map_tiles);
+                Self::add_objs_to_world_map(&mut content, game_objs);
+                //add_frame(&mut content, false);
                 content
             }
         }
@@ -235,7 +195,6 @@ impl CentralModule {
             .collect()
     }
 
-    // cut map -> transform to cell -> add objs
     fn add_objs_to_map(
         map: &mut Vec<Vec<TermCell>>,
         objs: &HashMap<common::GameID, common::GameObjE>,
@@ -277,29 +236,30 @@ impl LeftModule {
         Self {}
     }
 
-    pub fn get_content(&self, player_data: &common::PlayerDataE) -> Vec<String> {
-        let mut content = vec![" ".repeat(LEFT_MODULE_COLS); LEFT_MODULE_ROWS];
+    pub fn get_content(&self, player_data: &common::PlayerDataE) -> Vec<TermCell> {
+        let blank_row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); LEFT_MODULE_COLS];
+        let mut content = vec![blank_row.clone(); LEFT_MODULE_ROWS];
 
-        let name_line = format!(
-            "{}{}{}",
-            " ".repeat(Self::PADDING_LEFT),
-            player_data.name,
-            " ".repeat(LEFT_MODULE_COLS - Self::PADDING_LEFT - player_data.name.len())
-        );
-
+        let name = &player_data.name;
+        for (i, ch) in name.chars().enumerate() {
+            if Self::PADDING_LEFT + i < LEFT_MODULE_COLS {
+                content[3][Self::PADDING_LEFT + i] = TermCell::new(
+                    ch,
+                    TEXT_FG,
+                    BKG_BG
+                );
+            }
+        }
         let pos_str = format!("({}, {})", player_data.pos.0, player_data.pos.1);
-        let pos_line = format!(
-            "{}{}",
-            " ".repeat(Self::PADDING_LEFT),
-            format!(
-                "{}{}",
-                pos_str,
-                " ".repeat(LEFT_MODULE_COLS - Self::PADDING_LEFT - pos_str.len())
-            )
-        );
-
-        content[3] = name_line;
-        content[5] = pos_line;
+        for (i, ch) in pos_str.chars().enumerate() {
+            if Self::PADDING_LEFT + i < LEFT_MODULE_COLS {
+                content[5][Self::PADDING_LEFT + i] = TermCell::new(
+                    ch,
+                    TEXT_FG,
+                    BKG_BG
+                );
+            }
+        }
         content
     }
 }
@@ -311,8 +271,8 @@ impl RightModule {
         Self {}
     }
 
-    pub fn get_content(&self) -> Vec<String> {
-        let mut content: Vec<String> = vec![" ".repeat(RIGHT_MODULE_COLS); RIGHT_MODULE_ROWS];
+    pub fn get_content(&self) -> Vec<Vec<TermCell>> {
+        let mut content = vec![TermCell::new(' ', FG_BLACK, BG_BLACK).repeat(RIGHT_MODULE_COLS); RIGHT_MODULE_ROWS];
         content
     }
 }
@@ -324,8 +284,8 @@ impl BottomModule {
         Self {}
     }
 
-    pub fn get_content(&self) -> Vec<String> {
-        let mut content: Vec<String> = vec![" ".repeat(BOTTOM_MODULE_COLS); BOTTOM_MODULE_ROWS];
+    pub fn get_content(&self) -> Vec<Vec<TermCell>> {
+        let mut content = vec![TermCell::new(' ', FG_BLACK, BG_BLACK).repeat(BOTTOM_MODULE_COLS); BOTTOM_MODULE_ROWS];
         content
     }
 }

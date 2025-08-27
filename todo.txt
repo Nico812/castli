@@ -3,3 +3,6 @@ review error managerment in client.
 add_cornice dovrebbe funzionare sia per la mappa che per gli altri moduli
 
 definisci una grandezza standard del terminale e costruisci tutto da li. poi quelllinterfaccia la puoi centerare su terminali di dimensioni anche piu grandi.
+
+
+refactor the imports

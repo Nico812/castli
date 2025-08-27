@@ -17,7 +17,7 @@ use common;
 /// It holds all the different UI modules and is responsible for positioning
 /// them correctly and printing them to the screen.
 pub struct Canvas {
-    last_frame: Vec<Vec<TermCell>>,
+    prev_frame: Vec<Vec<TermCell>>,
     canvas_pos: (usize, usize),
     central_module: canvas_modules::CentralModule,
     left_module: canvas_modules::LeftModule,
@@ -47,7 +47,7 @@ impl Canvas {
                 canvas_pos = (0, 0);
             }
         }
-
+        let prev_frame = vec![ERR_EL.repeat(CANVAS_COLS); CANVAS_ROWS];
         let central_module = canvas_modules::CentralModule::new();
         let left_module = canvas_modules::LeftModule::new();
         let right_module = canvas_modules::RightModule::new();
@@ -79,25 +79,25 @@ impl Canvas {
 
         // TODO: refactor modules logic
         for (row, line_contents) in self.right_module.get_content().iter().enumerate() {
-            for (col, cell) in line_contents.chars().enumerate() {
+            for (col, cell) in line_contents.iter().enumerate() {
                 new_frame[row + RIGHT_MOD_POS.0][col + RIGHT_MOD_POS.1] = cell;
             }
         }
 
         for (row, line_contents) in self.central_module.get_content().iter().enumerate() {
-            for (col, cell) in line_contents.chars().enumerate() {
+            for (col, cell) in line_contents.iter().enumerate() {
                 new_frame[row + CENTRAL_MOD_POS.0][col + CENTRAL_MOD_POS.1] = cell;
             }
         }
 
         for (row, line_contents) in self.left_module.get_content().iter().enumerate() {
-            for (col, cell) in line_contents.chars().enumerate() {
+            for (col, cell) in line_contents.iter().enumerate() {
                 new_frame[row + LEFT_MOD_POS.0][col + LEFT_MOD_POS.1] = cell;
             }
         }
 
         for (row, line_contents) in self.bottom_module.get_content().iter().enumerate() {
-            for (col, cell) in line_contents.chars().enumerate() {
+            for (col, cell) in line_contents.iter().enumerate() {
                 new_frame[row + BOTTOM_MOD_POS.0][col + BOTTOM_MOD_POS.1] = cell;
             }
         }
