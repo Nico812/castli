@@ -4,7 +4,7 @@
 //! Each module is responsible for generating a specific part of the UI, such as the
 //! map view, player information panel, or event log.
 
-use rand::{self, Rng};
+use rand::{self, Rng, rngs};
 use std::collections::HashMap;
 
 use crate::ansi::*;
@@ -17,6 +17,7 @@ pub struct CentralModule {
     map_tiles: Vec<Vec<common::TileE>>,
     world_map_tiles: Vec<Vec<common::TileE>>,
     wind_map: Vec<Vec<bool>>,
+    rng: rngs::SmallRng,
 }
 
 pub struct LeftModule {
@@ -38,7 +39,7 @@ impl CentralModule {
             vec![vec![common::TileE::Grass; r#const::MAP_COLS / 8]; r#const::MAP_ROWS / 8];
 
         // Wind
-        let mut rng = rand::rng();
+        let mut rng = SmallRng::from_entropy();
         let mut wind_map = vec![vec![false; r#const::MAP_COLS]; r#const::MAP_ROWS];
         for row in wind_map.iter_mut() {
             for i in row.iter_mut() {
@@ -50,6 +51,7 @@ impl CentralModule {
             map_tiles,
             world_map_tiles,
             wind_map,
+            rng,
         }
     }
 
@@ -240,20 +242,32 @@ impl CentralModule {
         }
     }
 
-    // TODO: MAKE THIS WORK WITH MAP_ZOOM
-    pub fn update_wind(&mut self, render_count: u32) {
-        if (render_count % 6 == 0) {
-            let mut rng = rand::rng();
+pub fn update_wind(&mut self, render_count: u32, quadrant: (usize, usize)) {
+    const CENTRAL_MODULE_CONTENT_ROWS: usize = common::r#const::MAP_ROWS / 8;
+    const CENTRAL_MODULE_CONTENT_COLS: usize = common::r#const::MAP_COLS / 8;
 
-            for row in self.wind_map.iter_mut() {
-                for i in row.iter_mut() {
-                    if (rng.random_bool(0.05)) {
-                        *i = !*i;
-                    }
-                }
+    if render_count % 6 != 0 {
+        return;
+    }
+    let row_start = quadrant.0 * CENTRAL_MODULE_CONTENT_ROWS;
+    let row_end = (quadrant.0 + 1) * CENTRAL_MODULE_CONTENT_ROWS;
+    let col_start = quadrant.1 * CENTRAL_MODULE_CONTENT_COLS;
+    let col_end = (quadrant.1 + 1) * CENTRAL_MODULE_CONTENT_COLS;
+
+    for row in row_start..row_end {
+        for col in col_start..col_end {
+            let next_col = (col + 1) % CENTRAL_MODULE_CONTENT_COLS;
+            let next_row = (row + 1) % CENTRAL_MODULE_CONTENT_ROWS;
+            if self.rng.random_bool(0.05) || !self.wind_map[row][col] || self.wind_map[row][next_col] {
+                self.wind_map[row][col] = true;
+                self.wind_map[row][next_col] = false;
+            } else if self.rng.random_bool(0.01) || !self.wind_map[row][col] || self.wind_map[next_row][col] {
+                self.wind_map[row][col] = true;
+                self.wind_map[next_row][col] = false;
             }
         }
     }
+}
 }
 
 impl LeftModule {
