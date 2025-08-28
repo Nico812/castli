@@ -16,6 +16,7 @@ pub struct CentralModule {
     // Stores the tiles for the rest of the game, since they should be immutable
     map_tiles: Vec<Vec<common::TileE>>,
     world_map_tiles: Vec<Vec<common::TileE>>,
+    wind_map: Vec<Vec<bool>>,
 }
 
 pub struct LeftModule {
@@ -36,9 +37,19 @@ impl CentralModule {
         let world_map_tiles =
             vec![vec![common::TileE::Grass; r#const::MAP_COLS / 8]; r#const::MAP_ROWS / 8];
 
+        // Wind
+        let mut rng = rand::rng();
+        let mut wind_map = vec![vec![false; r#const::MAP_COLS]; r#const::MAP_ROWS];
+        for row in wind_map.iter_mut(){
+            for i in row.iter_mut(){
+                *i = rng.random_bool(0.2);
+            }
+        }
+
         Self {
             map_tiles,
             world_map_tiles,
+            wind_map,
         }
     }
 
@@ -51,6 +62,8 @@ impl CentralModule {
         game_objs: &HashMap<common::GameID, common::GameObjE>,
         map_zoom: Option<(usize, usize)>,
     ) -> Vec<Vec<TermCell>> {
+        self.update_wind();
+        
         match map_zoom {
             Some(quadrant) => {
                 let cut_map = self.get_map_cut(quadrant);
@@ -114,14 +127,14 @@ impl CentralModule {
                     let cell;
                     match tiles[tiles_row][tiles_col] {
                         common::TileE::Grass => {
-                            if rng.random_bool(0.2) {
+                            if self.wind_map[tiles_row][tiles_col] {
                                 cell = GRASS_EL_1;
                             } else {
                                 cell = GRASS_EL_2;
                             }
                         }
                         common::TileE::Water => {
-                            if rng.random_bool(0.2) {
+                            if self.wind_map[tiles_row][tiles_col] {
                                 cell = WATER_EL_1;
                             } else {
                                 cell = WATER_EL_2;
@@ -222,6 +235,18 @@ impl CentralModule {
                     }
                 }
                 _ => {}
+            }
+        }
+    }
+
+    pub fn update_wind(&mut self) {
+        let mut rng = rand::rng();
+
+        for row in self.wind_map.iter_mut(){
+            for i in row.iter_mut(){
+                if (rng.random_bool(0.05)){
+                    *i = !*i;
+                }
             }
         }
     }

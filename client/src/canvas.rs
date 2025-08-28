@@ -110,10 +110,6 @@ impl Canvas {
             }
         }
 
-        // is the terminal by default iterable even if theres nothjing printed?
-        // let top_margin = "\r\n".repeat(self.canvas_pos.0);
-        // let left_term_margin = " ".repeat(self.canvas_pos.1);
-
         for row in 0..CANVAS_ROWS {
             for col in 0..CANVAS_COLS {
                 let new_cell = &new_frame[row][col];
