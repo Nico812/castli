@@ -42,10 +42,8 @@ impl CentralModule {
         // Wind
         let mut rng = rand::rngs::SmallRng::seed_from_u64(1);
         let mut wind_map = vec![vec![false; r#const::MAP_COLS]; r#const::MAP_ROWS];
-        for row in wind_map.iter_mut() {
-            for i in row.iter_mut() {
-                *i = rng.random_bool(0.1);
-            }
+        for cell in wind_map.iter_mut().flat_map(|row| row.iter_mut()) {
+            *cell = rng.gen_bool(0.1);
         }
 
         Self {
@@ -69,7 +67,8 @@ impl CentralModule {
         match map_zoom {
             Some(quadrant) => {
                 let cut_map = self.get_map_cut(quadrant);
-                let mut content = self.tiles_to_cells(&cut_map);
+                let cut_wind_map = self.get_wind_map_cut(quadrant);
+                let mut content = self.tiles_to_cells(&cut_map, &cut_wind_map);
                 Self::add_objs_to_map(&mut content, game_objs, quadrant);
                 //add_frame(&mut content, true);
 
@@ -77,7 +76,8 @@ impl CentralModule {
                 content
             }
             None => {
-                let mut content = self.tiles_to_cells(&self.world_map_tiles);
+                let cut_wind_map = self.get_wind_map_cut((7, 7));
+                let mut content = self.tiles_to_cells(&self.world_map_tiles, &cut_wind_map);
                 Self::add_objs_to_world_map(&mut content, game_objs);
                 //add_frame(&mut content, false);
                 content
@@ -118,7 +118,7 @@ impl CentralModule {
         self.map_tiles = tiles.clone();
     }
 
-    fn tiles_to_cells<'a>(&self, tiles: &Vec<Vec<common::TileE>>) -> Vec<Vec<TermCell>> {
+    fn tiles_to_cells<'a>(&self, tiles: &Vec<Vec<common::TileE>>, wind_map: &Vec<Vec<bool>>) -> Vec<Vec<TermCell>> {
         let mut cells = vec![vec![ERR_EL; tiles[0].len()]; tiles.len() / 2];
         let mut tiles_row;
         let mut tiles_col;
@@ -201,6 +201,17 @@ impl CentralModule {
 
     fn get_map_cut(&self, quadrant: (usize, usize)) -> Vec<Vec<common::TileE>> {
         self.map_tiles
+            [quadrant.0 * CENTRAL_MODULE_ROWS * 2..(quadrant.0 + 1) * CENTRAL_MODULE_ROWS * 2]
+            .iter()
+            .map(|row| {
+                row[quadrant.1 * CENTRAL_MODULE_COLS..(quadrant.1 + 1) * CENTRAL_MODULE_COLS]
+                    .to_vec()
+            })
+            .collect()
+    }
+
+    fn get_wind_map_cut(&self, quadrant: (usize, usize)) -> Vec<Vec<bool>> {
+        self.wind_map
             [quadrant.0 * CENTRAL_MODULE_ROWS * 2..(quadrant.0 + 1) * CENTRAL_MODULE_ROWS * 2]
             .iter()
             .map(|row| {
