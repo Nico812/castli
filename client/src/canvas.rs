@@ -20,6 +20,8 @@ use common;
 pub struct Canvas {
     prev_frame: Vec<Vec<assets::TermCell>>,
     canvas_pos: (usize, usize),
+    render_count: u32,
+    // Modules
     central_module: canvas_modules::CentralModule,
     left_module: canvas_modules::LeftModule,
     right_module: canvas_modules::RightModule,
@@ -54,12 +56,13 @@ impl Canvas {
         let right_module = canvas_modules::RightModule::new();
         let bottom_module = canvas_modules::BottomModule::new();
         Self {
+            prev_frame,
             canvas_pos,
+            render_count: 0,
             central_module,
             left_module,
             right_module,
             bottom_module,
-            prev_frame,
         }
     }
 
@@ -89,7 +92,7 @@ impl Canvas {
 
         for (row, line_contents) in self
             .central_module
-            .get_content(game_objs, map_zoom)
+            .get_content(game_objs, map_zoom, self.render_count)
             .iter()
             .enumerate()
         {
@@ -127,6 +130,7 @@ impl Canvas {
         }
         print!("{}", ansi::RESET_COLOR);
         self.prev_frame = new_frame;
+        self.render_count.wrapping_add(1);
     }
 
     pub fn update_and_print_cursor(&self, map_look: Option<(usize, usize)>) {

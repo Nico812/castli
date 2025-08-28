@@ -61,6 +61,7 @@ impl CentralModule {
         &mut self,
         game_objs: &HashMap<common::GameID, common::GameObjE>,
         map_zoom: Option<(usize, usize)>,
+        render_count: u32,
     ) -> Vec<Vec<TermCell>> {
         match map_zoom {
             Some(quadrant) => {
@@ -69,7 +70,7 @@ impl CentralModule {
                 Self::add_objs_to_map(&mut content, game_objs, quadrant);
                 //add_frame(&mut content, true);
 
-                self.update_wind();
+                self.update_wind(render_count);
                 content
             }
             None => {
@@ -240,7 +241,8 @@ impl CentralModule {
         }
     }
 
-    pub fn update_wind(&mut self) {
+    pub fn update_wind(&mut self, render_count: u32) {
+        if (render_count%6 == 0){
         let mut rng = rand::rng();
 
         for row in self.wind_map.iter_mut() {
@@ -250,6 +252,7 @@ impl CentralModule {
                 }
             }
         }
+    }
     }
 }
 
