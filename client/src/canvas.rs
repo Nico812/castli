@@ -111,8 +111,8 @@ impl Canvas {
         }
 
         // is the terminal by default iterable even if theres nothjing printed?
-        //let top_margin = "\r\n".repeat(self.canvas_pos.0);
-        //let left_term_margin = " ".repeat(self.canvas_pos.1);
+        // let top_margin = "\r\n".repeat(self.canvas_pos.0);
+        // let left_term_margin = " ".repeat(self.canvas_pos.1);
 
         for row in 0..CANVAS_ROWS {
             for col in 0..CANVAS_COLS {
@@ -126,21 +126,20 @@ impl Canvas {
                         self.canvas_pos.1 + col + 1,
                         new_cell.as_string()
                     );
+                    if col==(CANVAS_COLS-1) print!("{}", ansi::RESET_COLOR);
                 }
             }
         }
-
         self.prev_frame = new_frame;
     }
 
     pub fn update_and_print_cursor(&self, map_look: Option<(usize, usize)>) {
         if let Some((row, col)) = map_look {
             // Terminal coord are 1-indexed
-            // + 2 to account for that and the module frame
             print!(
                 "\r\x1b[{};{}H",
-                crate::r#const::CENTRAL_MOD_POS.0 + row + self.canvas_pos.0 + 2,
-                crate::r#const::CENTRAL_MOD_POS.1 + col + self.canvas_pos.1 + 2
+                crate::r#const::CENTRAL_MOD_POS.0 + row + self.canvas_pos.0 + 1,
+                crate::r#const::CENTRAL_MOD_POS.1 + col + self.canvas_pos.1 + 1
             );
         } else {
             print!("\r\x1b[0;0H");
