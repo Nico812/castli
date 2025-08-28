@@ -184,7 +184,7 @@ impl CentralModule {
     }
 
     fn get_map_cut(&self, quadrant: (usize, usize)) -> Vec<Vec<common::TileE>> {
-        self.map_tiles[quadrant.0 * CENTRAL_MODULE_ROWS..(quadrant.0 + 1) * CENTRAL_MODULE_ROWS]
+        self.map_tiles[quadrant.0 * CENTRAL_MODULE_ROWS*2..(quadrant.0 + 1) * CENTRAL_MODULE_ROWS*2]
             .iter()
             .map(|row| {
                 row[quadrant.1 * CENTRAL_MODULE_COLS..(quadrant.1 + 1) * CENTRAL_MODULE_COLS]
