@@ -68,7 +68,7 @@ impl CentralModule {
             Some(quadrant) => {
                 let cut_map = self.get_map_cut(quadrant);
                 let cut_wind_map = self.get_wind_map_cut(quadrant);
-                let mut content = self.tiles_to_cells(&cut_map, &cut_wind_map);
+                let mut content = Self::tiles_to_cells(&cut_map, &cut_wind_map);
                 Self::add_objs_to_map(&mut content, game_objs, quadrant);
                 //add_frame(&mut content, true);
 
@@ -77,7 +77,7 @@ impl CentralModule {
             }
             None => {
                 let cut_wind_map = self.get_wind_map_cut((7, 7));
-                let mut content = self.tiles_to_cells(&self.world_map_tiles, &cut_wind_map);
+                let mut content = Self::tiles_to_cells(&self.world_map_tiles, &cut_wind_map);
                 Self::add_objs_to_world_map(&mut content, game_objs);
                 //add_frame(&mut content, false);
                 content
@@ -118,7 +118,10 @@ impl CentralModule {
         self.map_tiles = tiles.clone();
     }
 
-    fn tiles_to_cells<'a>(&self, tiles: &Vec<Vec<common::TileE>>, wind_map: &Vec<Vec<bool>>) -> Vec<Vec<TermCell>> {
+    fn tiles_to_cells<'a>(
+        tiles: &Vec<Vec<common::TileE>>,
+        wind_map: &Vec<Vec<bool>>,
+    ) -> Vec<Vec<TermCell>> {
         let mut cells = vec![vec![ERR_EL; tiles[0].len()]; tiles.len() / 2];
         let mut tiles_row;
         let mut tiles_col;
@@ -130,14 +133,14 @@ impl CentralModule {
                     let cell;
                     match tiles[tiles_row][tiles_col] {
                         common::TileE::Grass => {
-                            if self.wind_map[tiles_row][tiles_col] {
+                            if wind_map[tiles_row][tiles_col] {
                                 cell = GRASS_EL_2;
                             } else {
                                 cell = GRASS_EL_1;
                             }
                         }
                         common::TileE::Water => {
-                            if self.wind_map[tiles_row][tiles_col] {
+                            if wind_map[tiles_row][tiles_col] {
                                 cell = WATER_EL_2;
                             } else {
                                 cell = WATER_EL_1;

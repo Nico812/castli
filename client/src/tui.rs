@@ -12,6 +12,7 @@ use tokio::{
 };
 
 use crate::{
+    ansi::RESET_COLOR,
     canvas,
     r#const::{CENTRAL_MODULE_COLS, CENTRAL_MODULE_ROWS},
 };
@@ -57,13 +58,12 @@ impl Tui {
         canvas.init(&tiles);
         let mut state = TuiState::InGame;
         let mut map_look = None;
-        let map_zoom = Some((0, 0));
+        let map_zoom = None;
 
         let player_data = match initial_player_data {
             Some(player_data) => player_data,
             None => {
                 state = TuiState::CastleCreation;
-                map_look = Some((0, 0));
                 common::PlayerDataE {
                     id: 0,
                     name: "Undefined".to_string(),
@@ -133,14 +133,15 @@ impl Tui {
             // Rendering fps
             // There's a problem that the frame_dt gets super small when there is delay
             let now = time::Instant::now();
-            if let dt = now.duration_since(last_frame).as_millis() as u64 {
-                if dt >= 10 {
-                    frame_dt = dt;
-                }
+            let dt = now.duration_since(last_frame).as_millis() as u64;
+            if dt >= 10 {
+                frame_dt = dt;
             };
+
             last_frame = now;
 
             // Rendering
+            print!("{}", RESET_COLOR);
             {
                 let mut canvas = canvas_arc.lock().await;
                 let game_objs = game_objs_arc.lock().await;
