@@ -241,6 +241,7 @@ impl CentralModule {
         }
     }
 
+    // TODO: MAKE THIS WORK WITH MAP_ZOOM
     pub fn update_wind(&mut self, render_count: u32) {
         if (render_count%6 == 0){
         let mut rng = rand::rng();
@@ -270,13 +271,13 @@ impl LeftModule {
         let name = &player_data.name;
         for (i, ch) in name.chars().enumerate() {
             if Self::PADDING_LEFT + i < LEFT_MODULE_COLS {
-                content[3][Self::PADDING_LEFT + i] = TermCell::new(ch, BKG_FG, BKG_BG);
+                content[3][Self::PADDING_LEFT + i] = TermCell::new(ch, ansi::FG_WHITE, ansi::BG_BRIGHT_YELLOW);
             }
         }
         let pos_str = format!("({}, {})", player_data.pos.0, player_data.pos.1);
         for (i, ch) in pos_str.chars().enumerate() {
             if Self::PADDING_LEFT + i < LEFT_MODULE_COLS {
-                content[5][Self::PADDING_LEFT + i] = TermCell::new(ch, BKG_FG, BKG_BG);
+                content[5][Self::PADDING_LEFT + i] = TermCell::new(ch, ansi::FG_WHITE, ansi::BG_BRIGHT_YELLOW);
             }
         }
         content
