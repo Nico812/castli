@@ -4,6 +4,7 @@
 //! Each module is responsible for generating a specific part of the UI, such as the
 //! map view, player information panel, or event log.
 
+use rand::SeedableRng;
 use rand::{self, Rng, rngs};
 use std::collections::HashMap;
 
@@ -39,11 +40,11 @@ impl CentralModule {
             vec![vec![common::TileE::Grass; r#const::MAP_COLS / 8]; r#const::MAP_ROWS / 8];
 
         // Wind
-        let mut rng = SmallRng::from_entropy();
+        let mut rng = rand::rngs::SmallRng::seed_from_u64(1);
         let mut wind_map = vec![vec![false; r#const::MAP_COLS]; r#const::MAP_ROWS];
         for row in wind_map.iter_mut() {
             for i in row.iter_mut() {
-                *i = rng.random_bool(0.2);
+                *i = rng.random_bool(0.1);
             }
         }
 
@@ -72,7 +73,7 @@ impl CentralModule {
                 Self::add_objs_to_map(&mut content, game_objs, quadrant);
                 //add_frame(&mut content, true);
 
-                self.update_wind(render_count);
+                self.update_wind(render_count, quadrant);
                 content
             }
             None => {
@@ -130,16 +131,16 @@ impl CentralModule {
                     match tiles[tiles_row][tiles_col] {
                         common::TileE::Grass => {
                             if self.wind_map[tiles_row][tiles_col] {
-                                cell = GRASS_EL_1;
-                            } else {
                                 cell = GRASS_EL_2;
+                            } else {
+                                cell = GRASS_EL_1;
                             }
                         }
                         common::TileE::Water => {
                             if self.wind_map[tiles_row][tiles_col] {
-                                cell = WATER_EL_1;
-                            } else {
                                 cell = WATER_EL_2;
+                            } else {
+                                cell = WATER_EL_1;
                             }
                         }
                         _ => {
@@ -242,32 +243,46 @@ impl CentralModule {
         }
     }
 
-pub fn update_wind(&mut self, render_count: u32, quadrant: (usize, usize)) {
-    const CENTRAL_MODULE_CONTENT_ROWS: usize = common::r#const::MAP_ROWS / 8;
-    const CENTRAL_MODULE_CONTENT_COLS: usize = common::r#const::MAP_COLS / 8;
+    pub fn update_wind(&mut self, render_count: u32, quadrant: (usize, usize)) {
+        const CENTRAL_MODULE_CONTENT_ROWS: usize = common::r#const::MAP_ROWS / 8;
+        const CENTRAL_MODULE_CONTENT_COLS: usize = common::r#const::MAP_COLS / 8;
 
-    if render_count % 6 != 0 {
-        return;
-    }
-    let row_start = quadrant.0 * CENTRAL_MODULE_CONTENT_ROWS;
-    let row_end = (quadrant.0 + 1) * CENTRAL_MODULE_CONTENT_ROWS;
-    let col_start = quadrant.1 * CENTRAL_MODULE_CONTENT_COLS;
-    let col_end = (quadrant.1 + 1) * CENTRAL_MODULE_CONTENT_COLS;
+        if render_count % 10 != 0 {
+            return;
+        }
+        let row_start = quadrant.0 * CENTRAL_MODULE_CONTENT_ROWS;
+        let row_end = (quadrant.0 + 1) * CENTRAL_MODULE_CONTENT_ROWS;
+        let col_start = quadrant.1 * CENTRAL_MODULE_CONTENT_COLS;
+        let col_end = (quadrant.1 + 1) * CENTRAL_MODULE_CONTENT_COLS;
 
-    for row in row_start..row_end {
-        for col in col_start..col_end {
-            let next_col = (col + 1) % CENTRAL_MODULE_CONTENT_COLS;
-            let next_row = (row + 1) % CENTRAL_MODULE_CONTENT_ROWS;
-            if self.rng.random_bool(0.05) || !self.wind_map[row][col] || self.wind_map[row][next_col] {
-                self.wind_map[row][col] = true;
-                self.wind_map[row][next_col] = false;
-            } else if self.rng.random_bool(0.01) || !self.wind_map[row][col] || self.wind_map[next_row][col] {
-                self.wind_map[row][col] = true;
-                self.wind_map[next_row][col] = false;
+        for row in row_start..row_end {
+            for col in col_start..col_end {
+                let next_col = if col < col_end - 1 {
+                    col + 1
+                } else {
+                    col_start
+                };
+                let next_row = if row < row_end - 1 {
+                    row + 1
+                } else {
+                    row_start
+                };
+                if self.rng.random_bool(0.05)
+                    && !self.wind_map[row][col]
+                    && self.wind_map[row][next_col]
+                {
+                    self.wind_map[row][col] = true;
+                    self.wind_map[row][next_col] = false;
+                } else if self.rng.random_bool(0.01)
+                    && !self.wind_map[row][col]
+                    && self.wind_map[next_row][col]
+                {
+                    self.wind_map[row][col] = true;
+                    self.wind_map[next_row][col] = false;
+                }
             }
         }
     }
-}
 }
 
 impl LeftModule {

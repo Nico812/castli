@@ -5,7 +5,7 @@
 //! a single view in the terminal.
 
 use std::collections::HashMap;
-use terminal_size::{Height, Width, terminal_size};
+use terminal_size::{terminal_size, Height, Width};
 
 use crate::ansi;
 use crate::assets;

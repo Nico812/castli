@@ -36,13 +36,13 @@ pub const BKG_EL: TermCell = TermCell::new('_', FG_BRIGHT_BLACK, BG_BLACK);
 
 pub const GRASS_FG: &str = FG_GREEN;
 pub const GRASS_BG: &str = BG_GREEN;
-pub const GRASS_EL_1: TermCell = TermCell::new('\"', FG_BRIGHT_GREEN, GRASS_BG);
-pub const GRASS_EL_2: TermCell = TermCell::new(' ', FG_BRIGHT_GREEN, GRASS_BG);
+pub const GRASS_EL_1: TermCell = TermCell::new(' ', FG_BRIGHT_GREEN, GRASS_BG);
+pub const GRASS_EL_2: TermCell = TermCell::new('\"', FG_BRIGHT_GREEN, GRASS_BG);
 
 pub const WATER_FG: &str = FG_BLUE;
 pub const WATER_BG: &str = BG_BLUE;
-pub const WATER_EL_1: TermCell = TermCell::new('~', FG_BRIGHT_BLUE, WATER_BG);
-pub const WATER_EL_2: TermCell = TermCell::new(' ', FG_BRIGHT_BLUE, WATER_BG);
+pub const WATER_EL_1: TermCell = TermCell::new(' ', FG_BRIGHT_BLUE, WATER_BG);
+pub const WATER_EL_2: TermCell = TermCell::new('~', FG_BRIGHT_BLUE, WATER_BG);
 
 pub const CASTLE_FG: &str = FG_WHITE;
 pub const CASTLE_BG: &str = BG_BLACK;
