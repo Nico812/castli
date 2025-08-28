@@ -125,21 +125,30 @@ impl Tui {
         map_zoom_arc: Arc<Mutex<Option<(usize, usize)>>>,
         map_look_arc: Arc<Mutex<Option<(usize, usize)>>>,
     ) {
-        loop {
-            let mut canvas = canvas_arc.lock().await;
-            let game_objs = game_objs_arc.lock().await;
-            let player_data = player_data_arc.lock().await;
-            let map_zoom = map_zoom_arc.lock().await;
-            let map_look = map_look_arc.lock().await;
+        let mut render_tick = time::interval(time::Duration::from_millis(1000/60));
+        let mut last_frame = time::Instant::now();
 
-            // If you want to only see the changes: (debug)
-            // Self::clear_screen();
-            &canvas.render(&game_objs, &player_data, *map_zoom);
-            &canvas.update_and_print_cursor(*map_look);
-            let _ = std::io::stdout().flush();
+loop {
+    // Rendering fps
+    let now = time::Instant::now();
+    let frame_dt = now.duration_since(last_frame).as_millis() as u32;
+    last_frame = now;
 
-            tokio::time::sleep(tokio::time::Duration::from_millis(1000 / 60)).await;
-        }
+    // Rendering
+    {
+        let mut canvas = canvas_arc.lock().await;
+        let game_objs = game_objs_arc.lock().await;
+        let player_data = player_data_arc.lock().await;
+        let map_zoom = map_zoom_arc.lock().await;
+        let map_look = map_look_arc.lock().await;
+
+        &canvas.render(&game_objs, &player_data, *map_zoom, frame_dt);
+        &canvas.update_and_print_cursor(*map_look);
+        let _ = std::io::stdout().flush();
+    }
+
+    render_tick.tick().await;
+}
     }
 
     async fn listen_for_server_updates(

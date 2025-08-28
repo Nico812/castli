@@ -5,7 +5,7 @@
 //! client application, such as the TUI and server communication.
 use std::collections::HashMap;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
-use tokio::{self, io::BufReader, net::TcpStream, sync::mpsc};
+use tokio::{self, io::BufReader, net::TcpStream, sync::mpsc, time};
 
 use crate::tui;
 use common;
@@ -34,6 +34,8 @@ impl ClientConnection {
         s2c_tx: &mpsc::UnboundedSender<common::S2C>,
         t2c_rx: &mut mpsc::UnboundedReceiver<tui::T2C>,
     ) {
+        let mut request_tick = time::interval(time::Duration::from_millis(1000));
+        
         tokio::select! {
             // Check for messages from the TUI to send to the server
             Some(msg_from_tui) = t2c_rx.recv() => {
@@ -43,7 +45,7 @@ impl ClientConnection {
                 let _ = common::stream::send_msg_to_server(&mut self.writer, &msg).await;
             },
             // Otherwise, run the periodic update requests
-            _ = tokio::time::sleep(tokio::time::Duration::from_secs(1)) => {
+            _ = request_tick.tick() => {
                 // Request game objects
                 let _ = common::stream::send_msg_to_server(
                     &mut self.writer,

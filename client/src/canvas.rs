@@ -79,12 +79,13 @@ impl Canvas {
         game_objs: &HashMap<common::GameID, common::GameObjE>,
         player_data: &common::PlayerDataE,
         map_zoom: Option<(usize, usize)>,
+        frame_dt: u32,
     ) {
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
 
         // TODO: refactor modules logic
-        for (row, line_contents) in self.right_module.get_content().iter().enumerate() {
+        for (row, line_contents) in self.right_module.get_content(frame_dt).iter().enumerate() {
             for (col, cell) in line_contents.iter().enumerate() {
                 new_frame[row + RIGHT_MOD_POS.0][col + RIGHT_MOD_POS.1] = cell.clone();
             }
