@@ -116,7 +116,6 @@ impl CentralModule {
     }
 
     fn tiles_to_cells<'a>(&self, tiles: &Vec<Vec<common::TileE>>) -> Vec<Vec<TermCell>> {
-        let mut rng = rand::rng();
         let mut cells = vec![vec![ERR_EL; tiles[0].len()]; tiles.len() / 2];
         let mut tiles_row;
         let mut tiles_col;
@@ -243,17 +242,17 @@ impl CentralModule {
 
     // TODO: MAKE THIS WORK WITH MAP_ZOOM
     pub fn update_wind(&mut self, render_count: u32) {
-        if (render_count%6 == 0){
-        let mut rng = rand::rng();
+        if (render_count % 6 == 0) {
+            let mut rng = rand::rng();
 
-        for row in self.wind_map.iter_mut() {
-            for i in row.iter_mut() {
-                if (rng.random_bool(0.05)) {
-                    *i = !*i;
+            for row in self.wind_map.iter_mut() {
+                for i in row.iter_mut() {
+                    if (rng.random_bool(0.05)) {
+                        *i = !*i;
+                    }
                 }
             }
         }
-    }
     }
 }
 
@@ -271,13 +270,13 @@ impl LeftModule {
         let name = &player_data.name;
         for (i, ch) in name.chars().enumerate() {
             if Self::PADDING_LEFT + i < LEFT_MODULE_COLS {
-                content[3][Self::PADDING_LEFT + i] = TermCell::new(ch, ansi::FG_WHITE, ansi::BG_BRIGHT_YELLOW);
+                content[3][Self::PADDING_LEFT + i] = TermCell::new(ch, FG_WHITE, BG_BRIGHT_YELLOW);
             }
         }
         let pos_str = format!("({}, {})", player_data.pos.0, player_data.pos.1);
         for (i, ch) in pos_str.chars().enumerate() {
             if Self::PADDING_LEFT + i < LEFT_MODULE_COLS {
-                content[5][Self::PADDING_LEFT + i] = TermCell::new(ch, ansi::FG_WHITE, ansi::BG_BRIGHT_YELLOW);
+                content[5][Self::PADDING_LEFT + i] = TermCell::new(ch, FG_WHITE, BG_BRIGHT_YELLOW);
             }
         }
         content

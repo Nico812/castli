@@ -130,7 +130,7 @@ impl Canvas {
         }
         print!("{}", ansi::RESET_COLOR);
         self.prev_frame = new_frame;
-        self.render_count.wrapping_add(1);
+        self.render_count += 1;
     }
 
     pub fn update_and_print_cursor(&self, map_look: Option<(usize, usize)>) {
