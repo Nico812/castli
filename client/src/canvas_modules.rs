@@ -40,8 +40,8 @@ impl CentralModule {
         // Wind
         let mut rng = rand::rng();
         let mut wind_map = vec![vec![false; r#const::MAP_COLS]; r#const::MAP_ROWS];
-        for row in wind_map.iter_mut(){
-            for i in row.iter_mut(){
+        for row in wind_map.iter_mut() {
+            for i in row.iter_mut() {
                 *i = rng.random_bool(0.2);
             }
         }
@@ -58,22 +58,22 @@ impl CentralModule {
     }
 
     pub fn get_content(
-        &self,
+        &mut self,
         game_objs: &HashMap<common::GameID, common::GameObjE>,
         map_zoom: Option<(usize, usize)>,
     ) -> Vec<Vec<TermCell>> {
-        self.update_wind();
-        
         match map_zoom {
             Some(quadrant) => {
                 let cut_map = self.get_map_cut(quadrant);
-                let mut content = Self::tiles_to_cells(&cut_map);
+                let mut content = self.tiles_to_cells(&cut_map);
                 Self::add_objs_to_map(&mut content, game_objs, quadrant);
                 //add_frame(&mut content, true);
+
+                self.update_wind();
                 content
             }
             None => {
-                let mut content = Self::tiles_to_cells(&self.world_map_tiles);
+                let mut content = self.tiles_to_cells(&self.world_map_tiles);
                 Self::add_objs_to_world_map(&mut content, game_objs);
                 //add_frame(&mut content, false);
                 content
@@ -114,7 +114,7 @@ impl CentralModule {
         self.map_tiles = tiles.clone();
     }
 
-    fn tiles_to_cells<'a>(tiles: &Vec<Vec<common::TileE>>) -> Vec<Vec<TermCell>> {
+    fn tiles_to_cells<'a>(&self, tiles: &Vec<Vec<common::TileE>>) -> Vec<Vec<TermCell>> {
         let mut rng = rand::rng();
         let mut cells = vec![vec![ERR_EL; tiles[0].len()]; tiles.len() / 2];
         let mut tiles_row;
@@ -197,7 +197,8 @@ impl CentralModule {
     }
 
     fn get_map_cut(&self, quadrant: (usize, usize)) -> Vec<Vec<common::TileE>> {
-        self.map_tiles[quadrant.0 * CENTRAL_MODULE_ROWS*2..(quadrant.0 + 1) * CENTRAL_MODULE_ROWS*2]
+        self.map_tiles
+            [quadrant.0 * CENTRAL_MODULE_ROWS * 2..(quadrant.0 + 1) * CENTRAL_MODULE_ROWS * 2]
             .iter()
             .map(|row| {
                 row[quadrant.1 * CENTRAL_MODULE_COLS..(quadrant.1 + 1) * CENTRAL_MODULE_COLS]
@@ -242,9 +243,9 @@ impl CentralModule {
     pub fn update_wind(&mut self) {
         let mut rng = rand::rng();
 
-        for row in self.wind_map.iter_mut(){
-            for i in row.iter_mut(){
-                if (rng.random_bool(0.05)){
+        for row in self.wind_map.iter_mut() {
+            for i in row.iter_mut() {
+                if (rng.random_bool(0.05)) {
                     *i = !*i;
                 }
             }
