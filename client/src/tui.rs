@@ -132,7 +132,8 @@ impl Tui {
             let map_zoom = map_zoom_arc.lock().await;
             let map_look = map_look_arc.lock().await;
 
-            Self::clear_screen();
+            // If you want to only see the changes: (debug)
+            // Self::clear_screen();
             &canvas.render(&game_objs, &player_data, *map_zoom);
             &canvas.update_and_print_cursor(*map_look);
             let _ = std::io::stdout().flush();

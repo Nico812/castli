@@ -126,12 +126,10 @@ impl Canvas {
                         self.canvas_pos.1 + col + 1,
                         new_cell.as_string()
                     );
-                    if col == (CANVAS_COLS - 1) {
-                        print!("{}", ansi::RESET_COLOR)
-                    };
                 }
             }
         }
+        print!("{}", ansi::RESET_COLOR);
         self.prev_frame = new_frame;
     }
 
