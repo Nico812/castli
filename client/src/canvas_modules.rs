@@ -290,8 +290,8 @@ impl RightModule {
         Self {}
     }
 
-    pub fn get_content(&self, frame_dt: u32) -> Vec<Vec<TermCell>> {
-        let content = vec![
+    pub fn get_content(&self, frame_dt: u64) -> Vec<Vec<TermCell>> {
+        let mut content = vec![
             vec![TermCell::new(' ', FG_BLACK, BG_BLACK); RIGHT_MODULE_COLS];
             RIGHT_MODULE_ROWS
         ];

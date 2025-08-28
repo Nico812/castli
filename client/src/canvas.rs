@@ -79,7 +79,7 @@ impl Canvas {
         game_objs: &HashMap<common::GameID, common::GameObjE>,
         player_data: &common::PlayerDataE,
         map_zoom: Option<(usize, usize)>,
-        frame_dt: u32,
+        frame_dt: u64,
     ) {
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];

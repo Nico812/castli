@@ -8,6 +8,7 @@ use std::{collections::HashMap, io::Write, process::Command, sync::Arc};
 use tokio::{
     io::{self, AsyncReadExt},
     sync::{Mutex, mpsc},
+    time,
 };
 
 use crate::{
@@ -125,30 +126,30 @@ impl Tui {
         map_zoom_arc: Arc<Mutex<Option<(usize, usize)>>>,
         map_look_arc: Arc<Mutex<Option<(usize, usize)>>>,
     ) {
-        let mut render_tick = time::interval(time::Duration::from_millis(1000/60));
+        let mut render_tick = time::interval(time::Duration::from_millis(16));
         let mut last_frame = time::Instant::now();
 
-loop {
-    // Rendering fps
-    let now = time::Instant::now();
-    let frame_dt = now.duration_since(last_frame).as_millis() as u32;
-    last_frame = now;
+        loop {
+            // Rendering fps
+            let now = time::Instant::now();
+            let frame_dt = now.duration_since(last_frame).as_millis() as u64;
+            last_frame = now;
 
-    // Rendering
-    {
-        let mut canvas = canvas_arc.lock().await;
-        let game_objs = game_objs_arc.lock().await;
-        let player_data = player_data_arc.lock().await;
-        let map_zoom = map_zoom_arc.lock().await;
-        let map_look = map_look_arc.lock().await;
+            // Rendering
+            {
+                let mut canvas = canvas_arc.lock().await;
+                let game_objs = game_objs_arc.lock().await;
+                let player_data = player_data_arc.lock().await;
+                let map_zoom = map_zoom_arc.lock().await;
+                let map_look = map_look_arc.lock().await;
 
-        &canvas.render(&game_objs, &player_data, *map_zoom, frame_dt);
-        &canvas.update_and_print_cursor(*map_look);
-        let _ = std::io::stdout().flush();
-    }
+                canvas.render(&game_objs, &player_data, *map_zoom, frame_dt);
+                canvas.update_and_print_cursor(*map_look);
+                let _ = std::io::stdout().flush();
+            }
 
-    render_tick.tick().await;
-}
+            render_tick.tick().await;
+        }
     }
 
     async fn listen_for_server_updates(
