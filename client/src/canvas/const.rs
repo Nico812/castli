@@ -14,8 +14,9 @@ pub const BOTTOM_MOD_POS: (usize, usize) = (
 );
 
 // Content of modules, not total size accounting for frame.
-pub const CENTRAL_MODULE_ROWS: usize = 32;
-pub const CENTRAL_MODULE_COLS: usize = 64;
+pub const CENTRAL_MODULE_ROWS: usize = 34;
+pub const CENTRAL_MODULE_COLS: usize = 66;
+
 pub const LEFT_MODULE_ROWS: usize = CENTRAL_MODULE_ROWS;
 pub const LEFT_MODULE_COLS: usize = 40;
 pub const RIGHT_MODULE_ROWS: usize = CENTRAL_MODULE_ROWS;

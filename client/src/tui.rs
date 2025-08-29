@@ -55,7 +55,7 @@ impl Tui {
         initial_player_data: Option<common::PlayerDataE>,
     ) -> Self {
         let mut canvas = canvas::Canvas::new();
-        canvas.init(&tiles);
+        canvas.init(tiles);
         let mut state = TuiState::InGame;
         let mut map_look = None;
         let map_zoom = None;

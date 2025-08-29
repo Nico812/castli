@@ -1,3 +1,7 @@
+use crate::canvas::r#const::*;
+use crate::ansi::*;
+use crate::assets::*;
+
 pub struct RightModule {
     // Inspect
 }

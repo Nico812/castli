@@ -21,14 +21,19 @@ pub struct CentralModule {
 }
 
 impl CentralModule {
+    const CONTENT_ROWS: usize = 32;
+    const CONTENT_COLS: usize = 64;
+    const ZOOM_FACTOR: usize = 8;
+
+    // PUB
     pub fn new() -> Self {
         let map_tiles = vec![vec![common::TileE::Grass; r#const::MAP_COLS]; r#const::MAP_ROWS];
         let world_map_tiles =
-            vec![vec![common::TileE::Grass; r#const::MAP_COLS / 8]; r#const::MAP_ROWS / 8];
+            vec![vec![common::TileE::Grass; r#const::MAP_COLS / ZOOM_FACTOR]; r#const::MAP_ROWS / ZOOM_FACTOR];
 
         // Wind
         let mut rng = rand::rngs::SmallRng::seed_from_u64(1);
-        let mut wind_map = vec![vec![false; r#const::MAP_COLS]; r#const::MAP_ROWS];
+        let mut wind_map = vec![vec![false; r#const::MAP_COLS]; r#const::MAP_ROWS/2];
         for cell in wind_map.iter_mut().flat_map(|row| row.iter_mut()) {
             *cell = rng.gen_bool(0.1);
         }
@@ -45,132 +50,114 @@ impl CentralModule {
         self.set_tiles(tiles);
     }
 
-    pub fn get_content(
-        &mut self,
-        game_objs: &HashMap<common::GameID, common::GameObjE>,
-        map_zoom: Option<(usize, usize)>,
-        render_count: u32,
-    ) -> Vec<Vec<TermCell>> {
-        match map_zoom {
-            Some(quadrant) => {
-                let cut_map = self.get_map_cut(quadrant);
-                let cut_wind_map = self.get_wind_map_cut(quadrant);
-                let mut content = Self::tiles_to_cells(&cut_map, &cut_wind_map);
-                Self::add_objs_to_map(&mut content, game_objs, quadrant);
-                //add_frame(&mut content, true);
-
-                self.update_wind(render_count, quadrant);
-                content
-            }
-            None => {
-                let cut_wind_map = self.get_wind_map_cut((7, 7));
-                let mut content = Self::tiles_to_cells(&self.world_map_tiles, &cut_wind_map);
-                Self::add_objs_to_world_map(&mut content, game_objs);
-                //add_frame(&mut content, false);
-                content
-            }
+pub fn to_renderable(
+    &mut self,
+    game_objs: &HashMap<common::GameID, common::GameObjE>,
+    map_zoom: Option<(usize, usize)>,
+    render_count: u32,
+) -> Vec<Vec<TermCell>> {
+    match map_zoom {
+        Some(quadrant) => {
+            let cut_tiles = self.get_map_slice(quadrant);
+            let cut_wind = self.get_wind_slice(quadrant);
+            let mut cells = Self::tiles_to_cells(&cut_tiles, &cut_wind);
+            Self::apply_objects_to_cells(&mut cells, game_objs, quadrant);
+            self.update_wind(render_count, quadrant);
+            cells
+        }
+        None => {
+            let cut_wind = self.get_wind_slice((7, 7));
+            let mut cells = Self::tiles_to_cells(&self.world_map_tiles, &cut_wind);
+            Self::apply_objects_to_world_cells(&mut cells, game_objs);
+            self.update_wind(render_count, (7,7));
+            cells
         }
     }
+}
 
-    fn set_tiles(&mut self, tiles: &Vec<Vec<common::TileE>>) {
-        fn compact_8x8_tiles(
-            tiles: &Vec<Vec<common::TileE>>,
-            pos: (usize, usize),
-        ) -> common::TileE {
-            let mut grass_counter = 0;
-            let mut water_counter = 0;
+    // PRIVATE
+fn set_tiles(&mut self, tiles: Vec<Vec<common::TileE>>) {
+    self.world_map_tiles = (0..MAP_ROWS / ZOOM_FACTOR)
+        .map(|world_map_row| {
+            (0..MAP_COLS / ZOOM_FACTOR)
+                .map(|world_map_col| {
+                    let top_left_row = world_map_row * ZOOM_FACTOR;
+                    let top_left_col = world_map_col * ZOOM_FACTOR;
+                    let bottom_right_row = ((world_map_row + 1) * ZOOM_FACTOR).min(MAP_ROWS);
+                    let bottom_right_col = ((world_map_col + 1) * ZOOM_FACTOR).min(MAP_COLS);
 
-            for row in pos.0..(pos.0 + 8).min(MAP_ROWS) {
-                for col in pos.1..(pos.1 + 8).min(MAP_COLS) {
-                    match tiles[row][col] {
-                        common::TileE::Grass => grass_counter += 1,
-                        common::TileE::Water => water_counter += 1,
-                        _ => {}
+                    let mut grass_count = 0;
+                    let mut water_count = 0;
+
+                    for row in top_left_row..bottom_right_row {
+                        for col in top_left_col..bottom_right_col {
+                            match tiles[row][col] {
+                                common::TileE::Grass => grass_count += 1,
+                                common::TileE::Water => water_count += 1,
+                                _ => {}
+                            }
+                        }
                     }
-                }
-            }
-            if grass_counter >= water_counter {
-                common::TileE::Grass
-            } else {
-                common::TileE::Water
-            }
-        }
-        let mut compacted = vec![vec![common::TileE::Grass; MAP_COLS / 8]; MAP_ROWS / 8];
-        for row in 0..MAP_ROWS / 8 {
-            for col in 0..MAP_COLS / 8 {
-                compacted[row][col] = compact_8x8_tiles(tiles, (row * 8, col * 8));
-            }
-        }
-        self.world_map_tiles = compacted;
-        self.map_tiles = tiles.clone();
-    }
+
+                    if grass_count >= water_count {
+                        common::TileE::Grass
+                    } else {
+                        common::TileE::Water
+                    }
+                })
+                .collect()
+        })
+        .collect();
+
+    self.map_tiles = tiles;
+}
 
     fn tiles_to_cells<'a>(
         tiles: &Vec<Vec<common::TileE>>,
-        wind_map: &Vec<Vec<bool>>,
+        wind: &Vec<Vec<bool>>,
     ) -> Vec<Vec<TermCell>> {
-        let mut cells = vec![vec![ERR_EL; tiles[0].len()]; tiles.len() / 2];
-        let mut tiles_row;
-        let mut tiles_col;
-        for term_row in 0..tiles.len() / 2 {
-            tiles_row = term_row * 2;
-            for term_col in 0..tiles[tiles_row].len() {
-                tiles_col = term_col;
-                if tiles[tiles_row][tiles_col] == tiles[tiles_row + 1][tiles_col] {
-                    let cell;
-                    match tiles[tiles_row][tiles_col] {
+        tiles.iter().step_by(2).enumerate().map(|(cells_row, tiles_row)|{
+            tiles_row.iter().enumerate().map(|(cells_col, &tile_top)|{
+                let tile_bottom = tiles[cells_row*2 + 1][cells_col];
+                
+                if (tile_top == tile_bottom) {
+                    match tile_top {
                         common::TileE::Grass => {
-                            if wind_map[tiles_row][tiles_col] {
-                                cell = GRASS_EL_2;
+                            if wind_map[cells_row][cells_col] {
+                                GRASS_EL_2
                             } else {
-                                cell = GRASS_EL_1;
+                                GRASS_EL_1
                             }
                         }
                         common::TileE::Water => {
-                            if wind_map[tiles_row][tiles_col] {
-                                cell = WATER_EL_2;
+                            if wind_map[cells_row][cells_col] {
+                                WATER_EL_2
                             } else {
-                                cell = WATER_EL_1;
+                                WATER_EL_1
                             }
                         }
                         _ => {
-                            cell = ERR_EL;
+                            ERR_EL
                         }
                     }
-                    cells[term_row][term_col] = cell;
                 } else {
-                    let fg_color;
-                    let bg_color;
-                    match tiles[tiles_row][tiles_col] {
-                        common::TileE::Grass => {
-                            fg_color = GRASS_FG;
-                        }
-                        common::TileE::Water => {
-                            fg_color = WATER_FG;
-                        }
-                        _ => {
-                            fg_color = ERR_FG;
-                        }
-                    }
-                    match tiles[tiles_row + 1][tiles_col] {
-                        common::TileE::Grass => {
-                            bg_color = GRASS_BG;
-                        }
-                        common::TileE::Water => {
-                            bg_color = WATER_BG;
-                        }
-                        _ => {
-                            bg_color = ERR_BG;
-                        }
-                    }
-                    cells[term_row][term_col] = TermCell::new(BLOCK, fg_color, bg_color);
+                    let fg = match tile_top {
+                            common::TileE::Grass => GRASS_FG,
+                            common::TileE::Water => WATER_FG,
+                            _ => ERR_FG,
+                        };
+                    let bg = match tile_bottom {
+                            common::TileE::Grass => GRASS_BG,
+                            common::TileE::Water => WATER_BG,
+                            _ => ERR_BG,
+                        };
+                    TermCell::new(BLOCK, fg, bg)
                 }
-            }
-        }
-        cells
+            }).collect()
+        }).collect()
     }
 
-    fn add_objs_to_world_map(
+    fn apply_objects_to_cells(
         world_map: &mut Vec<Vec<TermCell>>,
         objs: &HashMap<common::GameID, common::GameObjE>,
     ) {
@@ -189,7 +176,7 @@ impl CentralModule {
         }
     }
 
-    fn get_map_cut(&self, quadrant: (usize, usize)) -> Vec<Vec<common::TileE>> {
+    fn get_map_slice(&self, quadrant: (usize, usize)) -> Vec<Vec<common::TileE>> {
         self.map_tiles
             [quadrant.0 * CENTRAL_MODULE_ROWS * 2..(quadrant.0 + 1) * CENTRAL_MODULE_ROWS * 2]
             .iter()
@@ -200,7 +187,7 @@ impl CentralModule {
             .collect()
     }
 
-    fn get_wind_map_cut(&self, quadrant: (usize, usize)) -> Vec<Vec<bool>> {
+    fn get_wind_slice(&self, quadrant: (usize, usize)) -> Vec<Vec<bool>> {
         self.wind_map
             [quadrant.0 * CENTRAL_MODULE_ROWS * 2..(quadrant.0 + 1) * CENTRAL_MODULE_ROWS * 2]
             .iter()

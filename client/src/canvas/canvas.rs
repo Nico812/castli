@@ -9,7 +9,6 @@ use terminal_size::{terminal_size, Height, Width};
 
 use crate::ansi;
 use crate::assets;
-use crate::canvas_modules;
 use crate::r#const::*;
 use common;
 
@@ -22,10 +21,10 @@ pub struct Canvas {
     canvas_pos: (usize, usize),
     render_count: u32,
     // Modules
-    central_module: canvas_modules::CentralModule,
-    left_module: canvas_modules::LeftModule,
-    right_module: canvas_modules::RightModule,
-    bottom_module: canvas_modules::BottomModule,
+    central_module: CentralModule,
+    left_module: LeftModule,
+    right_module: RightModule,
+    bottom_module: BottomModule,
 }
 
 impl Canvas {
@@ -66,7 +65,7 @@ impl Canvas {
         }
     }
 
-    pub fn init(&mut self, tiles: &Vec<Vec<common::TileE>>) {
+    pub fn init(&mut self, tiles: Vec<Vec<common::TileE>>) {
         self.central_module.init(tiles);
     }
 
