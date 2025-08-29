@@ -75,7 +75,9 @@ pub fn to_renderable(
     }
 }
 
-    pub fn update_wind(&mut self, render_count: u32, quadrant: (usize, usize)) {
+// PRIVATE
+
+  fn update_wind(&mut self, render_count: u32, quadrant: (usize, usize)) {
         if render_count % 10 != 0 {
             return;
         }
@@ -111,7 +113,6 @@ pub fn to_renderable(
         }
     }
 
-    // PRIVATE
 fn set_tiles(&mut self, tiles: Vec<Vec<common::TileE>>) {
     self.world_map_tiles = (0..MAP_ROWS / ZOOM_FACTOR)
         .map(|world_map_row| {
@@ -236,6 +237,7 @@ fn set_tiles(&mut self, tiles: Vec<Vec<common::TileE>>) {
                     }
     }
 
+    // TODO: TAKE ONLY SLICES DONT CLONE
     fn get_map_slice(&self, quadrant: (usize, usize)) -> Vec<Vec<common::TileE>> {
         self.map_tiles
             [quadrant.0 * CONTENT_ROWS * 2..(quadrant.0 + 1) * CONTENT_ROWS * 2]
