@@ -75,6 +75,42 @@ pub fn to_renderable(
     }
 }
 
+    pub fn update_wind(&mut self, render_count: u32, quadrant: (usize, usize)) {
+        if render_count % 10 != 0 {
+            return;
+        }
+        let row_start = quadrant.0 * CONTENT_ROWS;
+        let col_start = quadrant.1 * CONTENT_COLS;
+
+        for row in row_start..row_start + CONTENT_ROWS {
+            for col in col_start..col_start + CONTENT_COLS {
+                let next_col = if col < col_end - 1 {
+                    col + 1
+                } else {
+                    col_start
+                };
+                let next_row = if row < row_end - 1 {
+                    row + 1
+                } else {
+                    row_start
+                };
+                if self.rng.random_bool(0.05)
+                    && !self.wind_map[row][col]
+                    && self.wind_map[row][next_col]
+                {
+                    self.wind_map[row][col] = true;
+                    self.wind_map[row][next_col] = false;
+                } else if self.rng.random_bool(0.01)
+                    && !self.wind_map[row][col]
+                    && self.wind_map[next_row][col]
+                {
+                    self.wind_map[row][col] = true;
+                    self.wind_map[next_row][col] = false;
+                }
+            }
+        }
+    }
+
     // PRIVATE
 fn set_tiles(&mut self, tiles: Vec<Vec<common::TileE>>) {
     self.world_map_tiles = (0..MAP_ROWS / ZOOM_FACTOR)
@@ -98,7 +134,6 @@ fn set_tiles(&mut self, tiles: Vec<Vec<common::TileE>>) {
                             }
                         }
                     }
-
                     if grass_count >= water_count {
                         common::TileE::Grass
                     } else {
@@ -157,31 +192,56 @@ fn set_tiles(&mut self, tiles: Vec<Vec<common::TileE>>) {
         }).collect()
     }
 
-    fn apply_objects_to_cells(
-        world_map: &mut Vec<Vec<TermCell>>,
+    fn add_objs_to_cells(
+        cells: &mut Vec<Vec<TermCell>>,
         objs: &HashMap<common::GameID, common::GameObjE>,
+        quadrant: (usize, usize),
     ) {
         for obj in objs.values() {
             match obj {
                 common::GameObjE::PlayerCastle(castle) => {
-                    let term_pos = (castle.pos.0 / 16, castle.pos.1 / 8);
-                    for (row, cells_row) in CASTLE_ART_WORLD.iter().enumerate() {
-                        for (col, cell) in cells_row.iter().enumerate() {
-                            world_map[term_pos.0 + row][term_pos.1 + col] = cell.clone();
-                        }
-                    }
+                    let pos_in_quadrant = (castle.pos.0 % CONTENT_ROWS, castle.pos.1%CONTENT_COLS);
+                    add_art_to_cells(cells, CASTLE_ART, pos_in_quadrant);
                 }
                 _ => {}
             }
         }
     }
 
+    fn add_world_objs_to_cells(
+        cells: &mut Vec<Vec<TermCell>>,
+        world_objs: &HashMap<common::GameID, common::GameObjE>,
+    ) {
+        for obj in world_objs.values() {
+            match obj {
+                common::GameObjE::PlayerCastle(castle) => {
+                    let pos_in_world = (castle.pos.0 / (ZOOM_FACTOR*2), castle.pos.1/ZOOM_FACTOR);
+                    add_art_to_cells(cells, CASTLE_ART_WORLD, pos_in_world);
+                }
+                _ => {}
+            }
+        }
+    }
+
+    // refactor to take also 1 single cell or one dimensional arrays
+    fn add_art_to_cells(
+        cells: &mut Vec<Vec<TermCell>>,
+        art: &Vec<Vec<TermCell>>,
+        pos: (usize, usize),
+    ) {
+                    for (art_row, art_row_iter) in art.iter().enumerate() {
+                        for (art_col, art_cell) in art_row.iter().enumerate() {
+                            cells[pos.0 + art_row][pos.1 + art_col] = art_cell;
+                        }
+                    }
+    }
+
     fn get_map_slice(&self, quadrant: (usize, usize)) -> Vec<Vec<common::TileE>> {
         self.map_tiles
-            [quadrant.0 * CENTRAL_MODULE_ROWS * 2..(quadrant.0 + 1) * CENTRAL_MODULE_ROWS * 2]
+            [quadrant.0 * CONTENT_ROWS * 2..(quadrant.0 + 1) * CONTENT_ROWS * 2]
             .iter()
             .map(|row| {
-                row[quadrant.1 * CENTRAL_MODULE_COLS..(quadrant.1 + 1) * CENTRAL_MODULE_COLS]
+                row[quadrant.1 * CONTENT_COLS..(quadrant.1 + 1) * CONTENT_COLS]
                     .to_vec()
             })
             .collect()
@@ -189,86 +249,12 @@ fn set_tiles(&mut self, tiles: Vec<Vec<common::TileE>>) {
 
     fn get_wind_slice(&self, quadrant: (usize, usize)) -> Vec<Vec<bool>> {
         self.wind_map
-            [quadrant.0 * CENTRAL_MODULE_ROWS * 2..(quadrant.0 + 1) * CENTRAL_MODULE_ROWS * 2]
+            [quadrant.0 * CONTENT_ROWS * 2..(quadrant.0 + 1) * CONTENT_ROWS * 2]
             .iter()
             .map(|row| {
-                row[quadrant.1 * CENTRAL_MODULE_COLS..(quadrant.1 + 1) * CENTRAL_MODULE_COLS]
+                row[quadrant.1 * CONTENT_COLS..(quadrant.1 + 1) * CONTENT_COLS]
                     .to_vec()
             })
             .collect()
-    }
-
-    fn add_objs_to_map(
-        map: &mut Vec<Vec<TermCell>>,
-        objs: &HashMap<common::GameID, common::GameObjE>,
-        quadrant: (usize, usize),
-    ) {
-        for obj in objs.iter() {
-            match obj {
-                (_, common::GameObjE::PlayerCastle(castle)) => {
-                    let str_term_pos = (castle.pos.0 / 2, castle.pos.1);
-                    if str_term_pos.0 < (quadrant.0 + 1) * CENTRAL_MODULE_ROWS
-                        && str_term_pos.0 >= (quadrant.0 * CENTRAL_MODULE_ROWS)
-                    {
-                        if str_term_pos.1 < (quadrant.1 + 1) * CENTRAL_MODULE_COLS
-                            && str_term_pos.1 >= (quadrant.1 * CENTRAL_MODULE_COLS)
-                        {
-                            for ansi_art_row in 0..r#const::CASTLE_SIZE / 2 {
-                                let output_row =
-                                    str_term_pos.0 % CENTRAL_MODULE_ROWS + ansi_art_row;
-                                for ansi_art_col in 0..r#const::CASTLE_SIZE {
-                                    let output_col =
-                                        str_term_pos.1 % CENTRAL_MODULE_COLS + ansi_art_col;
-                                    map[output_row][output_col] =
-                                        CASTLE_ART[ansi_art_row][ansi_art_col];
-                                }
-                            }
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
-    }
-
-    pub fn update_wind(&mut self, render_count: u32, quadrant: (usize, usize)) {
-        const CENTRAL_MODULE_CONTENT_ROWS: usize = common::r#const::MAP_ROWS / 8;
-        const CENTRAL_MODULE_CONTENT_COLS: usize = common::r#const::MAP_COLS / 8;
-
-        if render_count % 10 != 0 {
-            return;
-        }
-        let row_start = quadrant.0 * CENTRAL_MODULE_CONTENT_ROWS;
-        let row_end = (quadrant.0 + 1) * CENTRAL_MODULE_CONTENT_ROWS;
-        let col_start = quadrant.1 * CENTRAL_MODULE_CONTENT_COLS;
-        let col_end = (quadrant.1 + 1) * CENTRAL_MODULE_CONTENT_COLS;
-
-        for row in row_start..row_end {
-            for col in col_start..col_end {
-                let next_col = if col < col_end - 1 {
-                    col + 1
-                } else {
-                    col_start
-                };
-                let next_row = if row < row_end - 1 {
-                    row + 1
-                } else {
-                    row_start
-                };
-                if self.rng.random_bool(0.05)
-                    && !self.wind_map[row][col]
-                    && self.wind_map[row][next_col]
-                {
-                    self.wind_map[row][col] = true;
-                    self.wind_map[row][next_col] = false;
-                } else if self.rng.random_bool(0.01)
-                    && !self.wind_map[row][col]
-                    && self.wind_map[next_row][col]
-                {
-                    self.wind_map[row][col] = true;
-                    self.wind_map[next_row][col] = false;
-                }
-            }
-        }
     }
 }
