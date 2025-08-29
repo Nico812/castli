@@ -85,7 +85,7 @@ impl Canvas {
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
 
         // TODO: refactor modules logic
-        for (row, line_contents) in self.right_module.get_content(frame_dt).iter().enumerate() {
+        for (row, line_contents) in self.right_module.get_renderable_and_update(frame_dt).iter().enumerate() {
             for (col, cell) in line_contents.iter().enumerate() {
                 new_frame[row + RIGHT_MOD_POS.0][col + RIGHT_MOD_POS.1] = cell.clone();
             }
@@ -93,7 +93,7 @@ impl Canvas {
 
         for (row, line_contents) in self
             .central_module
-            .get_content(game_objs, map_zoom, self.render_count)
+            .get_renderable_and_update(game_objs, map_zoom, self.render_count)
             .iter()
             .enumerate()
         {
@@ -102,13 +102,13 @@ impl Canvas {
             }
         }
 
-        for (row, line_contents) in self.left_module.get_content(player_data).iter().enumerate() {
+        for (row, line_contents) in self.left_module.get_coget_renderable_and_updatentent(player_data).iter().enumerate() {
             for (col, cell) in line_contents.iter().enumerate() {
                 new_frame[row + LEFT_MOD_POS.0][col + LEFT_MOD_POS.1] = cell.clone();
             }
         }
 
-        for (row, line_contents) in self.bottom_module.get_content(&mut logs).iter().enumerate() {
+        for (row, line_contents) in self.bottom_module.get_get_renderable_and_updatecontent(&mut logs).iter().enumerate() {
             for (col, cell) in line_contents.iter().enumerate() {
                 new_frame[row + BOTTOM_MOD_POS.0][col + BOTTOM_MOD_POS.1] = cell.clone();
             }
