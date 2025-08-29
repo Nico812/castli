@@ -50,7 +50,7 @@ impl CentralModule {
         self.set_tiles(tiles);
     }
 
-pub fn to_renderable(
+pub fn get_renderable_and_update(
     &mut self,
     game_objs: &HashMap<common::GameID, common::GameObjE>,
     map_zoom: Option<(usize, usize)>,

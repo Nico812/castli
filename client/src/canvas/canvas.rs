@@ -4,7 +4,7 @@
 //! rendering the different UI modules (central map, side panels, etc.) into
 //! a single view in the terminal.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use terminal_size::{terminal_size, Height, Width};
 
 use crate::ansi;
@@ -79,6 +79,7 @@ impl Canvas {
         player_data: &common::PlayerDataE,
         map_zoom: Option<(usize, usize)>,
         frame_dt: u64,
+        logs: &mut VecDeque<String>,
     ) {
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
@@ -107,7 +108,7 @@ impl Canvas {
             }
         }
 
-        for (row, line_contents) in self.bottom_module.get_content().iter().enumerate() {
+        for (row, line_contents) in self.bottom_module.get_content(&mut logs).iter().enumerate() {
             for (col, cell) in line_contents.iter().enumerate() {
                 new_frame[row + BOTTOM_MOD_POS.0][col + BOTTOM_MOD_POS.1] = cell.clone();
             }

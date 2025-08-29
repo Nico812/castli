@@ -8,3 +8,5 @@ module dimentions should also count the frames. add new variables: module conten
 refactora tutte le funzioni che si chiamano get_content, dovrebbero essere tipo get_to_render o qualcosa del genrer.
 
 eturn slices in center module in the slice functions and not copies
+
+add logging in bottom module

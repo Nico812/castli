@@ -4,7 +4,7 @@
 //! rendering the game state to the terminal using the `canvas`, and processing
 //! player input.
 
-use std::{collections::HashMap, io::Write, process::Command, sync::Arc};
+use std::{collections::{HashMap, VecDeque}, io::Write, process::Command, sync::Arc};
 use tokio::{
     io::{self, AsyncReadExt},
     sync::{Mutex, mpsc},
@@ -28,7 +28,6 @@ enum TuiState {
     CastleCreation,
 }
 
-/// The Tui struct now holds all the state required for the UI to function.
 pub struct Tui {
     // Tui state
     state: TuiState,
@@ -42,6 +41,7 @@ pub struct Tui {
     player_data: Arc<Mutex<common::PlayerDataE>>,
     map_zoom: Arc<Mutex<Option<(usize, usize)>>>,
     map_look: Arc<Mutex<Option<(usize, usize)>>>,
+    logs: Arc<Mutex<VecDeque<String>>>,
 }
 
 impl Tui {
@@ -59,6 +59,11 @@ impl Tui {
         let mut state = TuiState::InGame;
         let mut map_look = None;
         let map_zoom = None;
+        let mut logs: VecDeque<String> = VecDeque::from(vec![
+        "log1".to_string(),
+        "log2".to_string(),
+        "log3".to_string(),
+        ]);
 
         let player_data = match initial_player_data {
             Some(player_data) => player_data,
@@ -81,6 +86,7 @@ impl Tui {
             player_data: Arc::new(Mutex::new(player_data)),
             map_zoom: Arc::new(Mutex::new(map_zoom)),
             map_look: Arc::new(Mutex::new(map_look)),
+            logs: Arc::new(Mutex::new(logs)),
         }
     }
 
@@ -103,6 +109,7 @@ impl Tui {
             Arc::clone(&self.player_data),
             Arc::clone(&self.map_zoom),
             Arc::clone(&self.map_look),
+            Arc::clone(&self.logs),
         ));
 
         // The main TUI task now only handles player input
@@ -125,6 +132,7 @@ impl Tui {
         player_data_arc: Arc<Mutex<common::PlayerDataE>>,
         map_zoom_arc: Arc<Mutex<Option<(usize, usize)>>>,
         map_look_arc: Arc<Mutex<Option<(usize, usize)>>>,
+        logs_arc: Arc<Mutex<VecDeque<String>>>,
     ) {
         let mut render_tick = time::interval(time::Duration::from_millis(16));
         let mut last_frame = time::Instant::now();
@@ -150,8 +158,10 @@ impl Tui {
                 let player_data = player_data_arc.lock().await;
                 let map_zoom = map_zoom_arc.lock().await;
                 let map_look = map_look_arc.lock().await;
-
-                canvas.render(&game_objs, &player_data, *map_zoom, frame_dt);
+                let logs = logs_arc.lock().await;
+                
+                // If here with deref makes error idk why
+                canvas.render(&game_objs, &player_data, *map_zoom, frame_dt, &mut logs);
                 canvas.update_and_print_cursor(*map_look);
                 let _ = std::io::stdout().flush();
             }

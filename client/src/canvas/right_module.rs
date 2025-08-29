@@ -14,7 +14,7 @@ impl RightModule {
         Self {}
     }
 
-    pub fn get_content(&self, frame_dt: u64) -> Vec<Vec<TermCell>> {
+    pub fn get_renderable_and_update(&self, frame_dt: u64) -> Vec<Vec<TermCell>> {
         let mut content = vec![
             vec![TermCell::new(' ', FG_BLACK, BG_BLACK); RIGHT_MODULE_COLS];
             RIGHT_MODULE_ROWS

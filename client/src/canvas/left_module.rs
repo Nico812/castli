@@ -13,7 +13,7 @@ impl LeftModule {
         Self {}
     }
 
-    pub fn get_content(&self, player_data: &common::PlayerDataE) -> Vec<Vec<TermCell>> {
+    pub fn get_renderable_and_update(&self, player_data: &common::PlayerDataE) -> Vec<Vec<TermCell>> {
         let blank_row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); LEFT_MODULE_COLS];
         let mut content = vec![blank_row.clone(); LEFT_MODULE_ROWS];
 
