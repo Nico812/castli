@@ -1,8 +1,7 @@
-//! # TUI Canvas Modules
+//! # TUI Central Module
 //!
-//! This module defines the individual components or "modules" that make up the `Canvas`.
-//! Each module is responsible for generating a specific part of the UI, such as the
-//! map view, player information panel, or event log.
+//! Defines the `CentralModule`, which handles the central area of the Canvas.
+
 
 use rand::SeedableRng;
 use rand::{self, Rng, rngs};
@@ -10,7 +9,7 @@ use std::collections::HashMap;
 
 use crate::ansi::*;
 use crate::assets::*;
-use crate::r#const::*;
+use crate::canvas::r#const::*;
 use common::r#const::{self, MAP_COLS, MAP_ROWS};
 
 pub struct CentralModule {
@@ -19,18 +18,6 @@ pub struct CentralModule {
     world_map_tiles: Vec<Vec<common::TileE>>,
     wind_map: Vec<Vec<bool>>,
     rng: rngs::SmallRng,
-}
-
-pub struct LeftModule {
-    // Player data
-}
-
-pub struct RightModule {
-    // Inspect
-}
-
-pub struct BottomModule {
-    // Game events
 }
 
 impl CentralModule {
@@ -296,72 +283,5 @@ impl CentralModule {
                 }
             }
         }
-    }
-}
-
-impl LeftModule {
-    const PADDING_LEFT: usize = 1;
-
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    pub fn get_content(&self, player_data: &common::PlayerDataE) -> Vec<Vec<TermCell>> {
-        let blank_row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); LEFT_MODULE_COLS];
-        let mut content = vec![blank_row.clone(); LEFT_MODULE_ROWS];
-
-        let name = &player_data.name;
-        for (i, ch) in name.chars().enumerate() {
-            if Self::PADDING_LEFT + i < LEFT_MODULE_COLS {
-                content[3][Self::PADDING_LEFT + i] = TermCell::new(ch, FG_WHITE, BG_BRIGHT_YELLOW);
-            }
-        }
-        let pos_str = format!("({}, {})", player_data.pos.0, player_data.pos.1);
-        for (i, ch) in pos_str.chars().enumerate() {
-            if Self::PADDING_LEFT + i < LEFT_MODULE_COLS {
-                content[5][Self::PADDING_LEFT + i] = TermCell::new(ch, FG_WHITE, BG_BRIGHT_YELLOW);
-            }
-        }
-        content
-    }
-}
-
-impl RightModule {
-    const PADDING_LEFT: usize = 2;
-
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    pub fn get_content(&self, frame_dt: u64) -> Vec<Vec<TermCell>> {
-        let mut content = vec![
-            vec![TermCell::new(' ', FG_BLACK, BG_BLACK); RIGHT_MODULE_COLS];
-            RIGHT_MODULE_ROWS
-        ];
-
-        let dt_str = format!("Frame dt: {} ms", frame_dt);
-
-        for (i, ch) in dt_str.chars().enumerate() {
-            if Self::PADDING_LEFT + i < RIGHT_MODULE_COLS {
-                content[1][Self::PADDING_LEFT + i] = TermCell::new(ch, FG_WHITE, BG_BLUE);
-            }
-        }
-        content
-    }
-}
-
-impl BottomModule {
-    const PADDING_LEFT: usize = 2;
-
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    pub fn get_content(&self) -> Vec<Vec<TermCell>> {
-        let mut content = vec![
-            vec![TermCell::new(' ', FG_BLACK, BG_BLACK); BOTTOM_MODULE_COLS];
-            BOTTOM_MODULE_ROWS
-        ];
-        content
     }
 }
