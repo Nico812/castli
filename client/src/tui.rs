@@ -129,6 +129,8 @@ impl Tui {
         let mut render_tick = time::interval(time::Duration::from_millis(16));
         let mut last_frame = time::Instant::now();
         let mut frame_dt: u64 = 0;
+        Self::clear_screen();
+
         loop {
             // Rendering fps
             // There's a problem that the frame_dt gets super small when there is delay
@@ -141,7 +143,7 @@ impl Tui {
             last_frame = now;
 
             // Rendering
-            print!("{}", RESET_COLOR);
+            // Self::clear_screen(); // For cool visuals
             {
                 let mut canvas = canvas_arc.lock().await;
                 let game_objs = game_objs_arc.lock().await;
