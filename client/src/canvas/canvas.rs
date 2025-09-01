@@ -5,11 +5,15 @@
 //! a single view in the terminal.
 
 use std::collections::{HashMap, VecDeque};
-use terminal_size::{terminal_size, Height, Width};
+use terminal_size::{Height, Width, terminal_size};
 
 use crate::ansi;
 use crate::assets;
-use crate::r#const::*;
+use crate::canvas::r#const::*;
+use crate::canvas::{
+    bottom_module::BottomModule, central_module::CentralModule, left_module::LeftModule,
+    right_module::RightModule,
+};
 use common;
 
 /// Represents the main drawing area for the TUI.
@@ -50,10 +54,10 @@ impl Canvas {
             }
         }
         let prev_frame = vec![vec![assets::ERR_EL; CANVAS_COLS]; CANVAS_ROWS];
-        let central_module = canvas_modules::CentralModule::new();
-        let left_module = canvas_modules::LeftModule::new();
-        let right_module = canvas_modules::RightModule::new();
-        let bottom_module = canvas_modules::BottomModule::new();
+        let central_module = CentralModule::new();
+        let left_module = LeftModule::new();
+        let right_module = RightModule::new();
+        let bottom_module = BottomModule::new();
         Self {
             prev_frame,
             canvas_pos,
@@ -85,7 +89,12 @@ impl Canvas {
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
 
         // TODO: refactor modules logic
-        for (row, line_contents) in self.right_module.get_renderable_and_update(frame_dt).iter().enumerate() {
+        for (row, line_contents) in self
+            .right_module
+            .get_renderable_and_update(frame_dt)
+            .iter()
+            .enumerate()
+        {
             for (col, cell) in line_contents.iter().enumerate() {
                 new_frame[row + RIGHT_MOD_POS.0][col + RIGHT_MOD_POS.1] = cell.clone();
             }
@@ -102,13 +111,23 @@ impl Canvas {
             }
         }
 
-        for (row, line_contents) in self.left_module.get_coget_renderable_and_updatentent(player_data).iter().enumerate() {
+        for (row, line_contents) in self
+            .left_module
+            .get_renderable_and_update(player_data)
+            .iter()
+            .enumerate()
+        {
             for (col, cell) in line_contents.iter().enumerate() {
                 new_frame[row + LEFT_MOD_POS.0][col + LEFT_MOD_POS.1] = cell.clone();
             }
         }
 
-        for (row, line_contents) in self.bottom_module.get_get_renderable_and_updatecontent(&mut logs).iter().enumerate() {
+        for (row, line_contents) in self
+            .bottom_module
+            .get_renderable_and_update(logs)
+            .iter()
+            .enumerate()
+        {
             for (col, cell) in line_contents.iter().enumerate() {
                 new_frame[row + BOTTOM_MOD_POS.0][col + BOTTOM_MOD_POS.1] = cell.clone();
             }
@@ -139,8 +158,8 @@ impl Canvas {
             // Terminal coord are 1-indexed
             print!(
                 "\r\x1b[{};{}H",
-                crate::r#const::CENTRAL_MOD_POS.0 + row + self.canvas_pos.0 + 1,
-                crate::r#const::CENTRAL_MOD_POS.1 + col + self.canvas_pos.1 + 1
+                CENTRAL_MOD_POS.0 + row + self.canvas_pos.0 + 1,
+                CENTRAL_MOD_POS.1 + col + self.canvas_pos.1 + 1
             );
         } else {
             print!("\r\x1b[0;0H");

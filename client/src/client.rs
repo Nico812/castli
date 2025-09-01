@@ -35,7 +35,7 @@ impl ClientConnection {
         t2c_rx: &mut mpsc::UnboundedReceiver<tui::T2C>,
     ) {
         let mut request_tick = time::interval(time::Duration::from_millis(1000));
-        
+
         tokio::select! {
             // Check for messages from the TUI to send to the server
             Some(msg_from_tui) = t2c_rx.recv() => {

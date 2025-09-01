@@ -6,7 +6,6 @@
 mod ansi;
 mod assets;
 mod canvas;
-mod canvas_modules;
 mod client;
 mod r#const;
 mod tui;
