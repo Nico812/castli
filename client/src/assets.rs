@@ -26,7 +26,8 @@ impl<'a> TermCell {
     }
 }
 
-// === ANSI GAME ELEMENTS ===
+// --- ANSI Game Elements ---
+
 pub const ERR_FG: &str = FG_MAGENTA;
 pub const ERR_BG: &str = BG_BRIGHT_MAGENTA;
 pub const ERR_EL: TermCell = TermCell::new('?', FG_MAGENTA, BG_BRIGHT_MAGENTA);

@@ -4,12 +4,21 @@
 //! connection to the server and orchestrates the different parts of the
 //! client application, such as the TUI and server communication.
 use std::collections::HashMap;
-use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
-use tokio::{self, io::BufReader, net::TcpStream, sync::mpsc, time};
+use tokio::{
+    io::BufReader,
+    net::{
+        tcp::{OwnedReadHalf, OwnedWriteHalf},
+        TcpStream,
+    },
+    sync::mpsc,
+    time,
+};
 
-use crate::tui;
-use common;
-use common::r#const;
+use crate::tui::{self, Tui};
+use common::{
+    r#const::{IP_LOCAL, ONLINE},
+    stream, C2S, C2S4L, GameObjE, L2S4C, PlayerDataE, S2C, TileE,
+};
 
 #[derive(Debug)]
 pub enum ClientErr {
@@ -17,9 +26,7 @@ pub enum ClientErr {
     DataNotReceived,
 }
 
-//==============================================================================================
-//  Client Connection
-//==============================================================================================
+// --- Client Connection ---
 
 /// Manages the state and logic for the TCP connection to the server.
 struct ClientConnection {
@@ -31,7 +38,7 @@ impl ClientConnection {
     /// Handles the ongoing communication with the server in a loop.
     async fn communicate_with_server(
         &mut self,
-        s2c_tx: &mpsc::UnboundedSender<common::S2C>,
+        s2c_tx: &mpsc::UnboundedSender<S2C>,
         t2c_rx: &mut mpsc::UnboundedReceiver<tui::T2C>,
     ) {
         let mut request_tick = time::interval(time::Duration::from_millis(1000));
@@ -40,27 +47,27 @@ impl ClientConnection {
             // Check for messages from the TUI to send to the server
             Some(msg_from_tui) = t2c_rx.recv() => {
                 let msg = match msg_from_tui {
-                    tui::T2C::NewCastle(pos) => common::C2S::C2S4L(common::C2S4L::NewCastle(pos))
+                    tui::T2C::NewCastle(pos) => C2S::C2S4L(C2S4L::NewCastle(pos))
                 };
-                let _ = common::stream::send_msg_to_server(&mut self.writer, &msg).await;
+                let _ = stream::send_msg_to_server(&mut self.writer, &msg).await;
             },
             // Otherwise, run the periodic update requests
             _ = request_tick.tick() => {
                 // Request game objects
-                let _ = common::stream::send_msg_to_server(
+                let _ = stream::send_msg_to_server(
                     &mut self.writer,
-                    &common::C2S::C2S4L(common::C2S4L::GiveObjs),
+                    &C2S::C2S4L(C2S4L::GiveObjs),
                 ).await;
-                if let Ok(msg) = common::stream::get_msg_from_server(&mut self.reader).await {
+                if let Ok(msg) = stream::get_msg_from_server(&mut self.reader).await {
                     let _ = s2c_tx.send(msg);
                 }
 
                 // Request player data
-                let _ = common::stream::send_msg_to_server(
+                let _ = stream::send_msg_to_server(
                     &mut self.writer,
-                    &common::C2S::C2S4L(common::C2S4L::GivePlayerData),
+                    &C2S::C2S4L(C2S4L::GivePlayerData),
                 ).await;
-                if let Ok(msg) = common::stream::get_msg_from_server(&mut self.reader).await {
+                if let Ok(msg) = stream::get_msg_from_server(&mut self.reader).await {
                     let _ = s2c_tx.send(msg);
                 }
             }
@@ -68,15 +75,15 @@ impl ClientConnection {
     }
 
     /// Makes the initial request to get the game map from the server.
-    async fn ask_for_map(&mut self) -> Result<Vec<Vec<common::TileE>>, ClientErr> {
-        let _ = common::stream::send_msg_to_server(
+    async fn ask_for_map(&mut self) -> Result<Vec<Vec<TileE>>, ClientErr> {
+        let _ = stream::send_msg_to_server(
             &mut self.writer,
-            &common::C2S::C2S4L(common::C2S4L::GiveMap),
+            &C2S::C2S4L(C2S4L::GiveMap),
         )
         .await;
 
-        match common::stream::get_msg_from_server(&mut self.reader).await {
-            Ok(common::S2C::L2S4C(common::L2S4C::Map(map))) => Ok(map),
+        match stream::get_msg_from_server(&mut self.reader).await {
+            Ok(S2C::L2S4C(L2S4C::Map(map))) => Ok(map),
             _ => Err(ClientErr::DataNotReceived),
         }
     }
@@ -84,33 +91,27 @@ impl ClientConnection {
     /// Fetches the initial game objects and player data required to start the TUI.
     async fn fetch_initial_state(
         &mut self,
-    ) -> Result<
-        (
-            HashMap<usize, common::GameObjE>,
-            Option<common::PlayerDataE>,
-        ),
-        ClientErr,
-    > {
+    ) -> Result<(HashMap<usize, GameObjE>, Option<PlayerDataE>), ClientErr> {
         // Request game objects
-        let _ = common::stream::send_msg_to_server(
+        let _ = stream::send_msg_to_server(
             &mut self.writer,
-            &common::C2S::C2S4L(common::C2S4L::GiveObjs),
+            &C2S::C2S4L(C2S4L::GiveObjs),
         )
         .await;
-        let game_objs = match common::stream::get_msg_from_server(&mut self.reader).await {
-            Ok(common::S2C::L2S4C(common::L2S4C::GameObjs(objs))) => objs,
+        let game_objs = match stream::get_msg_from_server(&mut self.reader).await {
+            Ok(S2C::L2S4C(L2S4C::GameObjs(objs))) => objs,
             _ => return Err(ClientErr::DataNotReceived),
         };
 
         // Request player data (this is a placeholder until the castle is built)
-        let _ = common::stream::send_msg_to_server(
+        let _ = stream::send_msg_to_server(
             &mut self.writer,
-            &common::C2S::C2S4L(common::C2S4L::GivePlayerData),
+            &C2S::C2S4L(C2S4L::GivePlayerData),
         )
         .await;
-        let player_data = match common::stream::get_msg_from_server(&mut self.reader).await {
-            Ok(common::S2C::L2S4C(common::L2S4C::PlayerData(data))) => Some(data),
-            Ok(common::S2C::L2S4C(common::L2S4C::CreateCastle)) => None,
+        let player_data = match stream::get_msg_from_server(&mut self.reader).await {
+            Ok(S2C::L2S4C(L2S4C::PlayerData(data))) => Some(data),
+            Ok(S2C::L2S4C(L2S4C::CreateCastle)) => None,
             _ => return Err(ClientErr::DataNotReceived),
         };
 
@@ -118,9 +119,7 @@ impl ClientConnection {
     }
 }
 
-//==============================================================================================
-//  Client
-//==============================================================================================
+// --- Client ---
 
 /// The main Client struct acts as the application's orchestrator.
 pub struct Client {}
@@ -133,11 +132,7 @@ impl Client {
     /// Runs the main client application.
     pub async fn run(&mut self) {
         // 1. Connect to the Server
-        let addr = if r#const::ONLINE {
-            r#const::IP_LOCAL
-        } else {
-            r#const::IP_LOCAL
-        };
+        let addr = if ONLINE { IP_LOCAL } else { IP_LOCAL };
         let stream = match TcpStream::connect(addr).await {
             Ok(s) => s,
             Err(e) => {
@@ -149,8 +144,8 @@ impl Client {
 
         // 2. Authenticate
         println!("Connection established. Please log in.");
-        let name = tui::Tui::login();
-        let _ = common::stream::send_msg_to_server(&mut writer, &common::C2S::Login(name)).await;
+        let name = Tui::login();
+        let _ = stream::send_msg_to_server(&mut writer, &C2S::Login(name)).await;
 
         // 3. Create the connection manager
         let mut connection = ClientConnection {
@@ -184,7 +179,7 @@ impl Client {
         });
 
         // 7. Create and run the TUI. The main thread will now be dedicated to the UI.
-        let mut tui = tui::Tui::new(t2c_tx, s2c_rx, map, initial_objs, initial_data);
+        let mut tui = Tui::new(t2c_tx, s2c_rx, map, initial_objs, initial_data);
         tui.run().await; // This blocks until the user quits the TUI.
 
         // 8. Cleanup

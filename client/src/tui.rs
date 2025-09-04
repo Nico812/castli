@@ -12,16 +12,16 @@ use std::{
 };
 use tokio::{
     io::{self, AsyncReadExt},
-    sync::{Mutex, mpsc},
+    sync::{mpsc, Mutex},
     time,
 };
 
 use crate::{
     ansi::RESET_COLOR,
-    canvas,
-    canvas::r#const::{CENTRAL_MODULE_COLS, CENTRAL_MODULE_ROWS},
+    canvas::Canvas,
+    r#const::{CENTRAL_MODULE_COLS, CENTRAL_MODULE_ROWS},
 };
-use common;
+use common::{GameObjE, L2S4C, PlayerDataE, S2C, TileE};
 
 /// Messages sent from the TUI to the client's network task.
 pub enum T2C {
@@ -38,12 +38,12 @@ pub struct Tui {
     state: TuiState,
     // Communication channels
     to_server_tx: mpsc::UnboundedSender<T2C>,
-    from_server_rx: Arc<Mutex<mpsc::UnboundedReceiver<common::S2C>>>,
+    from_server_rx: Arc<Mutex<mpsc::UnboundedReceiver<S2C>>>,
 
     // UI and Game State
-    canvas: Arc<Mutex<canvas::canvas::Canvas>>,
-    game_objs: Arc<Mutex<HashMap<usize, common::GameObjE>>>,
-    player_data: Arc<Mutex<common::PlayerDataE>>,
+    canvas: Arc<Mutex<Canvas>>,
+    game_objs: Arc<Mutex<HashMap<usize, GameObjE>>>,
+    player_data: Arc<Mutex<PlayerDataE>>,
     map_zoom: Arc<Mutex<Option<(usize, usize)>>>,
     map_look: Arc<Mutex<Option<(usize, usize)>>>,
     logs: Arc<Mutex<VecDeque<String>>>,
@@ -54,17 +54,17 @@ impl Tui {
     /// create the Tui instance with the initial state provided by the client.
     pub fn new(
         tx: mpsc::UnboundedSender<T2C>,
-        rx: mpsc::UnboundedReceiver<common::S2C>,
-        tiles: Vec<Vec<common::TileE>>,
-        initial_game_objs: HashMap<usize, common::GameObjE>,
-        initial_player_data: Option<common::PlayerDataE>,
+        rx: mpsc::UnboundedReceiver<S2C>,
+        tiles: Vec<Vec<TileE>>,
+        initial_game_objs: HashMap<usize, GameObjE>,
+        initial_player_data: Option<PlayerDataE>,
     ) -> Self {
-        let mut canvas = canvas::canvas::Canvas::new();
-        canvas.init(tiles);
+        let mut canvas = Canvas::new();
+        canvas.init(&tiles);
         let mut state = TuiState::InGame;
-        let mut map_look = None;
+        let map_look = None;
         let map_zoom = None;
-        let mut logs: VecDeque<String> = VecDeque::from(vec![
+        let logs: VecDeque<String> = VecDeque::from(vec![
             "log1".to_string(),
             "log2".to_string(),
             "log3".to_string(),
@@ -74,7 +74,7 @@ impl Tui {
             Some(player_data) => player_data,
             None => {
                 state = TuiState::CastleCreation;
-                common::PlayerDataE {
+                PlayerDataE {
                     id: 0,
                     name: "Undefined".to_string(),
                     pos: (0, 0),
@@ -132,9 +132,9 @@ impl Tui {
     }
 
     async fn render_loop(
-        canvas_arc: Arc<Mutex<canvas::canvas::Canvas>>,
-        game_objs_arc: Arc<Mutex<HashMap<usize, common::GameObjE>>>,
-        player_data_arc: Arc<Mutex<common::PlayerDataE>>,
+        canvas_arc: Arc<Mutex<Canvas>>,
+        game_objs_arc: Arc<Mutex<HashMap<usize, GameObjE>>>,
+        player_data_arc: Arc<Mutex<PlayerDataE>>,
         map_zoom_arc: Arc<Mutex<Option<(usize, usize)>>>,
         map_look_arc: Arc<Mutex<Option<(usize, usize)>>>,
         logs_arc: Arc<Mutex<VecDeque<String>>>,
@@ -146,13 +146,12 @@ impl Tui {
 
         loop {
             // Rendering fps
-            // There's a problem that the frame_dt gets super small when there is delay
+            // There's a problem that the frame_dt gets super small when there is delay            
             let now = time::Instant::now();
             let dt = now.duration_since(last_frame).as_millis() as u64;
             if dt >= 10 {
                 frame_dt = dt;
             };
-
             last_frame = now;
 
             // Rendering
@@ -163,10 +162,9 @@ impl Tui {
                 let player_data = player_data_arc.lock().await;
                 let map_zoom = map_zoom_arc.lock().await;
                 let map_look = map_look_arc.lock().await;
-                let mut logs = logs_arc.lock().await;
+                let logs = logs_arc.lock().await;
 
-                // If here with deref makes error idk why
-                canvas.render(&game_objs, &player_data, *map_zoom, frame_dt, &mut *logs);
+                canvas.render(&game_objs, &player_data, *map_zoom, frame_dt, &logs);
                 canvas.update_and_print_cursor(*map_look);
                 let _ = std::io::stdout().flush();
             }
@@ -176,16 +174,16 @@ impl Tui {
     }
 
     async fn listen_for_server_updates(
-        from_server_rx: Arc<Mutex<mpsc::UnboundedReceiver<common::S2C>>>,
-        game_objs_arc: Arc<Mutex<HashMap<usize, common::GameObjE>>>,
-        player_data_arc: Arc<Mutex<common::PlayerDataE>>,
+        from_server_rx: Arc<Mutex<mpsc::UnboundedReceiver<S2C>>>,
+        game_objs_arc: Arc<Mutex<HashMap<usize, GameObjE>>>,
+        player_data_arc: Arc<Mutex<PlayerDataE>>,
     ) {
         while let Some(msg) = from_server_rx.lock().await.recv().await {
             match msg {
-                common::S2C::L2S4C(common::L2S4C::GameObjs(objs)) => {
+                S2C::L2S4C(L2S4C::GameObjs(objs)) => {
                     *game_objs_arc.lock().await = objs;
                 }
-                common::S2C::L2S4C(common::L2S4C::PlayerData(data)) => {
+                S2C::L2S4C(L2S4C::PlayerData(data)) => {
                     *player_data_arc.lock().await = data;
                 }
                 _ => {}
@@ -247,13 +245,11 @@ impl Tui {
                             map_zoom.0 = map_zoom.0.saturating_sub(1);
                         }
                     }
-                    // Left Arrow Key
+                    // Down Arrow Key
                     [0x1b, b'[', b'B'] => {
                         if let Some(ref mut map_look) = *map_look_arc.lock().await {
-                            map_look.0 = std::cmp::min(
-                                map_look.0 + 1,
-                                canvas::r#const::CENTRAL_MODULE_ROWS - 1,
-                            );
+                            map_look.0 =
+                                std::cmp::min(map_look.0 + 1, CENTRAL_MODULE_ROWS - 1);
                         } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
                             map_zoom.0 = std::cmp::min(map_zoom.0 + 1, 7);
                         }
@@ -269,10 +265,8 @@ impl Tui {
                     // Right Arrow Key
                     [0x1b, b'[', b'C'] => {
                         if let Some(ref mut map_look) = *map_look_arc.lock().await {
-                            map_look.1 = std::cmp::min(
-                                map_look.1 + 1,
-                                canvas::r#const::CENTRAL_MODULE_COLS - 1,
-                            );
+                            map_look.1 =
+                                std::cmp::min(map_look.1 + 1, CENTRAL_MODULE_COLS - 1);
                         } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
                             map_zoom.1 = std::cmp::min(map_zoom.1 + 1, 7);
                         }
@@ -286,7 +280,6 @@ impl Tui {
     // --- Utility Functions ---
 
     pub fn login() -> String {
-        // ... (remains the same)
         let mut input = String::new();
         println!("Login:");
         std::io::stdin().read_line(&mut input).unwrap();
@@ -294,7 +287,6 @@ impl Tui {
     }
 
     fn clear_screen() {
-        // ... (remains the same)
         if cfg!(target_os = "windows") {
             let _ = Command::new("cmd").arg("/c").arg("cls").status();
         } else {
@@ -303,7 +295,6 @@ impl Tui {
     }
 
     fn set_raw_mode() {
-        // ... (remains the same)
         Command::new("stty")
             .arg("raw")
             .arg("-echo")
@@ -312,7 +303,6 @@ impl Tui {
     }
 
     fn reset_mode() {
-        // ... (remains the same)
         Command::new("stty")
             .arg("sane")
             .status()

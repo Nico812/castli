@@ -1,3 +1,16 @@
+use std::collections::HashMap;
+
+use rand::Rng;
+
+use crate::{
+    r#const::{CA_ITER, PERCENT_ARE_WALLS},
+    game::{map, player_castle},
+};
+use common::{
+    r#const::{MAP_COLS, MAP_ROWS},
+    GameObjE, PlayerCastleE, PlayerDataE, StructureE, TileE, UnitGroupE, GameID,
+};
+
 pub struct Map{
     pub tiles: Vec<Vec<TileE>>,
 }
