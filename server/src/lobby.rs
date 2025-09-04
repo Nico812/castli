@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tokio::time;
 
-use crate::game;
+use crate::game::game;
 use crate::player;
 use crate::server;
 use common;
