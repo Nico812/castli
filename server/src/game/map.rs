@@ -4,21 +4,21 @@ use rand::Rng;
 
 use crate::{
     r#const::{CA_ITER, PERCENT_ARE_WALLS},
-    game::{map, player_castle},
+    game::{castle, map},
 };
 use common::{
+    CastleE, GameID, GameObjE, PlayerE, StructureE, TileE, UnitGroupE,
     r#const::{MAP_COLS, MAP_ROWS},
-    GameObjE, PlayerCastleE, PlayerDataE, StructureE, TileE, UnitGroupE, GameID,
 };
 
-pub struct Map{
+pub struct Map {
     pub tiles: Vec<Vec<TileE>>,
 }
 
 impl Map {
     pub fn new() -> Self {
-        tiles = Self::cellular_automata();
-        Self{tiles}
+        let tiles = Self::cellular_automata();
+        Self { tiles }
     }
 
     pub fn export(&self) -> Vec<Vec<TileE>> {

@@ -80,7 +80,7 @@ impl Canvas {
     pub fn render(
         &mut self,
         game_objs: &HashMap<common::GameID, common::GameObjE>,
-        player_data: &common::PlayerDataE,
+        player_data: &common::PlayerE,
         map_zoom: Option<(usize, usize)>,
         frame_dt: u64,
         logs: &mut VecDeque<String>,

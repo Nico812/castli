@@ -2,7 +2,6 @@ use std::collections::VecDeque;
 
 use crate::ansi::*;
 use crate::assets::*;
-use crate::canvas::r#const::*;
 
 pub struct BottomModule {
     // Game events
@@ -27,7 +26,7 @@ impl BottomModule {
             ]);
         }
 
-        for log in logs.drain(..) {
+        for log in logs {
             renderable.pop_front();
             let mut row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
             for (i, ch) in log.chars().enumerate() {
@@ -37,6 +36,6 @@ impl BottomModule {
             }
             renderable.push_back(row);
         }
-        renderable.into_iter().collect()
+        renderable.into()
     }
 }

@@ -7,8 +7,8 @@ use std::collections::HashMap;
 use tokio::{
     io::BufReader,
     net::{
-        tcp::{OwnedReadHalf, OwnedWriteHalf},
         TcpStream,
+        tcp::{OwnedReadHalf, OwnedWriteHalf},
     },
     sync::mpsc,
     time,
@@ -16,8 +16,9 @@ use tokio::{
 
 use crate::tui::{self, Tui};
 use common::{
+    C2S, C2S4L, GameObjE, L2S4C, PlayerE, S2C, TileE,
     r#const::{IP_LOCAL, ONLINE},
-    stream, C2S, C2S4L, GameObjE, L2S4C, PlayerDataE, S2C, TileE,
+    stream,
 };
 
 #[derive(Debug)]
@@ -65,7 +66,7 @@ impl ClientConnection {
                 // Request player data
                 let _ = stream::send_msg_to_server(
                     &mut self.writer,
-                    &C2S::C2S4L(C2S4L::GivePlayerData),
+                    &C2S::C2S4L(C2S4L::GivePlayer),
                 ).await;
                 if let Ok(msg) = stream::get_msg_from_server(&mut self.reader).await {
                     let _ = s2c_tx.send(msg);
@@ -76,11 +77,7 @@ impl ClientConnection {
 
     /// Makes the initial request to get the game map from the server.
     async fn ask_for_map(&mut self) -> Result<Vec<Vec<TileE>>, ClientErr> {
-        let _ = stream::send_msg_to_server(
-            &mut self.writer,
-            &C2S::C2S4L(C2S4L::GiveMap),
-        )
-        .await;
+        let _ = stream::send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GiveMap)).await;
 
         match stream::get_msg_from_server(&mut self.reader).await {
             Ok(S2C::L2S4C(L2S4C::Map(map))) => Ok(map),
@@ -91,26 +88,18 @@ impl ClientConnection {
     /// Fetches the initial game objects and player data required to start the TUI.
     async fn fetch_initial_state(
         &mut self,
-    ) -> Result<(HashMap<usize, GameObjE>, Option<PlayerDataE>), ClientErr> {
+    ) -> Result<(HashMap<usize, GameObjE>, Option<PlayerE>), ClientErr> {
         // Request game objects
-        let _ = stream::send_msg_to_server(
-            &mut self.writer,
-            &C2S::C2S4L(C2S4L::GiveObjs),
-        )
-        .await;
+        let _ = stream::send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GiveObjs)).await;
         let game_objs = match stream::get_msg_from_server(&mut self.reader).await {
             Ok(S2C::L2S4C(L2S4C::GameObjs(objs))) => objs,
             _ => return Err(ClientErr::DataNotReceived),
         };
 
         // Request player data (this is a placeholder until the castle is built)
-        let _ = stream::send_msg_to_server(
-            &mut self.writer,
-            &C2S::C2S4L(C2S4L::GivePlayerData),
-        )
-        .await;
+        let _ = stream::send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GivePlayer)).await;
         let player_data = match stream::get_msg_from_server(&mut self.reader).await {
-            Ok(S2C::L2S4C(L2S4C::PlayerData(data))) => Some(data),
+            Ok(S2C::L2S4C(L2S4C::Player(data))) => Some(data),
             Ok(S2C::L2S4C(L2S4C::CreateCastle)) => None,
             _ => return Err(ClientErr::DataNotReceived),
         };

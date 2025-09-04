@@ -2,10 +2,11 @@
 //!
 //! This module defines the `Player` struct, which holds information
 //! about a single player in the game.
+use common::{GameID, PlayerE};
 
 pub struct Player {
     pub name: String,
-    pub castle_id: Option<common::GameID>,
+    pub castle_id: Option<GameID>,
 }
 
 impl Player {

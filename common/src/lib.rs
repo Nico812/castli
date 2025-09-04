@@ -28,7 +28,7 @@ pub enum S2C {
 pub enum L2S4C {
     Map(Vec<Vec<TileE>>),
     GameObjs(HashMap<GameID, GameObjE>),
-    PlayerData(PlayerDataE),
+    Player(PlayerE),
     CreateCastle,
 }
 
@@ -45,7 +45,7 @@ pub enum C2S4L {
     NewCastle((usize, usize)),
     GiveObjs,
     GiveMap,
-    GivePlayerData,
+    GivePlayer,
 }
 
 /// Exports:
@@ -61,21 +61,21 @@ pub enum TileE {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum GameObjE {
-    PlayerCastle(PlayerCastleE),
+    Castle(CastleE),
     Structure(StructureE),
     UnitGroup(UnitGroupE),
 }
 
 /// Exported information on a not-owned castle
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PlayerCastleE {
+pub struct CastleE {
     pub name: String,
     pub pos: (usize, usize),
 }
 
 /// Exported information on the owned castle
 #[derive(Serialize, Deserialize, Debug)]
-pub struct PlayerDataE {
+pub struct PlayerE {
     pub id: GameID,
     pub name: String,
     pub pos: (usize, usize),

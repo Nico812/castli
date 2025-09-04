@@ -8,7 +8,6 @@ use std::collections::HashMap;
 
 use crate::ansi::*;
 use crate::assets::*;
-use crate::canvas::r#const::*;
 use common::r#const::{self, MAP_COLS, MAP_ROWS};
 
 pub struct CentralModule {
@@ -210,7 +209,7 @@ impl CentralModule {
     ) {
         for obj in objs.values() {
             match obj {
-                common::GameObjE::PlayerCastle(castle) => {
+                common::GameObjE::Castle(castle) => {
                     if !Self::is_in_quadrant_from_game_coord(castle.pos, quadrant) {
                         continue;
                     };
@@ -218,7 +217,7 @@ impl CentralModule {
                         (castle.pos.0 / 2) % Self::CONTENT_ROWS,
                         castle.pos.1 % Self::CONTENT_COLS,
                     );
-                    Self::add_art_to_cells(cells, CASTLE_ART, pos_in_quadrant);
+                    Self::add_art_to_cells(cells, &CASTLE_ART, pos_in_quadrant);
                 }
                 _ => {}
             }
@@ -231,12 +230,12 @@ impl CentralModule {
     ) {
         for obj in world_objs.values() {
             match obj {
-                common::GameObjE::PlayerCastle(castle) => {
+                common::GameObjE::Castle(castle) => {
                     let pos_in_world = (
                         castle.pos.0 / (Self::ZOOM_FACTOR * 2),
                         castle.pos.1 / Self::ZOOM_FACTOR,
                     );
-                    Self::add_art_to_cells(cells, CASTLE_ART_WORLD, pos_in_world);
+                    Self::add_art_to_cells(cells, &CASTLE_ART_WORLD, pos_in_world);
                 }
                 _ => {}
             }
@@ -246,7 +245,7 @@ impl CentralModule {
     // refactor to take also 1 single cell or one dimensional arrays
     fn add_art_to_cells<const M: usize, const N: usize>(
         cells: &mut Vec<Vec<TermCell>>,
-        art: [[TermCell; N]; M],
+        art: &[[TermCell; N]; M],
         pos: (usize, usize),
     ) {
         for (art_row, art_row_iter) in art.iter().enumerate() {
@@ -277,7 +276,8 @@ impl CentralModule {
     }
 
     fn is_in_quadrant_from_game_coord(pos: (usize, usize), quadrant: (usize, usize)) -> bool {
-        if pos.0 < quadrant.0 * Self::CONTENT_ROWS || pos.0 >= (quadrant.0 + 1) * Self::CONTENT_ROWS
+        if pos.0 < quadrant.0 * Self::CONTENT_ROWS * 2
+            || pos.0 >= (quadrant.0 + 1) * Self::CONTENT_ROWS * 2
         {
             return false;
         }

@@ -9,15 +9,15 @@ use rand::Rng;
 
 use crate::{
     r#const::{CA_ITER, PERCENT_ARE_WALLS},
-    game::{map, player_castle},
+    game::{castle::Castle, map::Map},
 };
 use common::{
+    CastleE, GameID, GameObjE, PlayerE, StructureE, TileE, UnitGroupE,
     r#const::{MAP_COLS, MAP_ROWS},
-    GameObjE, PlayerCastleE, PlayerDataE, StructureE, TileE, UnitGroupE, GameID,
 };
 
 enum GameObj {
-    PlayerCastle(PlayerCastle),
+    Castle(Castle),
     Structure(StructureE),
     UnitGroup(UnitGroupE),
 }
@@ -30,7 +30,7 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Self {
-        let map = map::Map::new();
+        let map = Map::new();
         let game_objs = HashMap::new();
         let id_counter = 0;
 
@@ -41,15 +41,12 @@ impl Game {
         }
     }
 
-    pub fn add_player_castle(&mut self, name: &String, pos: (usize, usize)) -> GameID {
+    pub fn add_player_castle(&mut self, name: String, pos: (usize, usize)) -> GameID {
         let id = self.id_counter;
         self.id_counter += 1;
 
-        let castle = PlayerCastle {
-            name: name.to_string(),
-            pos,
-        };
-        self.game_objs.insert(id, GameObj::PlayerCastle(castle));
+        let castle = Castle::new(name, pos);
+        self.game_objs.insert(id, GameObj::Castle(castle));
         id
     }
 
@@ -62,13 +59,11 @@ impl Game {
             .iter()
             .map(|(&id, game_obj)| {
                 let obj_e = match game_obj {
-                    GameObj::PlayerCastle(castle) => {
+                    GameObj::Castle(castle) => {
                         println!("exporting a castle");
-                        let castle_export = PlayerCastleE {
-                            name: castle.name.clone(),
-                            pos: castle.pos,
-                        };
-                        GameObjE::PlayerCastle(castle_export)
+                        let castle_export = castle.export();
+
+                        GameObjE::Castle(castle_export)
                     }
                     GameObj::Structure(structure) => GameObjE::Structure(structure.clone()),
                     GameObj::UnitGroup(unit_group) => GameObjE::UnitGroup(unit_group.clone()),
@@ -78,18 +73,15 @@ impl Game {
             .collect()
     }
 
-    pub fn export_player_data(&self, id: GameID) -> PlayerDataE {
-        println!(
-            "Game is trying to export player_data for client_id {:?}",
-            id
-        );
+    pub fn export_player(&self, id: GameID) -> PlayerE {
+        println!("Game is trying to export player for client_id {:?}", id);
         match self.game_objs.get(&id) {
-            Some(GameObj::PlayerCastle(castle)) => PlayerDataE {
-                id,
+            Some(GameObj::Castle(castle)) => PlayerE {
+                id: id,
                 name: castle.name.clone(),
                 pos: castle.pos,
             },
-            _ => PlayerDataE {
+            _ => PlayerE {
                 id: 0,
                 name: "undefined".to_string(),
                 pos: (0, 0),

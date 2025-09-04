@@ -11,8 +11,8 @@ use std::{
 use tokio::{
     io::BufReader,
     net::{
-        tcp::{OwnedReadHalf, OwnedWriteHalf},
         TcpListener,
+        tcp::{OwnedReadHalf, OwnedWriteHalf},
     },
     sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
     time,
@@ -20,8 +20,9 @@ use tokio::{
 
 use crate::lobby::Lobby;
 use common::{
+    C2S, C2S4L, L2S4C, S2C,
     r#const::{IP_LOCAL, MAX_LOBBIES},
-    stream, C2S, C2S4L, L2S4C, S2C,
+    stream,
 };
 
 pub enum S2L {
@@ -64,17 +65,11 @@ impl LobbyManager {
         &self,
         client_id: ClientID,
         player_name: String,
-    ) -> Result<
-        (
-            UnboundedSender<C2S4L>,
-            UnboundedReceiver<L2S4C>,
-        ),
-        ServerErr,
-    > {
+    ) -> Result<(UnboundedSender<C2S4L>, UnboundedReceiver<L2S4C>), ServerErr> {
         // First, check for an existing lobby with space
         for i in 0..MAX_LOBBIES {
-            let lobby_txs_guard = self.lobby_txs.lock().unwrap();
-            if let Some(tx) = &lobby_txs_guard[i] {
+            let lobby_tx = self.lobby_txs.lock().unwrap()[i].clone();
+            if let Some(tx) = lobby_tx {
                 let (resp_tx, mut resp_rx) = mpsc::channel(1);
                 let _ = tx.send(S2L::IsFull(resp_tx));
                 if let Some(is_full) = resp_rx.recv().await {
@@ -136,24 +131,24 @@ impl ClientHandler {
                 result = stream::get_msg_from_client(&mut self.reader) => {
                     match result {
                         Ok(C2S::C2S4L(msg)) => {
-                            println!("Sending msg {:?} from client {:?} to lobby", msg, self.client_id);
+                            println!("[server] Sending msg {:?} from client {:?} to lobby", msg, self.client_id);
                             if self.lobby_tx.send(msg).is_err() {
-                                println!("Failed...");
+                                println!("[server] Failed...");
                                 break;
                             }
                         },
                         Ok(_) => {},
                         Err(_) => {
-                            eprintln!("CLIENT (ID: {}) DISCONNECTED.", self.client_id);
+                            eprintln!("[server] CLIENT (ID: {}) DISCONNECTED.", self.client_id);
                             break;
                         }
                     }
                 },
                 Some(msg) = self.lobby_rx.recv() => {
                     let s2c_msg = S2C::L2S4C(msg);
-                    println!("Received a msg {:?} from lobby for client {:?}", s2c_msg, self.client_id);
+                    println!("[server] Received a msg {:?} from lobby for client {:?}", s2c_msg, self.client_id);
                     if stream::send_msg_to_client(&mut self.writer, &s2c_msg).await.is_err() {
-                        println!("Failed to send msg {:?} to client {:?}", s2c_msg, self.client_id);
+                        println!("[server] Failed to send msg {:?} to client {:?}", s2c_msg, self.client_id);
                         break;
                     }
                 }
@@ -179,10 +174,10 @@ impl Server {
 
     pub async fn run(&mut self) {
         let listener = TcpListener::bind(IP_LOCAL).await.unwrap();
-        println!("Server started and listening on {}", IP_LOCAL);
+        println!("[server] Server started and listening on {}", IP_LOCAL);
 
         while let Ok((stream, socket_addr)) = listener.accept().await {
-            println!("Connection established from: {}", socket_addr);
+            println!("[server] Connection established from: {}", socket_addr);
 
             let lobby_manager_clone = Arc::clone(&self.lobby_manager);
             let next_client_id_clone = Arc::clone(&self.next_client_id);
@@ -195,14 +190,16 @@ impl Server {
                 let auth_result = Self::wait_authentication(&mut buf_reader).await;
                 let user_name = match auth_result {
                     Ok(name) => {
-                        println!("[{}] Player '{}' authenticated.", socket_addr, name);
+                        println!(
+                            "[server] [{}] Player '{}' authenticated.",
+                            socket_addr, name
+                        );
                         name
                     }
                     Err(_) => {
-                        eprintln!("[{}] Authentication failed.", socket_addr);
+                        eprintln!("[server] [{}] Authentication failed.", socket_addr);
                         let _ =
-                            stream::send_msg_to_client(&mut writer, &S2C::ConnectionFailed)
-                                .await;
+                            stream::send_msg_to_client(&mut writer, &S2C::ConnectionFailed).await;
                         return;
                     }
                 };
@@ -237,7 +234,10 @@ impl Server {
                             S2C::ConnectionFailed
                         };
                         let _ = stream::send_msg_to_client(&mut writer, &msg).await;
-                        eprintln!("[{}] Failed to assign to lobby: {:?}", socket_addr, err);
+                        eprintln!(
+                            "[server] [{}] Failed to assign to lobby: {:?}",
+                            socket_addr, err
+                        );
                     }
                 }
             });

@@ -7,14 +7,11 @@ use std::collections::HashMap;
 use tokio::{sync::mpsc, time};
 
 use crate::{
-    game::Game,
+    game::game::Game,
     player::Player,
     server::{ClientID, S2L},
 };
-use common::{
-    r#const::MAX_LOBBY_PLAYERS,
-    C2S4L, L2S4C,
-};
+use common::{C2S4L, L2S4C, r#const::MAX_LOBBY_PLAYERS};
 
 /// Represents errors that can occur within a `Lobby`.
 #[derive(Debug)]
@@ -23,13 +20,7 @@ enum LobbyErr {
 }
 
 pub struct Lobby {
-    clients: HashMap<
-        ClientID,
-        (
-            mpsc::UnboundedSender<L2S4C>,
-            mpsc::UnboundedReceiver<C2S4L>,
-        ),
-    >,
+    clients: HashMap<ClientID, (mpsc::UnboundedSender<L2S4C>, mpsc::UnboundedReceiver<C2S4L>)>,
     players: HashMap<ClientID, Player>,
     num_players: usize,
     game: Game,
@@ -129,7 +120,7 @@ impl Lobby {
                         // Here i should get the ClientID and updating the Players with the new castle GameID. The two ID are different.
                         // The game itself should manage the castle ID! So i wont pass clientId
                         if let Some(player) = self.players.get_mut(client_id) {
-                            let castle_id = self.game.add_player_castle(&player.name, pos);
+                            let castle_id = self.game.add_player_castle(player.name.clone(), pos);
                             player.set_castle_id(castle_id);
                         };
                     }
@@ -141,13 +132,12 @@ impl Lobby {
                         println!("Player requested to give objs, ID: {}", client_id);
                         let _ = client_tx.send(L2S4C::GameObjs(self.game.export_objs()));
                     }
-                    C2S4L::GivePlayerData => {
+                    C2S4L::GivePlayer => {
                         println!("Player requested to give player data, ID: {}", client_id);
                         if let Some(player) = self.players.get(client_id) {
                             if player.has_castle() {
-                                let _ = client_tx.send(L2S4C::PlayerData(
-                                    self.game.export_player_data(*client_id),
-                                ));
+                                let _ = client_tx
+                                    .send(L2S4C::Player(self.game.export_player(*client_id)));
                             } else {
                                 let _ = client_tx.send(L2S4C::CreateCastle);
                             }
