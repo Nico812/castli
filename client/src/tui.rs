@@ -306,13 +306,13 @@ impl Tui {
         map_look: Option<(usize, usize)>,
     ) -> Option<GameID> {
         if let (Some(zoom), Some(look)) = (map_zoom, map_look) {
-            let target_pos = (
+            let world_pos = (
                 (zoom.0 * QUADRANT_ROWS + look.0)*2,
                 zoom.1 * QUADRANT_COLS + look.1,
             );
             game_objs
                 .iter()
-                .find(|(_, obj)| obj.get_pos() == Some(target_pos))
+                .find(|(_, obj)| obj.get_pos() == Some(world_pos))
                 .map(|(id, _)| *id)
         } else {
             None
