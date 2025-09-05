@@ -35,7 +35,7 @@ pub const ERR_BG: &str = BG_BRIGHT_MAGENTA;
 pub const ERR_EL: TermCell = TermCell::new('?', FG_MAGENTA, BG_BRIGHT_MAGENTA);
 pub const BKG_FG: &str = FG_BLACK;
 pub const BKG_BG: &str = BG_BLACK;
-pub const BKG_EL: TermCell = TermCell::new('_', FG_BRIGHT_BLACK, BG_BLACK);
+pub const BKG_EL: TermCell = TermCell::new(' ', FG_WHITE, BG_BLACK);
 
 pub const GRASS_FG: &str = FG_GREEN;
 pub const GRASS_BG: &str = BG_GREEN;
