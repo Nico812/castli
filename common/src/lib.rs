@@ -59,6 +59,15 @@ pub enum TileE {
     Woods,
 }
 
+/// Exported information on the player info and owned castle
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PlayerE {
+    pub id: GameID,
+    pub name: String,
+    pub pos: (usize, usize),
+}
+
+/// Exported information on an observable object
 #[derive(Serialize, Deserialize, Debug)]
 pub enum GameObjE {
     Castle(CastleE),
@@ -73,14 +82,6 @@ pub struct CastleE {
     pub pos: (usize, usize),
 }
 
-/// Exported information on the owned castle
-#[derive(Serialize, Deserialize, Debug)]
-pub struct PlayerE {
-    pub id: GameID,
-    pub name: String,
-    pub pos: (usize, usize),
-}
-
 /// Exported information on NPSs (non player structures)
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct StructureE {
@@ -91,7 +92,6 @@ pub struct StructureE {
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum StructureTypeE {
-    Castle,
     Farm,
 }
 

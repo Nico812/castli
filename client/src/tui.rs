@@ -44,7 +44,7 @@ pub struct Tui {
 
     // UI and Game State
     canvas: Arc<Mutex<Canvas>>,
-    game_objs: Arc<Mutex<HashMap<usize, GameObjE>>>,
+    game_objs: Arc<Mutex<HashMap<GameID, GameObjE>>>,
     player_data: Arc<Mutex<PlayerE>>,
     map_zoom: Arc<Mutex<Option<(usize, usize)>>>,
     map_look: Arc<Mutex<Option<(usize, usize)>>>,
@@ -56,7 +56,7 @@ impl Tui {
         tx: mpsc::UnboundedSender<T2C>,
         rx: mpsc::UnboundedReceiver<S2C>,
         tiles: Vec<Vec<TileE>>,
-        initial_game_objs: HashMap<usize, GameObjE>,
+        initial_game_objs: HashMap<GameID, GameObjE>,
         initial_player_data: Option<PlayerE>,
     ) -> Self {
         let mut canvas = Canvas::new();
@@ -133,7 +133,7 @@ impl Tui {
 
     async fn render_loop(
         canvas_arc: Arc<Mutex<Canvas>>,
-        game_objs_arc: Arc<Mutex<HashMap<usize, GameObjE>>>,
+        game_objs_arc: Arc<Mutex<HashMap<GameID, GameObjE>>>,
         player_data_arc: Arc<Mutex<PlayerE>>,
         map_zoom_arc: Arc<Mutex<Option<(usize, usize)>>>,
         map_look_arc: Arc<Mutex<Option<(usize, usize)>>>,
@@ -146,7 +146,8 @@ impl Tui {
 
         loop {
             // Rendering fps
-            // There's a problem that the frame_dt gets super small when there is delay
+            // There's a problem that the frames can go really fast when there is delay
+            // so i take only the frames with a reasonable high dt.
             let now = time::Instant::now();
             let dt = now.duration_since(last_frame).as_millis() as u64;
             if dt >= 10 {
@@ -164,7 +165,10 @@ impl Tui {
                 let map_look = map_look_arc.lock().await;
                 let mut logs = logs_arc.lock().await;
 
-                canvas.render(&game_objs, &player_data, *map_zoom, frame_dt, &mut *logs);
+                // Selected object
+                let sel_obj_id = Self::get_selected_obj_id(&game_objs, *map_zoom, *map_look);
+
+                canvas.render(&game_objs, &player_data, *map_zoom, frame_dt, &mut *logs, sel_obj_id);
                 canvas.update_and_print_cursor(*map_look);
                 let _ = std::io::stdout().flush();
             }
@@ -256,7 +260,7 @@ impl Tui {
                     // Down Arrow Key
                     [0x1b, b'[', b'B'] => {
                         if let Some(ref mut map_look) = *map_look_arc.lock().await {
-                            map_look.0 = std::cmp::min(map_look.0 + 1, CENTRAL_MODULE_ROWS - 1);
+                            map_look.0 = std::cmp::min(map_look.0 + 1, QUADRANT_ROWS - 1);
                         } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
                             map_zoom.0 = std::cmp::min(map_zoom.0 + 1, 7);
                         }
@@ -272,7 +276,7 @@ impl Tui {
                     // Right Arrow Key
                     [0x1b, b'[', b'C'] => {
                         if let Some(ref mut map_look) = *map_look_arc.lock().await {
-                            map_look.1 = std::cmp::min(map_look.1 + 1, CENTRAL_MODULE_COLS - 1);
+                            map_look.1 = std::cmp::min(map_look.1 + 1, QUADRANT_COLS - 1);
                         } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
                             map_zoom.1 = std::cmp::min(map_zoom.1 + 1, 7);
                         }
@@ -290,6 +294,24 @@ impl Tui {
         println!("Login:");
         std::io::stdin().read_line(&mut input).unwrap();
         input.trim().to_string()
+    }
+
+    fn get_selected_obj_id(        game_objs: &HashMap<GameID, GameObjE>,
+        map_zoom: Option<(usize, usize)>,
+        map_look: Option<(usize, usize)>) -> GameID {
+            if let (Some(zoom), Some(look)) = (*map_zoom, *map_look) {
+                    let target_pos = (
+                        zoom.0 * QUADRANT_ROWS + look.0,
+                        zoom.1 * QUADRANT_COLS + look.1,
+                    );
+                    sel_obj_id = game_objs
+                        .iter()
+                        .find(|(_, obj)| obj.get_pos() == target_pos)
+                        .map(|(id, _)| *id);
+                } else {
+                    None
+                }
+
     }
 
     fn clear_screen() {

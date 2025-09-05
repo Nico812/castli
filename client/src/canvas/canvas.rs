@@ -14,7 +14,7 @@ use crate::canvas::{
     bottom_module::BottomModule, central_module::CentralModule, left_module::LeftModule,
     right_module::RightModule,
 };
-use common;
+use common{self, r#const::GameID};
 
 /// Represents the main drawing area for the TUI.
 ///
@@ -84,6 +84,7 @@ impl Canvas {
         map_zoom: Option<(usize, usize)>,
         frame_dt: u64,
         logs: &mut VecDeque<String>,
+        sel_obj_id: GameID,
     ) {
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
@@ -91,7 +92,7 @@ impl Canvas {
         // TODO: refactor modules logic
         for (row, line_contents) in self
             .right_module
-            .get_renderable_and_update(frame_dt)
+            .get_renderable_and_update(frame_dt, game_objs[sel_obj_id])
             .iter()
             .enumerate()
         {
@@ -155,11 +156,11 @@ impl Canvas {
 
     pub fn update_and_print_cursor(&self, map_look: Option<(usize, usize)>) {
         if let Some((row, col)) = map_look {
-            // Terminal coord are 1-indexed
+            // Terminal coord are 1-indexed + central mod frame = 2
             print!(
                 "\r\x1b[{};{}H",
-                CENTRAL_MOD_POS.0 + row + self.canvas_pos.0 + 1,
-                CENTRAL_MOD_POS.1 + col + self.canvas_pos.1 + 1
+                CENTRAL_MOD_POS.0 + row + self.canvas_pos.0 + 2,
+                CENTRAL_MOD_POS.1 + col + self.canvas_pos.1 + 2
             );
         } else {
             print!("\r\x1b[0;0H");
