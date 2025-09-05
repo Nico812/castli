@@ -1,13 +1,8 @@
-use std::collections::HashMap;
-
 use rand::Rng;
 
-use crate::{
-    r#const::{CA_ITER, PERCENT_ARE_WALLS},
-    game::{castle, map},
-};
+use crate::r#const::{CA_ITER, PERCENT_ARE_WALLS};
 use common::{
-    CastleE, GameID, GameObjE, PlayerE, StructureE, TileE, UnitGroupE,
+    TileE,
     r#const::{MAP_COLS, MAP_ROWS},
 };
 
@@ -27,7 +22,7 @@ impl Map {
 
     fn cellular_automata() -> Vec<Vec<TileE>> {
         fn fill_random(tiles: &mut Vec<Vec<TileE>>) {
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
 
             for row in 0..MAP_ROWS {
                 for col in 0..MAP_COLS {
@@ -35,7 +30,7 @@ impl Map {
                         || col == 0
                         || row == MAP_ROWS - 1
                         || col == MAP_COLS - 1
-                        || rng.gen_range(1..=100) <= PERCENT_ARE_WALLS
+                        || rng.random_range(1..=100) <= PERCENT_ARE_WALLS
                     {
                         tiles[row][col] = TileE::Water;
                     }
@@ -80,7 +75,7 @@ impl Map {
         tiles
     }
 
-    fn print(&self) {
+    fn _print(&self) {
         for rows in self.tiles.iter() {
             for tile in rows {
                 if *tile == TileE::Grass {

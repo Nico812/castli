@@ -30,7 +30,7 @@ impl BottomModule {
             renderable.pop_front();
             let mut row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
             for (i, ch) in log.chars().enumerate() {
-                if (i < Self::CONTENT_COLS - Self::PADDING_LEFT) {
+                if i < Self::CONTENT_COLS - Self::PADDING_LEFT {
                     row[Self::PADDING_LEFT + i] = TermCell::new(ch, FG_WHITE, BG_BLACK);
                 }
             }

@@ -7,6 +7,8 @@
 //! represents a single character cell with a specific glyph, foreground color, and
 //! background color.
 
+#![allow(dead_code)]
+
 use crate::ansi::*;
 
 #[derive(Copy, Clone, Debug, PartialEq)]

@@ -5,16 +5,8 @@
 //! logic for procedural map generation.
 use std::collections::HashMap;
 
-use rand::Rng;
-
-use crate::{
-    r#const::{CA_ITER, PERCENT_ARE_WALLS},
-    game::{castle::Castle, map::Map},
-};
-use common::{
-    CastleE, GameID, GameObjE, PlayerE, StructureE, TileE, UnitGroupE,
-    r#const::{MAP_COLS, MAP_ROWS},
-};
+use crate::game::{castle::Castle, map::Map};
+use common::{GameID, GameObjE, PlayerE, StructureE, TileE, UnitGroupE};
 
 enum GameObj {
     Castle(Castle),

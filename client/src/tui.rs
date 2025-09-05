@@ -16,9 +16,12 @@ use tokio::{
     time,
 };
 
-use crate::canvas::{
-    canvas::Canvas,
-    r#const::{CENTRAL_MODULE_COLS, CENTRAL_MODULE_ROWS},
+use crate::{
+    canvas::{
+        canvas::Canvas,
+        r#const::{CENTRAL_MODULE_COLS, CENTRAL_MODULE_ROWS},
+    },
+    r#const::{QUADRANT_COLS, QUADRANT_ROWS},
 };
 use common::{GameObjE, L2S4C, PlayerE, S2C, TileE};
 
@@ -34,7 +37,7 @@ enum TuiState {
 
 pub struct Tui {
     // Tui state
-    state: TuiState,
+    _state: TuiState,
     // Communication channels
     to_server_tx: mpsc::UnboundedSender<T2C>,
     from_server_rx: Arc<Mutex<mpsc::UnboundedReceiver<S2C>>>,
@@ -81,7 +84,7 @@ impl Tui {
         };
 
         Self {
-            state,
+            _state: state,
             to_server_tx: tx,
             from_server_rx: Arc::new(Mutex::new(rx)),
             canvas: Arc::new(Mutex::new(canvas)),
@@ -224,8 +227,8 @@ impl Tui {
                             return;
                         };
                         let new_castle_coords = (
-                            (map_zoom.0 * CENTRAL_MODULE_ROWS + map_look.0) * 2,
-                            map_zoom.1 * CENTRAL_MODULE_COLS + map_look.1,
+                            (map_zoom.0 * QUADRANT_ROWS + map_look.0) * 2,
+                            map_zoom.1 * QUADRANT_COLS + map_look.1,
                         );
 
                         let _ = tx.send(T2C::NewCastle(new_castle_coords));

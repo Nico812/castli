@@ -8,6 +8,7 @@ use std::collections::HashMap;
 
 use crate::ansi::*;
 use crate::assets::*;
+use crate::r#const::{QUADRANT_COLS, QUADRANT_ROWS};
 use common::r#const::{self, MAP_COLS, MAP_ROWS};
 
 pub struct CentralModule {
@@ -19,8 +20,8 @@ pub struct CentralModule {
 }
 
 impl CentralModule {
-    const CONTENT_ROWS: usize = 32;
-    const CONTENT_COLS: usize = 64;
+    pub const CONTENT_ROWS: usize = QUADRANT_ROWS;
+    pub const CONTENT_COLS: usize = QUADRANT_COLS;
     const ZOOM_FACTOR: usize = 8;
 
     // PUB
@@ -164,7 +165,7 @@ impl CentralModule {
                     .map(|(cells_col, &tile_top)| {
                         let tile_bottom = tiles[cells_row * 2 + 1][cells_col];
 
-                        if (tile_top == tile_bottom) {
+                        if tile_top == tile_bottom {
                             match tile_top {
                                 common::TileE::Grass => {
                                     if wind[cells_row][cells_col] {

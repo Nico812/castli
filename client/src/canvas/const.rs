@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub const CANVAS_ROWS: usize = 51;
 pub const CANVAS_COLS: usize = 160;
 

@@ -23,7 +23,6 @@ use common::{
 
 #[derive(Debug)]
 pub enum ClientErr {
-    ConnectionFailed,
     DataNotReceived,
 }
 

@@ -35,10 +35,9 @@ pub enum S2L {
     ),
     Shutdown,
 }
+
 #[derive(Debug)]
 pub enum ServerErr {
-    PoisonedMutex,
-    MissingLobbyTx,
     ServerFull,
     AuthFailed,
 }
