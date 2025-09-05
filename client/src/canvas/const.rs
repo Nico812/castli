@@ -4,16 +4,10 @@ pub const CANVAS_ROWS: usize = 51;
 pub const CANVAS_COLS: usize = 160;
 
 // Accounting for frame.
-pub const CENTRAL_MOD_POS: (usize, usize) = (1, LEFT_MODULE_COLS + 5);
-pub const LEFT_MOD_POS: (usize, usize) = (CENTRAL_MOD_POS.0, 3);
-pub const RIGHT_MOD_POS: (usize, usize) = (
-    CENTRAL_MOD_POS.0,
-    CENTRAL_MOD_POS.1 + CENTRAL_MODULE_COLS + 6,
-);
-pub const BOTTOM_MOD_POS: (usize, usize) = (
-    CENTRAL_MOD_POS.0 + CENTRAL_MODULE_ROWS + 1,
-    CENTRAL_MOD_POS.1,
-);
+pub const CENTRAL_MOD_POS: (usize, usize) = (0, LEFT_MODULE_COLS + 5);
+pub const LEFT_MOD_POS: (usize, usize) = (CENTRAL_MOD_POS.0, 0);
+pub const RIGHT_MOD_POS: (usize, usize) = (CENTRAL_MOD_POS.0, CANVAS_COLS - RIGHT_MODULE_COLS);
+pub const BOTTOM_MOD_POS: (usize, usize) = (CANVAS_ROWS - BOTTOM_MODULE_ROWS, 0);
 
 // Content of modules, not total size accounting for frame.
 pub const CENTRAL_MODULE_ROWS: usize = 34;

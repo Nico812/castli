@@ -1,6 +1,9 @@
 use std::collections::VecDeque;
 
-use super::module_utility;
+use super::{
+    r#const::{BOTTOM_MODULE_COLS, BOTTOM_MODULE_ROWS},
+    module_utility,
+};
 use crate::ansi::*;
 use crate::assets::*;
 
@@ -10,8 +13,8 @@ pub struct BottomModule {
 
 impl BottomModule {
     const PADDING_LEFT: usize = 2;
-    const CONTENT_ROWS: usize = 11;
-    const CONTENT_COLS: usize = 64;
+    const CONTENT_ROWS: usize = BOTTOM_MODULE_ROWS - 2;
+    const CONTENT_COLS: usize = BOTTOM_MODULE_COLS - 2;
 
     pub fn new() -> Self {
         Self {}

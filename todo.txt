@@ -4,3 +4,4 @@ add_cornice dovrebbe funzionare sia per la mappa che per gli altri moduli
 
 eturn slices in center module in the slice functions and not copies
 
+add discovery to the map as nathan suggested
