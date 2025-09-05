@@ -206,22 +206,22 @@ impl CentralModule {
             .collect()
     }
 
-    // TODO: Its not good here that for every different obj i have to extract the position and check if it's inside the quadrant
     fn add_objs_to_cells(
         cells: &mut Vec<Vec<TermCell>>,
         objs: &HashMap<common::GameID, common::GameObjE>,
         quadrant: (usize, usize),
     ) {
         for obj in objs.values() {
-            match obj {
-                common::GameObjE::Castle(castle) => {
-                    if !Self::is_in_quadrant_from_game_coord(castle.pos, quadrant) {
+            if !Self::is_in_quadrant_from_game_coord(obj.get_pos(), quadrant) {
                         continue;
                     };
-                    let pos_in_quadrant = (
-                        (castle.pos.0 / 2) % Self::CONTENT_ROWS,
-                        castle.pos.1 % Self::CONTENT_COLS,
+            let pos_in_quadrant = (
+                        (obj.get_pos().0 / 2) % Self::CONTENT_ROWS,
+                        obj.get_pos().1 % Self::CONTENT_COLS,
                     );
+            // TODO: simplify adding a function in common that gets you the right art for any obj
+            match obj {
+                common::GameObjE::Castle(castle) => {
                     Self::add_art_to_cells(cells, &CASTLE_ART, pos_in_quadrant);
                 }
                 _ => {}

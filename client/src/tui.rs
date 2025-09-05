@@ -312,11 +312,7 @@ impl Tui {
             );
             game_objs
                 .iter()
-                .find(|(_, obj)| match obj {
-                    GameObjE::Castle(castle) => castle.pos == target_pos,
-                    GameObjE::Structure(structure) => structure.pos == target_pos,
-                    GameObjE::UnitGroup(unit_group) => unit_group.pos == target_pos,
-                })
+                .find(|(_, obj)| obj.get_pos() == Some(target_pos))
                 .map(|(id, _)| *id)
         } else {
             None

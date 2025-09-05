@@ -75,6 +75,16 @@ pub enum GameObjE {
     UnitGroup(UnitGroupE),
 }
 
+impl GameObjE {
+    pub fn get_pos(&self) -> (usize, usize) {
+        match self {
+            GameObjE::Castle(c) => c.pos,
+            GameObjE::Structure(s) => s.pos,
+            GameObjE::UnitGroup(u) => u.pos, 
+        }
+    }
+}
+
 /// Exported information on a not-owned castle
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CastleE {
