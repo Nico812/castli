@@ -1,11 +1,10 @@
+use super::{r#const::*, module_utility};
 use crate::ansi::*;
 use crate::assets::*;
-use super::{r#const::*, module_utiltiy};
 
 pub struct RightModule {
     // Inspect
 }
-
 
 impl RightModule {
     const PADDING_LEFT: usize = 2;
@@ -27,7 +26,7 @@ impl RightModule {
                 content[1][Self::PADDING_LEFT + i] = TermCell::new(ch, FG_WHITE, BG_BLUE);
             }
         }
-        module_utility::add_frame("look", content);
+        module_utility::add_frame("look", &mut content);
         content
     }
 }

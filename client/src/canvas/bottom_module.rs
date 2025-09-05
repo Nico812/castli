@@ -1,8 +1,8 @@
 use std::collections::VecDeque;
 
+use super::module_utility;
 use crate::ansi::*;
 use crate::assets::*;
-use super::module_utiltiy;
 
 pub struct BottomModule {
     // Game events
@@ -37,8 +37,8 @@ impl BottomModule {
             }
             chatbox.push_back(row);
         }
-        let renderable = chatbox.into();
-        module_utility::add_frame("chat", renderable);
+        let mut renderable = chatbox.into();
+        module_utility::add_frame("chat", &mut renderable);
         renderable
     }
 }
