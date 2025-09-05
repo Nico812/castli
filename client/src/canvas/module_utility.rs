@@ -29,13 +29,13 @@ pub fn add_frame(title: &str, renderable: &mut Vec<Vec<TermCell>>) {
     }
 }
 
-    pub fn draw_text(&self, content: &mut Vec<Vec<TermCell>>, text: &str, row: usize, col: usize) {
-        if row >= content.len() {
-            return;
-        }
-        for (i, ch) in text.chars().enumerate() {
-            if col + i < content[row].len() {
-                content[row][col + i] = TermCell::new(ch, FG_WHITE, BG_BLACK);
-            }
+pub fn draw_text(content: &mut Vec<Vec<TermCell>>, text: &str, row: usize, col: usize) {
+    if row >= content.len() {
+        return;
+    }
+    for (i, ch) in text.chars().enumerate() {
+        if col + i < content[row].len() {
+            content[row][col + i] = TermCell::new(ch, FG_WHITE, BG_BLACK);
         }
     }
+}

@@ -17,13 +17,10 @@ use tokio::{
 };
 
 use crate::{
-    canvas::{
-        canvas::Canvas,
-        r#const::{CENTRAL_MODULE_COLS, CENTRAL_MODULE_ROWS},
-    },
+    canvas::canvas::Canvas,
     r#const::{QUADRANT_COLS, QUADRANT_ROWS},
 };
-use common::{GameObjE, L2S4C, PlayerE, S2C, TileE};
+use common::{GameID, GameObjE, L2S4C, PlayerE, S2C, TileE};
 
 /// Messages sent from the TUI to the client's network task.
 pub enum T2C {
@@ -168,7 +165,14 @@ impl Tui {
                 // Selected object
                 let sel_obj_id = Self::get_selected_obj_id(&game_objs, *map_zoom, *map_look);
 
-                canvas.render(&game_objs, &player_data, *map_zoom, frame_dt, &mut *logs, sel_obj_id);
+                canvas.render(
+                    &game_objs,
+                    &player_data,
+                    *map_zoom,
+                    frame_dt,
+                    &mut *logs,
+                    sel_obj_id,
+                );
                 canvas.update_and_print_cursor(*map_look);
                 let _ = std::io::stdout().flush();
             }
@@ -296,22 +300,27 @@ impl Tui {
         input.trim().to_string()
     }
 
-    fn get_selected_obj_id(        game_objs: &HashMap<GameID, GameObjE>,
+    fn get_selected_obj_id(
+        game_objs: &HashMap<GameID, GameObjE>,
         map_zoom: Option<(usize, usize)>,
-        map_look: Option<(usize, usize)>) -> GameID {
-            if let (Some(zoom), Some(look)) = (*map_zoom, *map_look) {
-                    let target_pos = (
-                        zoom.0 * QUADRANT_ROWS + look.0,
-                        zoom.1 * QUADRANT_COLS + look.1,
-                    );
-                    sel_obj_id = game_objs
-                        .iter()
-                        .find(|(_, obj)| obj.get_pos() == target_pos)
-                        .map(|(id, _)| *id);
-                } else {
-                    None
-                }
-
+        map_look: Option<(usize, usize)>,
+    ) -> Option<GameID> {
+        if let (Some(zoom), Some(look)) = (map_zoom, map_look) {
+            let target_pos = (
+                zoom.0 * QUADRANT_ROWS + look.0,
+                zoom.1 * QUADRANT_COLS + look.1,
+            );
+            game_objs
+                .iter()
+                .find(|(_, obj)| match obj {
+                    GameObjE::Castle(castle) => castle.pos == target_pos,
+                    GameObjE::Structure(structure) => structure.pos == target_pos,
+                    GameObjE::UnitGroup(unit_group) => unit_group.pos == target_pos,
+                })
+                .map(|(id, _)| *id)
+        } else {
+            None
+        }
     }
 
     fn clear_screen() {

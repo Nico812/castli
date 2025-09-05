@@ -14,7 +14,7 @@ use crate::canvas::{
     bottom_module::BottomModule, central_module::CentralModule, left_module::LeftModule,
     right_module::RightModule,
 };
-use common{self, r#const::GameID};
+use common::{self, GameID};
 
 /// Represents the main drawing area for the TUI.
 ///
@@ -84,15 +84,21 @@ impl Canvas {
         map_zoom: Option<(usize, usize)>,
         frame_dt: u64,
         logs: &mut VecDeque<String>,
-        sel_obj_id: GameID,
+        sel_obj_id: Option<GameID>,
     ) {
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
 
         // TODO: refactor modules logic
+
+        let mut selected_obj: Option<&common::GameObjE> = None;
+        if let Some(id) = sel_obj_id {
+            selected_obj = Some(&game_objs[&id]);
+        }
+
         for (row, line_contents) in self
             .right_module
-            .get_renderable_and_update(frame_dt, game_objs[sel_obj_id])
+            .get_renderable_and_update(frame_dt, selected_obj)
             .iter()
             .enumerate()
         {

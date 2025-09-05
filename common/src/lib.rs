@@ -98,4 +98,5 @@ pub enum StructureTypeE {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UnitGroupE {
     pub owner: String,
+    pub pos: (usize, usize),
 }
