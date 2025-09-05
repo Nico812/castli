@@ -307,7 +307,7 @@ impl Tui {
     ) -> Option<GameID> {
         if let (Some(zoom), Some(look)) = (map_zoom, map_look) {
             let target_pos = (
-                zoom.0 * QUADRANT_ROWS + look.0,
+                (zoom.0 * QUADRANT_ROWS + look.0)*2,
                 zoom.1 * QUADRANT_COLS + look.1,
             );
             game_objs
