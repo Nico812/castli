@@ -213,15 +213,15 @@ impl CentralModule {
     ) {
         for obj in objs.values() {
             if !Self::is_in_quadrant_from_game_coord(obj.get_pos(), quadrant) {
-                        continue;
-                    };
+                continue;
+            };
             let pos_in_quadrant = (
-                        (obj.get_pos().0 / 2) % Self::CONTENT_ROWS,
-                        obj.get_pos().1 % Self::CONTENT_COLS,
-                    );
+                (obj.get_pos().0 / 2) % Self::CONTENT_ROWS,
+                obj.get_pos().1 % Self::CONTENT_COLS,
+            );
             // TODO: simplify adding a function in common that gets you the right art for any obj
             match obj {
-                common::GameObjE::Castle(castle) => {
+                common::GameObjE::Castle(_) => {
                     Self::add_art_to_cells(cells, &CASTLE_ART, pos_in_quadrant);
                 }
                 _ => {}
