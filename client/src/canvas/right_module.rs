@@ -1,6 +1,6 @@
-use crate::canvas::r#const::*;
 use crate::ansi::*;
 use crate::assets::*;
+use super::{r#const::*, module_utiltiy};
 
 pub struct RightModule {
     // Inspect
@@ -27,6 +27,7 @@ impl RightModule {
                 content[1][Self::PADDING_LEFT + i] = TermCell::new(ch, FG_WHITE, BG_BLUE);
             }
         }
+        module_utility::add_frame("look", content);
         content
     }
 }

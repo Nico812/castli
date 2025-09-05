@@ -1,6 +1,6 @@
 use crate::ansi::*;
 use crate::assets::*;
-use crate::canvas::r#const::*;
+use super::{r#const::*, module_utiltiy};
 
 pub struct LeftModule {
     // Player data
@@ -29,6 +29,7 @@ impl LeftModule {
                 content[5][Self::PADDING_LEFT + i] = TermCell::new(ch, FG_WHITE, BG_BLACK);
             }
         }
+        module_utility::add_frame("player", content);
         content
     }
 }

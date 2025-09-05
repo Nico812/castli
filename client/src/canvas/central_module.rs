@@ -10,6 +10,7 @@ use crate::ansi::*;
 use crate::assets::*;
 use crate::r#const::{QUADRANT_COLS, QUADRANT_ROWS};
 use common::r#const::{self, MAP_COLS, MAP_ROWS};
+use super::module_utiltiy;
 
 pub struct CentralModule {
     // Stores the tiles for the rest of the game, since they should be immutable
@@ -57,23 +58,26 @@ impl CentralModule {
         map_zoom: Option<(usize, usize)>,
         render_count: u32,
     ) -> Vec<Vec<TermCell>> {
+        let mut cells;
+
         match map_zoom {
             Some(quadrant) => {
                 let cut_tiles = self.get_map_slice(quadrant);
                 let cut_wind = self.get_wind_slice(quadrant);
-                let mut cells = Self::tiles_to_cells(&cut_tiles, &cut_wind);
+                cells = Self::tiles_to_cells(&cut_tiles, &cut_wind);
                 Self::add_objs_to_cells(&mut cells, game_objs, quadrant);
                 self.update_wind(render_count, quadrant);
-                cells
+                module_utility::add_frame(format!("({}, {})", quadrant.0, quadrant.1), cells);
             }
             None => {
                 let cut_wind = self.get_wind_slice((7, 7));
-                let mut cells = Self::tiles_to_cells(&self.world_map_tiles, &cut_wind);
+                cells = Self::tiles_to_cells(&self.world_map_tiles, &cut_wind);
                 Self::add_world_objs_to_cells(&mut cells, game_objs);
                 self.update_wind(render_count, (7, 7));
-                cells
+                module_utility::add_frame("world map", cells);
             }
         }
+        cells
     }
 
     // PRIVATE

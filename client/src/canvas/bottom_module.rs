@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 
 use crate::ansi::*;
 use crate::assets::*;
+use super::module_utiltiy;
 
 pub struct BottomModule {
     // Game events
@@ -17,25 +18,27 @@ impl BottomModule {
     }
 
     pub fn get_renderable_and_update(&self, logs: &mut VecDeque<String>) -> Vec<Vec<TermCell>> {
-        let mut renderable: VecDeque<Vec<TermCell>> = VecDeque::with_capacity(Self::CONTENT_ROWS);
+        let mut chatbox: VecDeque<Vec<TermCell>> = VecDeque::with_capacity(Self::CONTENT_ROWS);
 
         for _ in 0..Self::CONTENT_ROWS {
-            renderable.push_back(vec![
+            chatbox.push_back(vec![
                 TermCell::new(' ', FG_BLACK, BG_BLACK);
                 Self::CONTENT_COLS
             ]);
         }
 
         for log in logs {
-            renderable.pop_front();
+            chatbox.pop_front();
             let mut row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
             for (i, ch) in log.chars().enumerate() {
                 if i < Self::CONTENT_COLS - Self::PADDING_LEFT {
                     row[Self::PADDING_LEFT + i] = TermCell::new(ch, FG_WHITE, BG_BLACK);
                 }
             }
-            renderable.push_back(row);
+            chatbox.push_back(row);
         }
-        renderable.into()
+        let renderable = chatbox.into();
+        module_utility::add_frame("chat", renderable);
+        renderable
     }
 }
