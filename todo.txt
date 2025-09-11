@@ -9,3 +9,5 @@ due aggiungi 2 moduli, uno per i comandi, uno per il debug e il titolo e la mete
 add discovery to the map as nathan suggested
 
 let only castles that are built on grass, send back feedback to the client to print in the logs.
+
+make structs: WorldCoord, TermCoord, maybe CompactCoord/MapCoord
