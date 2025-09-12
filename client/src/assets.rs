@@ -47,8 +47,8 @@ pub const WATER_BG: &str = BG_BLUE;
 pub const WATER_EL_1: TermCell = TermCell::new(' ', FG_BRIGHT_BLUE, WATER_BG);
 pub const WATER_EL_2: TermCell = TermCell::new('~', FG_BRIGHT_BLUE, WATER_BG);
 
-pub const CASTLE_FG: &str = FG_BLACK;
-pub const CASTLE_BG: &str = BG_BRIGHT_BLACK;
+pub const CASTLE_FG: &str = FG_WHITE;
+pub const CASTLE_BG: &str = BG_BLACK;
 
 pub const CASTLE_ART: [[TermCell; 8]; 4] = [
     [
@@ -64,31 +64,31 @@ pub const CASTLE_ART: [[TermCell; 8]; 4] = [
     [
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
-        TermCell::new('▒', CASTLE_FG, CASTLE_BG),
-        TermCell::new('░', CASTLE_FG, CASTLE_BG),
-        TermCell::new('░', CASTLE_FG, CASTLE_BG),
-        TermCell::new('░', CASTLE_FG, CASTLE_BG),
-        TermCell::new('░', CASTLE_FG, CASTLE_BG),
+        TermCell::new(' ', CASTLE_FG, CASTLE_BG),
+        TermCell::new(' ', CASTLE_FG, CASTLE_BG),
+        TermCell::new(' ', CASTLE_FG, CASTLE_BG),
+        TermCell::new(' ', CASTLE_FG, CASTLE_BG),
+        TermCell::new(' ', CASTLE_FG, CASTLE_BG),
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
     ],
     [
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
-        TermCell::new('▒', CASTLE_FG, CASTLE_BG),
+        TermCell::new(' ', CASTLE_FG, CASTLE_BG),
         TermCell::new(' ', CASTLE_FG, CASTLE_BG),
         TermCell::new('_', CASTLE_FG, CASTLE_BG),
         TermCell::new('_', CASTLE_FG, CASTLE_BG),
-        TermCell::new('░', CASTLE_FG, CASTLE_BG),
+        TermCell::new(' ', CASTLE_FG, CASTLE_BG),
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
     ],
     [
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
-        TermCell::new('▒', CASTLE_FG, CASTLE_BG),
-        TermCell::new('░', CASTLE_FG, CASTLE_BG),
+        TermCell::new(' ', CASTLE_FG, CASTLE_BG),
+        TermCell::new(' ', CASTLE_FG, CASTLE_BG),
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
-        TermCell::new('░', CASTLE_FG, CASTLE_BG),
+        TermCell::new(' ', CASTLE_FG, CASTLE_BG),
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
     ],
 ];
