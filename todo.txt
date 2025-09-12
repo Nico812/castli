@@ -1,5 +1,7 @@
 review error managerment in client.
 
+make the logs finite
+
 eturn slices in center module in the slice functions and not copies
 
 map_look dovrebbe dipendere dal content row/col del central module.

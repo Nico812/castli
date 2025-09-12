@@ -30,6 +30,7 @@ pub enum L2S4C {
     GameObjs(HashMap<GameID, GameObjE>),
     Player(PlayerE),
     CreateCastle,
+    Log(String),
 }
 
 /// Represents messages sent from the Client to the Server (C2S).
@@ -80,7 +81,7 @@ impl GameObjE {
         match self {
             GameObjE::Castle(c) => c.pos,
             GameObjE::Structure(s) => s.pos,
-            GameObjE::UnitGroup(u) => u.pos, 
+            GameObjE::UnitGroup(u) => u.pos,
         }
     }
 }

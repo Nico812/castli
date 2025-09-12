@@ -101,6 +101,7 @@ impl Tui {
             Arc::clone(&self.from_server_rx),
             Arc::clone(&self.game_objs),
             Arc::clone(&self.player_data),
+            Arc::clone(&self.logs),
         ));
 
         // Spawn a task to render the UI
@@ -185,6 +186,7 @@ impl Tui {
         from_server_rx: Arc<Mutex<mpsc::UnboundedReceiver<S2C>>>,
         game_objs_arc: Arc<Mutex<HashMap<usize, GameObjE>>>,
         player_data_arc: Arc<Mutex<PlayerE>>,
+        logs_arc: Arc<Mutex<VecDeque<String>>>,
     ) {
         while let Some(msg) = from_server_rx.lock().await.recv().await {
             match msg {
@@ -193,6 +195,9 @@ impl Tui {
                 }
                 S2C::L2S4C(L2S4C::Player(data)) => {
                     *player_data_arc.lock().await = data;
+                }
+                S2C::L2S4C(L2S4C::Log(log)) => {
+                    logs_arc.lock().await.push_back(log);
                 }
                 _ => {}
             }

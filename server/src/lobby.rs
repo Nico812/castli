@@ -120,8 +120,16 @@ impl Lobby {
                         // Here i should get the ClientID and updating the Players with the new castle GameID. The two ID are different.
                         // The game itself should manage the castle ID! So i wont pass clientId
                         if let Some(player) = self.players.get_mut(client_id) {
-                            let castle_id = self.game.add_player_castle(player.name.clone(), pos);
-                            player.set_castle_id(castle_id);
+                            let log;
+                            if player.has_castle() {
+                                log = "You already have a castle".to_string();
+                            } else {
+                                let castle_id =
+                                    self.game.add_player_castle(player.name.clone(), pos);
+                                player.set_castle_id(castle_id);
+                                log = "Castle created successfully".to_string();
+                            }
+                            let _ = client_tx.send(L2S4C::Log(log));
                         };
                     }
                     C2S4L::GiveMap => {

@@ -50,6 +50,9 @@ impl ClientConnection {
                     tui::T2C::NewCastle(pos) => C2S::C2S4L(C2S4L::NewCastle(pos))
                 };
                 let _ = stream::send_msg_to_server(&mut self.writer, &msg).await;
+                if let Ok(msg) = stream::get_msg_from_server(&mut self.reader).await {
+                    let _ = s2c_tx.send(msg);
+                }
             },
             // Otherwise, run the periodic update requests
             _ = request_tick.tick() => {
