@@ -97,7 +97,7 @@ pub struct CastleE {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct StructureE {
     pub name: String,
-    pub struc_type: StructureTypeE,
+    pub r#type: StructureTypeE,
     pub pos: (usize, usize),
 }
 

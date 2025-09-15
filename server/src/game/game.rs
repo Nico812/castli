@@ -5,14 +5,8 @@
 //! logic for procedural map generation.
 use std::collections::HashMap;
 
-use crate::game::{castle::Castle, map::Map};
-use common::{GameID, GameObjE, PlayerE, StructureE, TileE, UnitGroupE};
-
-enum GameObj {
-    Castle(Castle),
-    Structure(StructureE),
-    UnitGroup(UnitGroupE),
-}
+use crate::game::{castle::Castle, game_obj::GameObj, map::Map};
+use common::{GameID, GameObjE, PlayerE, TileE};
 
 pub struct Game {
     map: Map,
@@ -33,6 +27,8 @@ impl Game {
         }
     }
 
+    pub fn step(&mut self) {}
+
     pub fn add_player_castle(&mut self, name: String, pos: (usize, usize)) -> GameID {
         let id = self.id_counter;
         self.id_counter += 1;
@@ -50,16 +46,7 @@ impl Game {
         self.game_objs
             .iter()
             .map(|(&id, game_obj)| {
-                let obj_e = match game_obj {
-                    GameObj::Castle(castle) => {
-                        println!("exporting a castle");
-                        let castle_export = castle.export();
-
-                        GameObjE::Castle(castle_export)
-                    }
-                    GameObj::Structure(structure) => GameObjE::Structure(structure.clone()),
-                    GameObj::UnitGroup(unit_group) => GameObjE::UnitGroup(unit_group.clone()),
-                };
+                let obj_e = game_obj.export();
                 (id, obj_e)
             })
             .collect()

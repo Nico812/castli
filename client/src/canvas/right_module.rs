@@ -79,7 +79,7 @@ impl RightModule {
                     );
                     current_row += 1;
 
-                    let type_str = format!("Type: {:?}", structure.struc_type);
+                    let type_str = format!("Type: {:?}", structure.r#type);
                     module_utility::draw_text(
                         &mut content,
                         &type_str,
