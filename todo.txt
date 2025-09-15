@@ -2,7 +2,9 @@ review error managerment in client.
 
 make the logs finite
 
-eturn slices in center module in the slice functions and not copies
+return slices in center module in the slice functions and not copies
+-> dio can diventa una merda quindi lascio perdere per ora, magari piu in la trovo soluzione migliore.
+-> il problema è che tiles to cells deve accettare sia la mappa intera quando non ce zoom (VecVec) sia una slice (&[[]] o &[Vec]) ma non riesco a fare che l argomento puo essere entrambe.
 
 map_look dovrebbe dipendere dal content row/col del central module.
 
