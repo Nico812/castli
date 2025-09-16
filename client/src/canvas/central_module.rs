@@ -215,14 +215,18 @@ impl CentralModule {
             if !Self::is_in_quadrant_from_game_coord(obj.get_pos(), quadrant) {
                 continue;
             };
+            let pos = obj.get_pos();
             let pos_in_quadrant = (
-                (obj.get_pos().0 / 2) % Self::CONTENT_ROWS,
-                obj.get_pos().1 % Self::CONTENT_COLS,
+                (pos.0 / 2) % Self::CONTENT_ROWS,
+                pos.1 % Self::CONTENT_COLS,
             );
             // TODO: simplify adding a function in common that gets you the right art for any obj
             match obj {
                 common::GameObjE::Castle(_) => {
                     Self::add_art_to_cells(cells, &CASTLE_ART, pos_in_quadrant);
+                }
+                common::GameObjE::UnitGroup(_) => {
+                    Self::add_art_to_cells(cells, &UNIT_GROUP_ART, pos_in_quadrant);
                 }
                 _ => {}
             }
@@ -234,13 +238,17 @@ impl CentralModule {
         world_objs: &HashMap<common::GameID, common::GameObjE>,
     ) {
         for obj in world_objs.values() {
+            let pos = obj.get_pos();
+            let pos_in_world = (
+                        pos.0 / (Self::ZOOM_FACTOR * 2),
+                        pos.1 / Self::ZOOM_FACTOR,
+                    );
             match obj {
                 common::GameObjE::Castle(castle) => {
-                    let pos_in_world = (
-                        castle.pos.0 / (Self::ZOOM_FACTOR * 2),
-                        castle.pos.1 / Self::ZOOM_FACTOR,
-                    );
                     Self::add_art_to_cells(cells, &CASTLE_ART_WORLD, pos_in_world);
+                }
+                common::GameObjE::UnitGroup(unit_group) => {
+                    Self::add_art_to_cells(cells, &UNIT_GROUP_ART, pos_in_world);
                 }
                 _ => {}
             }
