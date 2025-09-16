@@ -25,6 +25,7 @@ use common::{GameID, GameObjE, L2S4C, PlayerE, S2C, TileE};
 /// Messages sent from the TUI to the client's network task.
 pub enum T2C {
     NewCastle((usize, usize)),
+    AttackCastle(GameID),
 }
 
 enum TuiState {
@@ -215,9 +216,11 @@ impl Tui {
             let n = io::stdin().read(&mut buf).await.unwrap();
             if n == 1 {
                 match buf[0] as char {
+                    // quit
                     'q' => {
                         break;
                     }
+                    // zoom
                     'z' => {
                         let mut map_zoom = map_zoom_arc.lock().await;
                         *map_zoom = match *map_zoom {
@@ -225,6 +228,7 @@ impl Tui {
                             Some(_) => None,
                         };
                     }
+                    // look
                     'l' => {
                         let mut map_look = map_look_arc.lock().await;
                         *map_look = match *map_look {
@@ -232,6 +236,19 @@ impl Tui {
                             Some(_) => None,
                         };
                     }
+                    // attack
+                    'a' => {
+                        if let Some(selected_id) =
+                            Self::get_selected_obj_id(&game_objs_arc.lock().await, *map_zoom_arc.lock().await, *map_look_arc.lock().await)
+                        {
+                            let _ = tx.send(T2C::AttackCastle(selected_id));
+                            logs_arc
+                                .lock()
+                                .await
+                                .push_back(format!("Requesting to attack object {}!", selected_id));
+                        }
+                    }
+                    // new castle
                     'n' => {
                         let Some(map_look) = *map_look_arc.lock().await else {
                             return;

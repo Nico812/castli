@@ -27,7 +27,13 @@ impl Game {
         }
     }
 
-    pub fn step(&mut self) {}
+    pub fn step(&mut self) {
+        for obj in self.game_objs.values_mut() {
+            if let GameObj::UnitGroup(unit_group) = obj {
+                unit_group.move_along_path();
+            }
+        }
+    }
 
     pub fn add_player_castle(&mut self, name: String, pos: (usize, usize)) -> GameID {
         let id = self.id_counter;
@@ -65,6 +71,32 @@ impl Game {
                 name: "undefined".to_string(),
                 pos: (0, 0),
             },
+        }
+    }
+
+    pub fn attack_castle(&mut self, attacker_id: GameID, target_id: GameID) {
+        let (attacker_pos, attacker_name) =
+            if let Some(GameObj::Castle(castle)) = self.game_objs.get(&attacker_id) {
+                (castle.pos, castle.name.clone())
+            } else {
+                return;
+            };
+
+        let target_pos = if let Some(GameObj::Castle(castle)) = self.game_objs.get(&target_id) {
+            castle.pos
+        } else {
+            return;
+        };
+
+        let path = self
+            .map
+            .find_path(attacker_pos, target_pos);
+
+        if let Some(path) = path {
+            let id = self.id_counter;
+            self.id_counter += 1;
+            let unit_group = UnitGroup::new(attacker_name, attacker_pos, path);
+            self.game_objs.insert(id, GameObj::UnitGroup(unit_group));
         }
     }
 }

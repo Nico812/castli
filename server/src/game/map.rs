@@ -8,16 +8,35 @@ use common::{
 
 pub struct Map {
     pub tiles: Vec<Vec<TileE>>,
+    pub obstacles: Vec<Vec<bool>>,
 }
 
 impl Map {
     pub fn new() -> Self {
         let tiles = Self::cellular_automata();
-        Self { tiles }
+
+        let mut obstacles = [[false; MAP_COLS]; MAP_ROWS];
+        for (r, row) in self.tiles.iter().enumerate() {
+            for (c, tile) in row.iter().enumerate() {
+                if *tile == TileE::Water {
+                    obstacles[r][c] = true;
+                }
+            }
+        }
+
+        Self { tiles, obstacles }
     }
 
     pub fn export(&self) -> Vec<Vec<TileE>> {
         self.tiles.clone()
+    }
+
+    pub fn find_path(
+        &self,
+        start: (usize, usize),
+        end: (usize, usize),
+    ) -> Option<VecDeque<(usize, usize)>> {
+        pathfinding::bds(start, end, &self.obstacles)
     }
 
     fn cellular_automata() -> Vec<Vec<TileE>> {

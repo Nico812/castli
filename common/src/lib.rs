@@ -44,6 +44,7 @@ pub enum C2S {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum C2S4L {
     NewCastle((usize, usize)),
+    AttackCastle(GameID),
     GiveObjs,
     GiveMap,
     GivePlayer,

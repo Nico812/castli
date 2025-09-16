@@ -9,6 +9,16 @@ pub struct UnitGroup {
 }
 
 impl UnitGroup {
+    pub fn new(owner: String, pos: (usize, usize), path: VecDeque<(usize, usize)>) -> Self { // Added
+        Self { owner, pos, path }
+    }
+
+    pub fn move_along_path(&mut self) { // Added
+        if let Some(next_pos) = self.path.pop_front() {
+            self.pos = next_pos;
+        }
+    }
+    
     pub fn export(&self) -> UnitGroupE {
         UnitGroupE {
             owner: self.owner.clone(),

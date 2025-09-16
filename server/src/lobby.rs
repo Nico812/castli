@@ -132,6 +132,13 @@ impl Lobby {
                             let _ = client_tx.send(L2S4C::Log(log));
                         };
                     }
+                    C2S4L::AttackCastle(target_id) => {
+                        if let Some(player) = self.players.get(client_id) {
+                            if let Some(castle_id) = player.castle_id {
+                                self.game.attack(castle_id, target_id);
+                            }
+                        }
+                    }
                     C2S4L::GiveMap => {
                         println!("Player requested to give map, ID: {}", client_id);
                         let _ = client_tx.send(L2S4C::Map(self.game.export_map()));

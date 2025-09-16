@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::usize;
 
-fn bds<const M: usize, const N: usize>(
+pub fn bds<const M: usize, const N: usize>(
     start: (usize, usize),
     end: (usize, usize),
     obstacles: &[[bool; N]; M],
