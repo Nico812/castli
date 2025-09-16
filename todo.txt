@@ -15,3 +15,5 @@ add discovery to the map as nathan suggested
 let only castles that are built on grass, send back feedback to the client to print in the logs.
 
 make structs: WorldCoord, TermCoord, maybe CompactCoord/MapCoord
+
+Decouple the game tick rate from the network update rate. This is crucial for performance. You can run the game simulation at a fixed rate (e.g., 60 ticks per second) and send network updates at a lower rate (e.g., 20 updates per second).
