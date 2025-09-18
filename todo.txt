@@ -1,3 +1,11 @@
+use a* for troops
+
+pathfinding should run on an asynchronous task in the game communicating with it
+trugh channels (all in game)
+pathfinding should run on an asynchronous task in the game communicating with it
+trugh channels (all in game)
+
+
 review error managerment in client.
 
 make the logs finite
