@@ -11,10 +11,7 @@ pub enum GameObj {
 impl GameObj {
     pub fn export(&self) -> GameObjE {
         match self {
-            Self::Castle(castle) => {
-                println!("exporting a castle");
-                GameObjE::Castle(castle.export())
-            }
+            Self::Castle(castle) => GameObjE::Castle(castle.export()),
             Self::Structure(structure) => GameObjE::Structure(structure.export()),
             Self::UnitGroup(unit_group) => GameObjE::UnitGroup(unit_group.export()),
         }

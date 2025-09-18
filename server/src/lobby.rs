@@ -63,6 +63,7 @@ impl Lobby {
                     self.listen_clients().await;
                 }
                 _ = game_tick.tick() => {
+                    self.game.step();
                 }
             }
         }
@@ -135,20 +136,17 @@ impl Lobby {
                     C2S4L::AttackCastle(target_id) => {
                         if let Some(player) = self.players.get(client_id) {
                             if let Some(castle_id) = player.castle_id {
-                                self.game.attack(castle_id, target_id);
+                                self.game.attack_castle(castle_id, target_id);
                             }
                         }
                     }
                     C2S4L::GiveMap => {
-                        println!("Player requested to give map, ID: {}", client_id);
                         let _ = client_tx.send(L2S4C::Map(self.game.export_map()));
                     }
                     C2S4L::GiveObjs => {
-                        println!("Player requested to give objs, ID: {}", client_id);
                         let _ = client_tx.send(L2S4C::GameObjs(self.game.export_objs()));
                     }
                     C2S4L::GivePlayer => {
-                        println!("Player requested to give player data, ID: {}", client_id);
                         if let Some(player) = self.players.get(client_id) {
                             if player.has_castle() {
                                 let _ = client_tx

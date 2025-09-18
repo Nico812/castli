@@ -98,6 +98,4 @@ pub const CASTLE_ART_WORLD: [[TermCell; 2]; 1] = [[
     TermCell::new('C', FG_YELLOW, BG_BLACK),
 ]];
 
-pub const UNIT_GROUP_ART: [[TermCell; 1]; 1] = [
-    TermCell::new('U', FG_RED, BG_BLACK),
-]
+pub const UNIT_GROUP_ART: [[TermCell; 1]; 1] = [[TermCell::new('U', FG_RED, BG_BLACK)]];

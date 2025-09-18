@@ -4,7 +4,7 @@ use std::usize;
 pub fn bds<const M: usize, const N: usize>(
     start: (usize, usize),
     end: (usize, usize),
-    obstacles: &[[bool; N]; M],
+    obstacles: &Vec<Vec<bool>>,
 ) -> Option<VecDeque<(usize, usize)>> {
     let mut forw_visited: Vec<Vec<bool>> = vec![vec![false; N]; M];
     let mut back_visited: Vec<Vec<bool>> = vec![vec![false; N]; M];
@@ -26,7 +26,7 @@ pub fn bds<const M: usize, const N: usize>(
         queue: &mut VecDeque<(usize, usize)>,
         visited: &mut Vec<Vec<bool>>,
         parents: &mut Vec<Vec<Option<(usize, usize)>>>,
-        obstacles: &[[bool; N]; M],
+        obstacles: &Vec<Vec<bool>>,
     ) -> bool {
         let current = match queue.pop_back() {
             Some(value) => value,

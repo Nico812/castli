@@ -53,10 +53,12 @@ impl ClientConnection {
                     }
                 };
                 let _ = stream::send_msg_to_server(&mut self.writer, &msg).await;
-                if let Ok(msg) = stream::get_msg_from_server(&mut self.reader).await {
-                    let _ = s2c_tx.send(msg);
-                }
             },
+            // Check for messages from the server and redirects them to the TUI
+            // TODO: the tokio select here can cause data loss, should i address this?
+            Ok(msg) = stream::get_msg_from_server(&mut self.reader) =>  {
+                let _ = s2c_tx.send(msg);
+            }
             // Otherwise, run the periodic update requests
             _ = request_tick.tick() => {
                 // Request game objects

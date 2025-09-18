@@ -120,6 +120,7 @@ impl Tui {
             &self.to_server_tx,
             Arc::clone(&self.map_zoom),
             Arc::clone(&self.map_look),
+            Arc::clone(&self.game_objs),
             Arc::clone(&self.logs),
         )
         .await;
@@ -209,6 +210,7 @@ impl Tui {
         tx: &mpsc::UnboundedSender<T2C>,
         map_zoom_arc: Arc<Mutex<Option<(usize, usize)>>>,
         map_look_arc: Arc<Mutex<Option<(usize, usize)>>>,
+        game_objs_arc: Arc<Mutex<HashMap<GameID, GameObjE>>>,
         logs_arc: Arc<Mutex<VecDeque<String>>>,
     ) {
         loop {
@@ -238,9 +240,11 @@ impl Tui {
                     }
                     // attack
                     'a' => {
-                        if let Some(selected_id) =
-                            Self::get_selected_obj_id(&game_objs_arc.lock().await, *map_zoom_arc.lock().await, *map_look_arc.lock().await)
-                        {
+                        if let Some(selected_id) = Self::get_selected_obj_id(
+                            &*game_objs_arc.lock().await,
+                            *map_zoom_arc.lock().await,
+                            *map_look_arc.lock().await,
+                        ) {
                             let _ = tx.send(T2C::AttackCastle(selected_id));
                             logs_arc
                                 .lock()

@@ -216,10 +216,7 @@ impl CentralModule {
                 continue;
             };
             let pos = obj.get_pos();
-            let pos_in_quadrant = (
-                (pos.0 / 2) % Self::CONTENT_ROWS,
-                pos.1 % Self::CONTENT_COLS,
-            );
+            let pos_in_quadrant = ((pos.0 / 2) % Self::CONTENT_ROWS, pos.1 % Self::CONTENT_COLS);
             // TODO: simplify adding a function in common that gets you the right art for any obj
             match obj {
                 common::GameObjE::Castle(_) => {
@@ -239,15 +236,12 @@ impl CentralModule {
     ) {
         for obj in world_objs.values() {
             let pos = obj.get_pos();
-            let pos_in_world = (
-                        pos.0 / (Self::ZOOM_FACTOR * 2),
-                        pos.1 / Self::ZOOM_FACTOR,
-                    );
+            let pos_in_world = (pos.0 / (Self::ZOOM_FACTOR * 2), pos.1 / Self::ZOOM_FACTOR);
             match obj {
-                common::GameObjE::Castle(castle) => {
+                common::GameObjE::Castle(_) => {
                     Self::add_art_to_cells(cells, &CASTLE_ART_WORLD, pos_in_world);
                 }
-                common::GameObjE::UnitGroup(unit_group) => {
+                common::GameObjE::UnitGroup(_) => {
                     Self::add_art_to_cells(cells, &UNIT_GROUP_ART, pos_in_world);
                 }
                 _ => {}

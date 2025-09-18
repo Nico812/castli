@@ -4,10 +4,7 @@
 //! It is responsible for listening for incoming TCP connections, managing game lobbies,
 //! and routing clients to the appropriate lobby.
 
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::sync::{Arc, Mutex};
 use tokio::{
     io::BufReader,
     net::{
@@ -43,18 +40,14 @@ pub enum ServerErr {
 }
 pub type ClientID = usize;
 
-// --- Lobby Manager ---
-
 /// Manages the entire lifecycle of game lobbies.
 struct LobbyManager {
-    threads: Arc<Mutex<[Option<thread::JoinHandle<()>>; MAX_LOBBIES]>>,
     lobby_txs: Arc<Mutex<[Option<mpsc::UnboundedSender<S2L>>; MAX_LOBBIES]>>,
 }
 
 impl LobbyManager {
     fn new() -> Self {
         Self {
-            threads: Arc::new(Mutex::new([const { None }; MAX_LOBBIES])),
             lobby_txs: Arc::new(Mutex::new([const { None }; MAX_LOBBIES])),
         }
     }
@@ -68,9 +61,11 @@ impl LobbyManager {
         // First, check for an existing lobby with space
         for i in 0..MAX_LOBBIES {
             let lobby_tx = self.lobby_txs.lock().unwrap()[i].clone();
+
             if let Some(tx) = lobby_tx {
                 let (resp_tx, mut resp_rx) = mpsc::channel(1);
                 let _ = tx.send(S2L::IsFull(resp_tx));
+
                 if let Some(is_full) = resp_rx.recv().await {
                     if !is_full {
                         let (c2s_tx, c2s_rx) = mpsc::unbounded_channel();
@@ -83,26 +78,19 @@ impl LobbyManager {
         }
 
         // If no lobby has space, try to create a new one
-        let mut threads_guard = self.threads.lock().unwrap();
-        let mut lobby_txs_guard = self.lobby_txs.lock().unwrap();
+        let mut lobby_txs = self.lobby_txs.lock().unwrap();
         for i in 0..MAX_LOBBIES {
-            if threads_guard[i].is_none() {
-                let (lobby_tx, lobby_rx) = mpsc::unbounded_channel();
+            if lobby_txs[i].is_none() {
+                let (new_lobby_tx, new_lobby_rx) = mpsc::unbounded_channel();
+
                 let mut lobby = Lobby::new();
+                tokio::spawn(async move { lobby.run(new_lobby_rx).await });
 
-                threads_guard[i] = Some(thread::spawn(move || {
-                    let rt = tokio::runtime::Builder::new_current_thread()
-                        .enable_all()
-                        .build()
-                        .unwrap();
-                    rt.block_on(async move { lobby.run(lobby_rx).await });
-                }));
-
-                lobby_txs_guard[i] = Some(lobby_tx.clone());
+                lobby_txs[i] = Some(new_lobby_tx.clone());
 
                 let (c2s_tx, c2s_rx) = mpsc::unbounded_channel();
                 let (s2c_tx, s2c_rx) = mpsc::unbounded_channel();
-                let _ = lobby_tx.send(S2L::NewClient(client_id, player_name, s2c_tx, c2s_rx));
+                let _ = new_lobby_tx.send(S2L::NewClient(client_id, player_name, s2c_tx, c2s_rx));
                 return Ok((c2s_tx, s2c_rx));
             }
         }
@@ -110,8 +98,6 @@ impl LobbyManager {
         Err(ServerErr::ServerFull)
     }
 }
-
-// --- Client Handler ---
 
 /// Manages the connection and communication for a single authenticated client.
 struct ClientHandler {
@@ -130,7 +116,6 @@ impl ClientHandler {
                 result = stream::get_msg_from_client(&mut self.reader) => {
                     match result {
                         Ok(C2S::C2S4L(msg)) => {
-                            println!("[server] Sending msg {:?} from client {:?} to lobby", msg, self.client_id);
                             if self.lobby_tx.send(msg).is_err() {
                                 println!("[server] Failed...");
                                 break;
@@ -145,9 +130,7 @@ impl ClientHandler {
                 },
                 Some(msg) = self.lobby_rx.recv() => {
                     let s2c_msg = S2C::L2S4C(msg);
-                    println!("[server] Received a msg {:?} from lobby for client {:?}", s2c_msg, self.client_id);
                     if stream::send_msg_to_client(&mut self.writer, &s2c_msg).await.is_err() {
-                        println!("[server] Failed to send msg {:?} to client {:?}", s2c_msg, self.client_id);
                         break;
                     }
                 }

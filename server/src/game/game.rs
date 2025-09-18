@@ -5,7 +5,7 @@
 //! logic for procedural map generation.
 use std::collections::HashMap;
 
-use crate::game::{castle::Castle, game_obj::GameObj, map::Map};
+use crate::game::{castle::Castle, game_obj::GameObj, map::Map, unit_group::UnitGroup};
 use common::{GameID, GameObjE, PlayerE, TileE};
 
 pub struct Game {
@@ -59,7 +59,6 @@ impl Game {
     }
 
     pub fn export_player(&self, id: GameID) -> PlayerE {
-        println!("Game is trying to export player for client_id {:?}", id);
         match self.game_objs.get(&id) {
             Some(GameObj::Castle(castle)) => PlayerE {
                 id: id,
@@ -88,9 +87,8 @@ impl Game {
             return;
         };
 
-        let path = self
-            .map
-            .find_path(attacker_pos, target_pos);
+        let path = self.map.find_path(attacker_pos, target_pos);
+        println!("{:?}", path);
 
         if let Some(path) = path {
             let id = self.id_counter;
