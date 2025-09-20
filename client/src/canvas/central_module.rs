@@ -257,12 +257,15 @@ impl CentralModule {
     ) {
         for (art_row, art_row_iter) in art.iter().enumerate() {
             for (art_col, art_cell) in art_row_iter.iter().enumerate() {
-                cells[pos.0 + art_row][pos.1 + art_col] = *art_cell;
+                let cells_row = pos.0 + art_row;
+                let cells_col = pos.1 + art_col;
+                if cells_row < cells.len() && cells_col < cells[0].len() {
+                    cells[pos.0 + art_row][pos.1 + art_col] = *art_cell;
+                }
             }
         }
     }
 
-    // TODO: TAKE ONLY SLICES DONT CLONE
     fn get_map_slice(&self, quadrant: (usize, usize)) -> Vec<Vec<common::TileE>> {
         self.map_tiles
             [quadrant.0 * Self::CONTENT_ROWS * 2..(quadrant.0 + 1) * Self::CONTENT_ROWS * 2]
