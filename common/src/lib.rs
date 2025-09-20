@@ -13,6 +13,12 @@ use std::collections::HashMap;
 /// Global IDs for game objects
 pub type GameID = usize;
 
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct GameCoord {
+    pub x: usize,
+    pub y: usize,
+}
+
 /// Represents messages sent from the Server to the Client (S2C).
 #[derive(Serialize, Deserialize, Debug)]
 pub enum S2C {
@@ -66,7 +72,7 @@ pub enum TileE {
 pub struct PlayerE {
     pub id: GameID,
     pub name: String,
-    pub pos: (usize, usize),
+    pub pos: GameCoord,
 }
 
 /// Exported information on an observable object
@@ -78,7 +84,7 @@ pub enum GameObjE {
 }
 
 impl GameObjE {
-    pub fn get_pos(&self) -> (usize, usize) {
+    pub fn get_pos(&self) -> GameCoord {
         match self {
             GameObjE::Castle(c) => c.pos,
             GameObjE::Structure(s) => s.pos,
@@ -91,7 +97,7 @@ impl GameObjE {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CastleE {
     pub name: String,
-    pub pos: (usize, usize),
+    pub pos: GameCoord,
 }
 
 /// Exported information on NPSs (non player structures)
@@ -99,7 +105,7 @@ pub struct CastleE {
 pub struct StructureE {
     pub name: String,
     pub r#type: StructureTypeE,
-    pub pos: (usize, usize),
+    pub pos: GameCoord,
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
@@ -110,5 +116,5 @@ pub enum StructureTypeE {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UnitGroupE {
     pub owner: String,
-    pub pos: (usize, usize),
+    pub pos: GameCoord,
 }

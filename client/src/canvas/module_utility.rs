@@ -1,5 +1,21 @@
+use common::GameObjE;
+
 use crate::ansi::*;
 use crate::assets::*;
+
+pub trait WithArt {
+    fn get_art(&self) -> &[&[TermCell]];
+}
+
+impl WithArt for GameObjE {
+    fn get_art(&self) -> &[&[TermCell]] {
+        match self {
+            Self::Castle(_) => CASTLE_ART,
+            Self::UnitGroup(_) => UNIT_GROUP_ART,
+            _ => ERR_ART,
+        }
+    }
+}
 
 pub fn add_frame(title: &str, renderable: &mut Vec<Vec<TermCell>>) {
     let renderable_rows = renderable.len();

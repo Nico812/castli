@@ -16,11 +16,14 @@ use tokio::{
     time,
 };
 
-use crate::{
-    canvas::canvas::Canvas,
-    r#const::{QUADRANT_COLS, QUADRANT_ROWS},
-};
+use crate::canvas::canvas::Canvas;
 use common::{GameID, GameObjE, L2S4C, PlayerE, S2C, TileE};
+
+#[derive(Clone, Copy)]
+pub struct TermCoord {
+    pub x: usize,
+    pub y: usize,
+}
 
 /// Messages sent from the TUI to the client's network task.
 pub enum T2C {

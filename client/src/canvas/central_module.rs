@@ -9,7 +9,10 @@ use std::collections::HashMap;
 use super::module_utility;
 use crate::ansi::*;
 use crate::assets::*;
-use crate::r#const::{QUADRANT_COLS, QUADRANT_ROWS};
+use crate::canvas::r#const::{CENTRAL_MODULE_COLS, CENTRAL_MODULE_ROWS};
+use crate::canvas::module_utility::WithArt;
+use crate::tui::TermCoord;
+
 use common::r#const::{self, MAP_COLS, MAP_ROWS};
 
 pub struct CentralModule {
@@ -21,8 +24,8 @@ pub struct CentralModule {
 }
 
 impl CentralModule {
-    pub const CONTENT_ROWS: usize = QUADRANT_ROWS;
-    pub const CONTENT_COLS: usize = QUADRANT_COLS;
+    pub const CONTENT_ROWS: usize = CENTRAL_MODULE_ROWS;
+    pub const CONTENT_COLS: usize = CENTRAL_MODULE_COLS;
     const ZOOM_FACTOR: usize = 8;
 
     // PUB
@@ -55,14 +58,14 @@ impl CentralModule {
     pub fn get_renderable_and_update(
         &mut self,
         game_objs: &HashMap<common::GameID, common::GameObjE>,
-        map_zoom: Option<(usize, usize)>,
+        map_zoom: Option<TermCoord>,
         render_count: u32,
     ) -> Vec<Vec<TermCell>> {
         let mut cells;
 
         match map_zoom {
-            Some(quadrant) => {
-                let cut_tiles = self.get_map_slice(quadrant);
+            Some(zoom_coord) => {
+                let cut_tiles = self.get_map_slice(zoom_coord);
                 let cut_wind = self.get_wind_slice(quadrant);
                 cells = Self::tiles_to_cells(&cut_tiles, &cut_wind);
                 Self::add_objs_to_cells(&mut cells, game_objs, quadrant);
@@ -236,62 +239,34 @@ impl CentralModule {
     ) {
         for obj in world_objs.values() {
             let pos = obj.get_pos();
-            let pos_in_world = (pos.0 / (Self::ZOOM_FACTOR * 2), pos.1 / Self::ZOOM_FACTOR);
-            match obj {
-                common::GameObjE::Castle(_) => {
-                    Self::add_art_to_cells(cells, &CASTLE_ART_WORLD, pos_in_world);
-                }
-                common::GameObjE::UnitGroup(_) => {
-                    Self::add_art_to_cells(cells, &UNIT_GROUP_ART, pos_in_world);
-                }
-                _ => {}
-            }
+            let term_pos: TermCoord = (pos.y / (Self::ZOOM_FACTOR * 2), pos.x / Self::ZOOM_FACTOR);
+            let art = obj.get_art();
+            Self::add_art_to_cells(cells, art, term_pos);
         }
     }
 
     // refactor to take also 1 single cell or one dimensional arrays
-    fn add_art_to_cells<const M: usize, const N: usize>(
-        cells: &mut Vec<Vec<TermCell>>,
-        art: &[[TermCell; N]; M],
-        pos: (usize, usize),
-    ) {
+    fn add_art_to_cells(cells: &mut Vec<Vec<TermCell>>, art: &[&[TermCell]], pos: TermCoord) {
         for (art_row, art_row_iter) in art.iter().enumerate() {
             for (art_col, art_cell) in art_row_iter.iter().enumerate() {
-                cells[pos.0 + art_row][pos.1 + art_col] = *art_cell;
+                cells[pos.y + art_row][pos.x + art_col] = *art_cell;
             }
         }
     }
 
-    // TODO: TAKE ONLY SLICES DONT CLONE
-    fn get_map_slice(&self, quadrant: (usize, usize)) -> Vec<Vec<common::TileE>> {
-        self.map_tiles
-            [quadrant.0 * Self::CONTENT_ROWS * 2..(quadrant.0 + 1) * Self::CONTENT_ROWS * 2]
+    fn get_map_slice(&self, zoom_coord: TermCoord) -> Vec<Vec<common::TileE>> {
+        self.map_tiles[zoom_coord.y * 2..(zoom_coord.y + Self::CONTENT_ROWS) * 2]
             .iter()
-            .map(|row| {
-                row[quadrant.1 * Self::CONTENT_COLS..(quadrant.1 + 1) * Self::CONTENT_COLS].to_vec()
-            })
+            .map(|row| row[zoom_coord.x..zoom_coord.x + Self::CONTENT_COLS].to_vec())
             .collect()
     }
 
-    fn get_wind_slice(&self, quadrant: (usize, usize)) -> Vec<Vec<bool>> {
-        self.wind_map[quadrant.0 * Self::CONTENT_ROWS..(quadrant.0 + 1) * Self::CONTENT_ROWS]
+    fn get_wind_slice(&self, zoom_coord: TermCoord) -> Vec<Vec<bool>> {
+        self.wind_map[zoom_coord.y..zoom_coord.y + Self::CONTENT_ROWS]
             .iter()
-            .map(|row| {
-                row[quadrant.1 * Self::CONTENT_COLS..(quadrant.1 + 1) * Self::CONTENT_COLS].to_vec()
-            })
+            .map(|row| row[zoom_coord.x..zoom_coord.x + Self::CONTENT_COLS].to_vec())
             .collect()
     }
 
-    fn is_in_quadrant_from_game_coord(pos: (usize, usize), quadrant: (usize, usize)) -> bool {
-        if pos.0 < quadrant.0 * Self::CONTENT_ROWS * 2
-            || pos.0 >= (quadrant.0 + 1) * Self::CONTENT_ROWS * 2
-        {
-            return false;
-        }
-        if pos.1 < quadrant.1 * Self::CONTENT_COLS || pos.1 >= (quadrant.1 + 1) * Self::CONTENT_COLS
-        {
-            return false;
-        }
-        true
-    }
+    fn is_in_view_from_game_coord(pos: GameCoord, zoom_coord: TermCoord) -> bool {}
 }
