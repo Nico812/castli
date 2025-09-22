@@ -1,15 +1,15 @@
 use std::collections::VecDeque;
 
-use common::UnitGroupE;
+use common::{GameCoord, UnitGroupE};
 
 pub struct UnitGroup {
     owner: String,
-    pos: (usize, usize),
-    path: VecDeque<(usize, usize)>,
+    pos: GameCoord,
+    path: VecDeque<GameCoord>,
 }
 
 impl UnitGroup {
-    pub fn new(owner: String, pos: (usize, usize), path: VecDeque<(usize, usize)>) -> Self {
+    pub fn new(owner: String, pos: GameCoord, path: VecDeque<GameCoord>) -> Self {
         Self { owner, pos, path }
     }
 

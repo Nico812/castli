@@ -2,6 +2,7 @@
 //!
 //! Defines the `CentralModule`, which handles the central area of the Canvas.
 
+use common::GameCoord;
 use rand::SeedableRng;
 use rand::{self, Rng, rngs};
 use std::collections::HashMap;
@@ -9,7 +10,7 @@ use std::collections::HashMap;
 use super::module_utility;
 use crate::ansi::*;
 use crate::assets::*;
-use crate::canvas::r#const::{CENTRAL_MODULE_COLS, CENTRAL_MODULE_ROWS};
+use crate::canvas::r#const::{CENTRAL_MODULE_CONTENT_COLS, CENTRAL_MODULE_CONTENT_ROWS};
 use crate::canvas::module_utility::WithArt;
 use crate::tui::TermCoord;
 
@@ -24,8 +25,8 @@ pub struct CentralModule {
 }
 
 impl CentralModule {
-    pub const CONTENT_ROWS: usize = CENTRAL_MODULE_ROWS;
-    pub const CONTENT_COLS: usize = CENTRAL_MODULE_COLS;
+    pub const CONTENT_ROWS: usize = CENTRAL_MODULE_CONTENT_ROWS;
+    pub const CONTENT_COLS: usize = CENTRAL_MODULE_CONTENT_COLS;
     const ZOOM_FACTOR: usize = 8;
 
     // PUB
@@ -66,17 +67,21 @@ impl CentralModule {
         match map_zoom {
             Some(zoom_coord) => {
                 let cut_tiles = self.get_map_slice(zoom_coord);
-                let cut_wind = self.get_wind_slice(quadrant);
+                let cut_wind = self.get_wind_slice(zoom_coord);
                 cells = Self::tiles_to_cells(&cut_tiles, &cut_wind);
-                Self::add_objs_to_cells(&mut cells, game_objs, quadrant);
-                self.update_wind(render_count, quadrant);
-                module_utility::add_frame(&format!("({}, {})", quadrant.0, quadrant.1), &mut cells);
+                Self::add_objs_to_cells(&mut cells, game_objs, zoom_coord);
+                self.update_wind(render_count, zoom_coord);
+                module_utility::add_frame(
+                    &format!("zoom (y:{}, x:{})", zoom_coord.y, zoom_coord.x),
+                    &mut cells,
+                );
             }
             None => {
-                let cut_wind = self.get_wind_slice((7, 7));
+                let wind_pos = TermCoord { x: 0, y: 0 };
+                let cut_wind = self.get_wind_slice(wind_pos);
                 cells = Self::tiles_to_cells(&self.world_map_tiles, &cut_wind);
                 Self::add_world_objs_to_cells(&mut cells, game_objs);
-                self.update_wind(render_count, (7, 7));
+                self.update_wind(render_count, wind_pos);
                 module_utility::add_frame("world map", &mut cells);
             }
         }
@@ -84,12 +89,12 @@ impl CentralModule {
     }
 
     // PRIVATE
-    fn update_wind(&mut self, render_count: u32, quadrant: (usize, usize)) {
+    fn update_wind(&mut self, render_count: u32, zoom_coord: TermCoord) {
         if render_count % 10 != 0 {
             return;
         }
-        let row_start = quadrant.0 * Self::CONTENT_ROWS;
-        let col_start = quadrant.1 * Self::CONTENT_COLS;
+        let row_start = zoom_coord.y;
+        let col_start = zoom_coord.x;
 
         for row in row_start..row_start + Self::CONTENT_ROWS {
             for col in col_start..col_start + Self::CONTENT_COLS {
@@ -212,14 +217,14 @@ impl CentralModule {
     fn add_objs_to_cells(
         cells: &mut Vec<Vec<TermCell>>,
         objs: &HashMap<common::GameID, common::GameObjE>,
-        quadrant: (usize, usize),
+        zoom_coord: TermCoord,
     ) {
         for obj in objs.values() {
-            if !Self::is_in_quadrant_from_game_coord(obj.get_pos(), quadrant) {
+            if !Self::is_in_view_from_game_coord(obj.get_pos(), zoom_coord) {
                 continue;
             };
             let pos = obj.get_pos();
-            let pos_in_quadrant = ((pos.0 / 2) % Self::CONTENT_ROWS, pos.1 % Self::CONTENT_COLS);
+            let pos_in_quadrant = TermCoord::from_game_coord(pos, zoom_coord);
             // TODO: simplify adding a function in common that gets you the right art for any obj
             match obj {
                 common::GameObjE::Castle(_) => {
@@ -239,7 +244,10 @@ impl CentralModule {
     ) {
         for obj in world_objs.values() {
             let pos = obj.get_pos();
-            let term_pos: TermCoord = (pos.y / (Self::ZOOM_FACTOR * 2), pos.x / Self::ZOOM_FACTOR);
+            let term_pos = TermCoord {
+                y: pos.y / (Self::ZOOM_FACTOR * 2),
+                x: pos.x / Self::ZOOM_FACTOR,
+            };
             let art = obj.get_art();
             Self::add_art_to_cells(cells, art, term_pos);
         }
@@ -268,5 +276,10 @@ impl CentralModule {
             .collect()
     }
 
-    fn is_in_view_from_game_coord(pos: GameCoord, zoom_coord: TermCoord) -> bool {}
+    // TODO: make it see also objects that are at the borders outside
+    fn is_in_view_from_game_coord(pos: GameCoord, zoom_coord: TermCoord) -> bool {
+        let y = pos.y / 2 > zoom_coord.y && pos.y / 2 < zoom_coord.y + Self::CONTENT_ROWS;
+        let x = pos.x > zoom_coord.x && pos.x < zoom_coord.x + Self::CONTENT_COLS;
+        y && x
+    }
 }

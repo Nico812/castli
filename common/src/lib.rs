@@ -13,7 +13,7 @@ use std::collections::HashMap;
 /// Global IDs for game objects
 pub type GameID = usize;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub struct GameCoord {
     pub x: usize,
     pub y: usize,
@@ -49,7 +49,7 @@ pub enum C2S {
 /// Represents messages sent from a Client, to the Server, for the Lobby (C2S4L).
 #[derive(Serialize, Deserialize, Debug)]
 pub enum C2S4L {
-    NewCastle((usize, usize)),
+    NewCastle(GameCoord),
     AttackCastle(GameID),
     GiveObjs,
     GiveMap,

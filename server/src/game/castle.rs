@@ -1,12 +1,12 @@
-use common::CastleE;
+use common::{CastleE, GameCoord};
 
 pub struct Castle {
     pub name: String,
-    pub pos: (usize, usize),
+    pub pos: GameCoord,
 }
 
 impl Castle {
-    pub fn new(name: String, pos: (usize, usize)) -> Self {
+    pub fn new(name: String, pos: GameCoord) -> Self {
         Self { name, pos }
     }
 

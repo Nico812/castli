@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 
 use crate::game::{castle::Castle, game_obj::GameObj, map::Map, unit_group::UnitGroup};
-use common::{GameID, GameObjE, PlayerE, TileE};
+use common::{GameCoord, GameID, GameObjE, PlayerE, TileE};
 
 pub struct Game {
     map: Map,
@@ -35,7 +35,7 @@ impl Game {
         }
     }
 
-    pub fn add_player_castle(&mut self, name: String, pos: (usize, usize)) -> GameID {
+    pub fn add_player_castle(&mut self, name: String, pos: GameCoord) -> GameID {
         let id = self.id_counter;
         self.id_counter += 1;
 
@@ -68,7 +68,7 @@ impl Game {
             _ => PlayerE {
                 id: 0,
                 name: "undefined".to_string(),
-                pos: (0, 0),
+                pos: GameCoord { x: 0, y: 0 },
             },
         }
     }

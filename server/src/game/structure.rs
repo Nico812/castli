@@ -1,9 +1,9 @@
-use common::{StructureE, StructureTypeE};
+use common::{GameCoord, StructureE, StructureTypeE};
 
 pub struct Structure {
     name: String,
     r#type: StructureTypeE,
-    pos: (usize, usize),
+    pos: GameCoord,
 }
 
 impl Structure {

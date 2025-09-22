@@ -53,7 +53,7 @@ impl RightModule {
                     );
                     current_row += 1;
 
-                    let pos_str = format!("Position: ({}, {})", castle.pos.0, castle.pos.1);
+                    let pos_str = format!("Position: ({}, {})", castle.pos.y, castle.pos.x);
                     module_utility::draw_text(
                         &mut content,
                         &pos_str,
@@ -88,7 +88,7 @@ impl RightModule {
                     );
                     current_row += 1;
 
-                    let pos_str = format!("Position: ({}, {})", structure.pos.0, structure.pos.1);
+                    let pos_str = format!("Position: ({}, {})", structure.pos.y, structure.pos.x);
                     module_utility::draw_text(
                         &mut content,
                         &pos_str,

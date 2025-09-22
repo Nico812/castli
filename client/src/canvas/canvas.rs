@@ -14,6 +14,7 @@ use crate::canvas::{
     bottom_module::BottomModule, central_module::CentralModule, left_module::LeftModule,
     right_module::RightModule,
 };
+use crate::tui::TermCoord;
 use common::{self, GameID};
 
 /// Represents the main drawing area for the TUI.
@@ -81,7 +82,7 @@ impl Canvas {
         &mut self,
         game_objs: &HashMap<common::GameID, common::GameObjE>,
         player_data: &common::PlayerE,
-        map_zoom: Option<(usize, usize)>,
+        map_zoom: Option<TermCoord>,
         frame_dt: u64,
         logs: &mut VecDeque<String>,
         sel_obj_id: Option<GameID>,
@@ -160,13 +161,13 @@ impl Canvas {
         self.render_count += 1;
     }
 
-    pub fn update_and_print_cursor(&self, map_look: Option<(usize, usize)>) {
-        if let Some((row, col)) = map_look {
+    pub fn update_and_print_cursor(&self, map_look: Option<TermCoord>) {
+        if let Some(term_coord) = map_look {
             // Terminal coord are 1-indexed + central mod frame = 2
             print!(
                 "\r\x1b[{};{}H",
-                CENTRAL_MOD_POS.0 + row + self.canvas_pos.0 + 2,
-                CENTRAL_MOD_POS.1 + col + self.canvas_pos.1 + 2
+                CENTRAL_MOD_POS.0 + term_coord.y + self.canvas_pos.0 + 2,
+                CENTRAL_MOD_POS.1 + term_coord.x + self.canvas_pos.1 + 2
             );
         } else {
             print!("\r\x1b[0;0H");

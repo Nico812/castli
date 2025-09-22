@@ -1,31 +1,33 @@
 use std::collections::VecDeque;
 use std::usize;
 
+use common::GameCoord;
+
 pub fn bds<const M: usize, const N: usize>(
-    start: (usize, usize),
-    end: (usize, usize),
+    start: GameCoord,
+    end: GameCoord,
     obstacles: &Vec<Vec<bool>>,
-) -> Option<VecDeque<(usize, usize)>> {
+) -> Option<VecDeque<GameCoord>> {
     let mut forw_visited: Vec<Vec<bool>> = vec![vec![false; N]; M];
     let mut back_visited: Vec<Vec<bool>> = vec![vec![false; N]; M];
 
-    let mut forw_parents: Vec<Vec<Option<(usize, usize)>>> = vec![vec![None; N]; M];
-    let mut back_parents: Vec<Vec<Option<(usize, usize)>>> = vec![vec![None; N]; M];
+    let mut forw_parents: Vec<Vec<Option<GameCoord>>> = vec![vec![None; N]; M];
+    let mut back_parents: Vec<Vec<Option<GameCoord>>> = vec![vec![None; N]; M];
 
-    let mut forw_queue: VecDeque<(usize, usize)> = VecDeque::new();
-    let mut back_queue: VecDeque<(usize, usize)> = VecDeque::new();
+    let mut forw_queue: VecDeque<GameCoord> = VecDeque::new();
+    let mut back_queue: VecDeque<GameCoord> = VecDeque::new();
 
     forw_queue.push_back(start);
-    forw_visited[start.0][start.1] = true;
+    forw_visited[start.y][start.x] = true;
 
     back_queue.push_back(end);
-    back_visited[end.0][end.1] = true;
+    back_visited[end.y][end.x] = true;
 
     // Returns false if there's ODOO magic.
     fn process_neightbours<const M: usize, const N: usize>(
-        queue: &mut VecDeque<(usize, usize)>,
+        queue: &mut VecDeque<GameCoord>,
         visited: &mut Vec<Vec<bool>>,
-        parents: &mut Vec<Vec<Option<(usize, usize)>>>,
+        parents: &mut Vec<Vec<Option<GameCoord>>>,
         obstacles: &Vec<Vec<bool>>,
     ) -> bool {
         let current = match queue.pop_back() {
@@ -34,14 +36,14 @@ pub fn bds<const M: usize, const N: usize>(
         };
 
         // Adding to the queue the neigthbours
-        for row in current.0.saturating_sub(1)..=usize::min(current.0 + 1, M - 1) {
-            for col in current.1.saturating_sub(1)..=usize::min(current.1 + 1, N - 1) {
+        for row in current.y.saturating_sub(1)..=usize::min(current.y + 1, M - 1) {
+            for col in current.x.saturating_sub(1)..=usize::min(current.x + 1, N - 1) {
                 if visited[row][col] || obstacles[row][col] {
                     continue;
                 }
                 visited[row][col] = true;
                 parents[row][col] = Some(current);
-                queue.push_front((row, col));
+                queue.push_front(GameCoord { x: col, y: row });
             }
         }
         true
@@ -50,11 +52,11 @@ pub fn bds<const M: usize, const N: usize>(
     fn is_intersecting<const M: usize, const N: usize>(
         visited1: &Vec<Vec<bool>>,
         visited2: &Vec<Vec<bool>>,
-    ) -> Option<(usize, usize)> {
+    ) -> Option<GameCoord> {
         for row in 0..M {
             for col in 0..N {
                 if visited1[row][col] && visited2[row][col] {
-                    return Some((row, col));
+                    return Some(GameCoord { x: col, y: row });
                 }
             }
         }
@@ -71,16 +73,16 @@ pub fn bds<const M: usize, const N: usize>(
                 if current_node == start {
                     break;
                 }
-                current_opt = forw_parents[current_node.0][current_node.1];
+                current_opt = forw_parents[current_node.y][current_node.x];
             }
 
-            current_opt = back_parents[intersection.0][intersection.1];
+            current_opt = back_parents[intersection.y][intersection.x];
             while let Some(current_node) = current_opt {
                 path.push_back(current_node);
                 if current_node == end {
                     break;
                 }
-                current_opt = back_parents[current_node.0][current_node.1];
+                current_opt = back_parents[current_node.y][current_node.x];
             }
 
             return Some(path);
