@@ -32,11 +32,11 @@ pub struct TermCoord {
 }
 
 impl TermCoord {
-    pub fn from_game_coord(game_coord: GameCoord, map_zoom: TermCoord) -> Self {
-        Self {
-            x: game_coord.x - map_zoom.x,
-            y: game_coord.y / 2 - map_zoom.y,
-        }
+    pub fn from_game_coord(game_coord: GameCoord, map_zoom: TermCoord) -> (i32, i32) {
+        (
+            game_coord.y as i32 / 2 - map_zoom.y as i32,
+            game_coord.x as i32 - map_zoom.x as i32,
+        )
     }
 }
 

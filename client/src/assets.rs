@@ -99,3 +99,12 @@ pub const CASTLE_ART_WORLD: &[&[TermCell]] = &[&[
 ]];
 
 pub const UNIT_GROUP_ART: &[&[TermCell]] = &[&[TermCell::new('U', FG_RED, BG_BLACK)]];
+
+pub const ERR_ART_SIZE: (usize, usize) = (ERR_ART.len(), ERR_ART[0].len());
+
+pub const CASTLE_ART_SIZE: (usize, usize) = (CASTLE_ART.len(), CASTLE_ART[0].len());
+
+pub const CASTLE_ART_WORLD_SIZE: (usize, usize) =
+    (CASTLE_ART_WORLD.len(), CASTLE_ART_WORLD[0].len());
+
+pub const UNIT_GROUP_ART_SIZE: (usize, usize) = (UNIT_GROUP_ART.len(), UNIT_GROUP_ART[0].len());

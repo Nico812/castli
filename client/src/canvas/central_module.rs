@@ -220,21 +220,14 @@ impl CentralModule {
         zoom_coord: TermCoord,
     ) {
         for obj in objs.values() {
-            if !Self::is_in_view_from_game_coord(obj.get_pos(), zoom_coord) {
+            if !Self::is_in_view_from_game_coord(obj.get_pos(), zoom_coord, obj.get_art_size(false))
+            {
                 continue;
             };
             let pos = obj.get_pos();
             let pos_in_quadrant = TermCoord::from_game_coord(pos, zoom_coord);
-            // TODO: simplify adding a function in common that gets you the right art for any obj
-            match obj {
-                common::GameObjE::Castle(_) => {
-                    Self::add_art_to_cells(cells, &CASTLE_ART, pos_in_quadrant);
-                }
-                common::GameObjE::UnitGroup(_) => {
-                    Self::add_art_to_cells(cells, &UNIT_GROUP_ART, pos_in_quadrant);
-                }
-                _ => {}
-            }
+            let art = obj.get_art(false);
+            Self::add_art_to_cells(cells, art, pos_in_quadrant);
         }
     }
 
@@ -244,20 +237,29 @@ impl CentralModule {
     ) {
         for obj in world_objs.values() {
             let pos = obj.get_pos();
-            let term_pos = TermCoord {
-                y: pos.y / (Self::ZOOM_FACTOR * 2),
-                x: pos.x / Self::ZOOM_FACTOR,
-            };
-            let art = obj.get_art();
+            let term_pos: (i32, i32) = (
+                (pos.y / (Self::ZOOM_FACTOR * 2)) as i32,
+                (pos.x / Self::ZOOM_FACTOR) as i32,
+            );
+            let art = obj.get_art(true);
             Self::add_art_to_cells(cells, art, term_pos);
         }
     }
 
-    // refactor to take also 1 single cell or one dimensional arrays
-    fn add_art_to_cells(cells: &mut Vec<Vec<TermCell>>, art: &[&[TermCell]], pos: TermCoord) {
+    // This can take negative positions to account for the objects that have origin outsize of view but
+    // with art that enters the view
+    fn add_art_to_cells(cells: &mut Vec<Vec<TermCell>>, art: &[&[TermCell]], pos: (i32, i32)) {
         for (art_row, art_row_iter) in art.iter().enumerate() {
             for (art_col, art_cell) in art_row_iter.iter().enumerate() {
-                cells[pos.y + art_row][pos.x + art_col] = *art_cell;
+                let cell_pos_y = pos.0 + art_row as i32;
+                let cell_pos_x = pos.1 + art_col as i32;
+                if cell_pos_y >= 0
+                    && cell_pos_x >= 0
+                    && cell_pos_y < cells.len() as i32
+                    && cell_pos_x < cells[0].len() as i32
+                {
+                    cells[cell_pos_y as usize][cell_pos_x as usize] = *art_cell;
+                }
             }
         }
     }
@@ -276,10 +278,14 @@ impl CentralModule {
             .collect()
     }
 
-    // TODO: make it see also objects that are at the borders outside
-    fn is_in_view_from_game_coord(pos: GameCoord, zoom_coord: TermCoord) -> bool {
-        let y = pos.y / 2 > zoom_coord.y && pos.y / 2 < zoom_coord.y + Self::CONTENT_ROWS;
-        let x = pos.x > zoom_coord.x && pos.x < zoom_coord.x + Self::CONTENT_COLS;
+    fn is_in_view_from_game_coord(
+        pos: GameCoord,
+        zoom_coord: TermCoord,
+        obj_size: (usize, usize),
+    ) -> bool {
+        let y =
+            pos.y / 2 + obj_size.0 > zoom_coord.y && pos.y / 2 < zoom_coord.y + Self::CONTENT_ROWS;
+        let x = pos.x + obj_size.1 > zoom_coord.x && pos.x < zoom_coord.x + Self::CONTENT_COLS;
         y && x
     }
 }

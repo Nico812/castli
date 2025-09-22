@@ -4,15 +4,36 @@ use crate::ansi::*;
 use crate::assets::*;
 
 pub trait WithArt {
-    fn get_art(&self) -> &[&[TermCell]];
+    fn get_art(&self, world: bool) -> &[&[TermCell]];
+    fn get_art_size(&self, world: bool) -> (usize, usize);
 }
 
 impl WithArt for GameObjE {
-    fn get_art(&self) -> &[&[TermCell]] {
+    fn get_art(&self, world: bool) -> &[&[TermCell]] {
         match self {
-            Self::Castle(_) => CASTLE_ART,
+            Self::Castle(_) => {
+                if world {
+                    CASTLE_ART_WORLD
+                } else {
+                    CASTLE_ART
+                }
+            }
             Self::UnitGroup(_) => UNIT_GROUP_ART,
             _ => ERR_ART,
+        }
+    }
+
+    fn get_art_size(&self, world: bool) -> (usize, usize) {
+        match self {
+            Self::Castle(_) => {
+                if world {
+                    CASTLE_ART_WORLD_SIZE
+                } else {
+                    CASTLE_ART_SIZE
+                }
+            }
+            Self::UnitGroup(_) => UNIT_GROUP_ART_SIZE,
+            _ => ERR_ART_SIZE,
         }
     }
 }
