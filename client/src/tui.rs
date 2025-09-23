@@ -245,8 +245,37 @@ impl Tui {
         logs_arc: Arc<Mutex<VecDeque<String>>>,
     ) {
         loop {
-            let mut buf = [0u8; 3];
+            let mut buf = [0u8; 8];
             let n = io::stdin().read(&mut buf).await.unwrap();
+
+            // Helper function for arrow keys player input.
+            async fn apply_move(
+                map_zoom_arc: &Arc<Mutex<Option<TermCoord>>>,
+                map_look_arc: &Arc<Mutex<Option<TermCoord>>>,
+                dx: isize,
+                dy: isize,
+            ) {
+                if let Some(ref mut map_look) = *map_look_arc.lock().await {
+                    map_look.x = (map_look.x as isize + dx)
+                        .max(0)
+                        .min(CENTRAL_MODULE_CONTENT_COLS as isize - 1)
+                        as usize;
+                    map_look.y = (map_look.y as isize + dy)
+                        .max(0)
+                        .min(CENTRAL_MODULE_CONTENT_ROWS as isize - 1)
+                        as usize;
+                } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
+                    map_zoom.x = (map_zoom.x as isize + dx)
+                        .max(0)
+                        .min(MAP_COLS as isize - CENTRAL_MODULE_CONTENT_COLS as isize)
+                        as usize;
+                    map_zoom.y = (map_zoom.y as isize + dy)
+                        .max(0)
+                        .min((MAP_ROWS / 2) as isize - CENTRAL_MODULE_CONTENT_ROWS as isize)
+                        as usize;
+                }
+            }
+
             if n == 1 {
                 match buf[0] as char {
                     // quit
@@ -305,47 +334,26 @@ impl Tui {
                 }
             }
             // Special characters
-            if n == 3 {
-                match buf {
-                    // Up Arrow Key
-                    [0x1b, b'[', b'A'] => {
-                        if let Some(ref mut map_look) = *map_look_arc.lock().await {
-                            map_look.y = map_look.y.saturating_sub(1);
-                        } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
-                            map_zoom.y = map_zoom.y.saturating_sub(1);
-                        }
+            if n >= 3 {
+                match &buf[..n] {
+                    // Arrow keys
+                    [0x1b, b'[', b'A'] => apply_move(&map_zoom_arc, &map_look_arc, 0, -1).await,
+                    [0x1b, b'[', b'B'] => apply_move(&map_zoom_arc, &map_look_arc, 0, 1).await,
+                    [0x1b, b'[', b'C'] => apply_move(&map_zoom_arc, &map_look_arc, 2, 0).await,
+                    [0x1b, b'[', b'D'] => apply_move(&map_zoom_arc, &map_look_arc, -2, 0).await,
+
+                    // Ctrl + arrows (ESC [ 1 ; 5 X])
+                    [0x1b, b'[', b'1', b';', b'5', b'A'] => {
+                        apply_move(&map_zoom_arc, &map_look_arc, 0, -16).await
                     }
-                    // Down Arrow Key
-                    [0x1b, b'[', b'B'] => {
-                        if let Some(ref mut map_look) = *map_look_arc.lock().await {
-                            map_look.y =
-                                std::cmp::min(map_look.y + 1, CENTRAL_MODULE_CONTENT_ROWS - 1);
-                        } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
-                            map_zoom.y = std::cmp::min(
-                                map_zoom.y + 1,
-                                MAP_ROWS / 2 - CENTRAL_MODULE_CONTENT_ROWS - 1,
-                            );
-                        }
+                    [0x1b, b'[', b'1', b';', b'5', b'B'] => {
+                        apply_move(&map_zoom_arc, &map_look_arc, 0, 16).await
                     }
-                    // Left Arrow Key
-                    [0x1b, b'[', b'D'] => {
-                        if let Some(ref mut map_look) = *map_look_arc.lock().await {
-                            map_look.x = map_look.x.saturating_sub(2);
-                        } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
-                            map_zoom.x = map_zoom.x.saturating_sub(2);
-                        }
+                    [0x1b, b'[', b'1', b';', b'5', b'C'] => {
+                        apply_move(&map_zoom_arc, &map_look_arc, 32, 0).await
                     }
-                    // Right Arrow Key
-                    [0x1b, b'[', b'C'] => {
-                        if let Some(ref mut map_look) = *map_look_arc.lock().await {
-                            map_look.x =
-                                std::cmp::min(map_look.x + 2, CENTRAL_MODULE_CONTENT_COLS - 1);
-                        } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
-                            map_zoom.x = std::cmp::min(
-                                map_zoom.x + 2,
-                                MAP_COLS - CENTRAL_MODULE_CONTENT_COLS - 1,
-                            );
-                        }
+                    [0x1b, b'[', b'1', b';', b'5', b'D'] => {
+                        apply_move(&map_zoom_arc, &map_look_arc, -32, 0).await
                     }
                     _ => {}
                 }
