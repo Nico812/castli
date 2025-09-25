@@ -1,11 +1,11 @@
 use common::GameObjE;
 
-use crate::game::{castle::Castle, structure::Structure, unit_group::UnitGroup};
+use crate::game::{castle::Castle, structure::Structure, units::DeployedUnits};
 
 pub enum GameObj {
     Castle(Castle),
     Structure(Structure),
-    UnitGroup(UnitGroup),
+    DeployedUnits(DeployedUnits),
 }
 
 impl GameObj {
@@ -13,7 +13,7 @@ impl GameObj {
         match self {
             Self::Castle(castle) => GameObjE::Castle(castle.export()),
             Self::Structure(structure) => GameObjE::Structure(structure.export()),
-            Self::UnitGroup(unit_group) => GameObjE::UnitGroup(unit_group.export()),
+            Self::DeployedUnits(deployed_units) => GameObjE::DeployedUnits(deployed_units.export()),
         }
     }
 }

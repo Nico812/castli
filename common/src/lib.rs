@@ -80,7 +80,7 @@ pub struct PlayerE {
 pub enum GameObjE {
     Castle(CastleE),
     Structure(StructureE),
-    UnitGroup(UnitGroupE),
+    DeployedUnits(DeployedUnitsE),
 }
 
 impl GameObjE {
@@ -88,7 +88,7 @@ impl GameObjE {
         match self {
             GameObjE::Castle(c) => c.pos,
             GameObjE::Structure(s) => s.pos,
-            GameObjE::UnitGroup(u) => u.pos,
+            GameObjE::DeployedUnits(u) => u.pos,
         }
     }
 }
@@ -114,7 +114,7 @@ pub enum StructureTypeE {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct UnitGroupE {
+pub struct DeployedUnitsE {
     pub owner: String,
     pub pos: GameCoord,
 }

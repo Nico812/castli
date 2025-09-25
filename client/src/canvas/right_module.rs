@@ -96,7 +96,7 @@ impl RightModule {
                         Self::PADDING_LEFT,
                     );
                 }
-                GameObjE::UnitGroup(unit_group) => {
+                GameObjE::DeployedUnits(deployed_units) => {
                     module_utility::draw_text(
                         &mut content,
                         "--- Unit Group ---",
@@ -105,7 +105,7 @@ impl RightModule {
                     );
                     current_row += 2;
 
-                    let owner_str = format!("Owner: {}", unit_group.owner);
+                    let owner_str = format!("Owner: {}", deployed_units.owner);
                     module_utility::draw_text(
                         &mut content,
                         &owner_str,

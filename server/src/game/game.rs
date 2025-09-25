@@ -5,7 +5,12 @@
 //! logic for procedural map generation.
 use std::collections::HashMap;
 
-use crate::game::{castle::Castle, game_obj::GameObj, map::Map, unit_group::UnitGroup};
+use crate::game::{
+    castle::Castle,
+    game_obj::GameObj,
+    map::Map,
+    units::{DeployedUnits, UnitGroup},
+};
 use common::{GameCoord, GameID, GameObjE, PlayerE, TileE};
 
 pub struct Game {
@@ -29,8 +34,8 @@ impl Game {
 
     pub fn step(&mut self) {
         for obj in self.game_objs.values_mut() {
-            if let GameObj::UnitGroup(unit_group) = obj {
-                unit_group.move_along_path();
+            if let GameObj::DeployedUnits(deployed_units) = obj {
+                deployed_units.move_along_path();
             }
         }
     }
@@ -93,8 +98,11 @@ impl Game {
         if let Some(path) = path {
             let id = self.id_counter;
             self.id_counter += 1;
-            let unit_group = UnitGroup::new(attacker_name, attacker_pos, path);
-            self.game_objs.insert(id, GameObj::UnitGroup(unit_group));
+
+            let unit_group = UnitGroup::new();
+            let deployed_units = DeployedUnits::new(attacker_name, attacker_pos, path, unit_group);
+            self.game_objs
+                .insert(id, GameObj::DeployedUnits(deployed_units));
         }
     }
 }

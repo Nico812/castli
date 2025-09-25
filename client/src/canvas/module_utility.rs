@@ -18,7 +18,7 @@ impl WithArt for GameObjE {
                     CASTLE_ART
                 }
             }
-            Self::UnitGroup(_) => UNIT_GROUP_ART,
+            Self::DeployedUnits(_) => DEPLOYED_UNITS_ART,
             _ => ERR_ART,
         }
     }
@@ -32,7 +32,7 @@ impl WithArt for GameObjE {
                     CASTLE_ART_SIZE
                 }
             }
-            Self::UnitGroup(_) => UNIT_GROUP_ART_SIZE,
+            Self::DeployedUnits(_) => DEPLOYED_UNITS_ART_SIZE,
             _ => ERR_ART_SIZE,
         }
     }
