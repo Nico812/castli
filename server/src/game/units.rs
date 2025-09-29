@@ -1,10 +1,12 @@
 use std::{boxed::Box, collections::VecDeque};
 
-use common::{DeployedUnitsE, GameCoord};
+use common::{
+    GameCoord,
+    exports::{game_object::DeployedUnitsE, units::UnitGroupE},
+};
 
 #[derive(Clone, Copy)]
 pub enum Unit {
-    Peasant,
     Knight,
     Mage,
     Dragon,
@@ -12,7 +14,7 @@ pub enum Unit {
 
 macro_rules! all_units {
     () => {
-        [Unit::Peasant, Unit::Knight, Unit::Mage, Unit::Dragon]
+        [Unit::Knight, Unit::Mage, Unit::Dragon]
     };
 }
 
@@ -21,10 +23,9 @@ impl Unit {
 
     fn as_index(&self) -> usize {
         match self {
-            Self::Peasant => 0,
-            Self::Knight => 1,
-            Self::Mage => 2,
-            Self::Dragon => 3,
+            Self::Knight => 0,
+            Self::Mage => 1,
+            Self::Dragon => 2,
         }
     }
 
@@ -76,6 +77,12 @@ impl UnitGroup {
             .into_iter()
             .filter(move |u| self.contains(*u))
             .map(move |u| (u, self.quantities[u.as_index()]))
+    }
+
+    pub fn export(&self) -> UnitGroupE {
+        UnitGroupE {
+            quantities: *self.quantities.clone(),
+        }
     }
 }
 

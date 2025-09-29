@@ -2,7 +2,9 @@
 //!
 //! Defines the `CentralModule`, which handles the central area of the Canvas.
 
-use common::GameCoord;
+use common::exports::game_object::GameObjE;
+use common::exports::tile::TileE;
+use common::{GameCoord, GameID};
 use rand::SeedableRng;
 use rand::{self, Rng, rngs};
 use std::collections::HashMap;
@@ -18,8 +20,8 @@ use common::r#const::{self, MAP_COLS, MAP_ROWS};
 
 pub struct CentralModule {
     // Stores the tiles for the rest of the game, since they should be immutable
-    map_tiles: Vec<Vec<common::TileE>>,
-    world_map_tiles: Vec<Vec<common::TileE>>,
+    map_tiles: Vec<Vec<TileE>>,
+    world_map_tiles: Vec<Vec<TileE>>,
     wind_map: Vec<Vec<bool>>,
     rng: rngs::SmallRng,
 }
@@ -31,9 +33,9 @@ impl CentralModule {
 
     // PUB
     pub fn new() -> Self {
-        let map_tiles = vec![vec![common::TileE::Grass; r#const::MAP_COLS]; r#const::MAP_ROWS];
+        let map_tiles = vec![vec![TileE::Grass; r#const::MAP_COLS]; r#const::MAP_ROWS];
         let world_map_tiles = vec![
-            vec![common::TileE::Grass; r#const::MAP_COLS / Self::ZOOM_FACTOR];
+            vec![TileE::Grass; r#const::MAP_COLS / Self::ZOOM_FACTOR];
             r#const::MAP_ROWS / Self::ZOOM_FACTOR
         ];
 
@@ -52,13 +54,13 @@ impl CentralModule {
         }
     }
 
-    pub fn init(&mut self, tiles: Vec<Vec<common::TileE>>) {
+    pub fn init(&mut self, tiles: Vec<Vec<TileE>>) {
         self.set_tiles(tiles);
     }
 
     pub fn get_renderable_and_update(
         &mut self,
-        game_objs: &HashMap<common::GameID, common::GameObjE>,
+        game_objs: &HashMap<GameID, GameObjE>,
         map_zoom: Option<TermCoord>,
         render_count: u32,
     ) -> Vec<Vec<TermCell>> {
@@ -125,7 +127,7 @@ impl CentralModule {
         }
     }
 
-    fn set_tiles(&mut self, tiles: Vec<Vec<common::TileE>>) {
+    fn set_tiles(&mut self, tiles: Vec<Vec<TileE>>) {
         self.world_map_tiles = (0..MAP_ROWS / Self::ZOOM_FACTOR)
             .map(|world_map_row| {
                 (0..MAP_COLS / Self::ZOOM_FACTOR)
@@ -143,16 +145,16 @@ impl CentralModule {
                         for row in top_left_row..bottom_right_row {
                             for col in top_left_col..bottom_right_col {
                                 match tiles[row][col] {
-                                    common::TileE::Grass => grass_count += 1,
-                                    common::TileE::Water => water_count += 1,
+                                    TileE::Grass => grass_count += 1,
+                                    TileE::Water => water_count += 1,
                                     _ => {}
                                 }
                             }
                         }
                         if grass_count >= water_count {
-                            common::TileE::Grass
+                            TileE::Grass
                         } else {
-                            common::TileE::Water
+                            TileE::Water
                         }
                     })
                     .collect()
@@ -162,10 +164,7 @@ impl CentralModule {
         self.map_tiles = tiles;
     }
 
-    fn tiles_to_cells<'a>(
-        tiles: &Vec<Vec<common::TileE>>,
-        wind: &Vec<Vec<bool>>,
-    ) -> Vec<Vec<TermCell>> {
+    fn tiles_to_cells<'a>(tiles: &Vec<Vec<TileE>>, wind: &Vec<Vec<bool>>) -> Vec<Vec<TermCell>> {
         tiles
             .iter()
             .step_by(2)
@@ -179,14 +178,14 @@ impl CentralModule {
 
                         if tile_top == tile_bottom {
                             match tile_top {
-                                common::TileE::Grass => {
+                                TileE::Grass => {
                                     if wind[cells_row][cells_col] {
                                         GRASS_EL_2
                                     } else {
                                         GRASS_EL_1
                                     }
                                 }
-                                common::TileE::Water => {
+                                TileE::Water => {
                                     if wind[cells_row][cells_col] {
                                         WATER_EL_2
                                     } else {
@@ -197,13 +196,13 @@ impl CentralModule {
                             }
                         } else {
                             let fg = match tile_top {
-                                common::TileE::Grass => GRASS_FG,
-                                common::TileE::Water => WATER_FG,
+                                TileE::Grass => GRASS_FG,
+                                TileE::Water => WATER_FG,
                                 _ => ERR_FG,
                             };
                             let bg = match tile_bottom {
-                                common::TileE::Grass => GRASS_BG,
-                                common::TileE::Water => WATER_BG,
+                                TileE::Grass => GRASS_BG,
+                                TileE::Water => WATER_BG,
                                 _ => ERR_BG,
                             };
                             TermCell::new(BLOCK, fg, bg)
@@ -216,7 +215,7 @@ impl CentralModule {
 
     fn add_objs_to_cells(
         cells: &mut Vec<Vec<TermCell>>,
-        objs: &HashMap<common::GameID, common::GameObjE>,
+        objs: &HashMap<GameID, GameObjE>,
         zoom_coord: TermCoord,
     ) {
         for obj in objs.values() {
@@ -233,7 +232,7 @@ impl CentralModule {
 
     fn add_world_objs_to_cells(
         cells: &mut Vec<Vec<TermCell>>,
-        world_objs: &HashMap<common::GameID, common::GameObjE>,
+        world_objs: &HashMap<GameID, GameObjE>,
     ) {
         for obj in world_objs.values() {
             let pos = obj.get_pos();
@@ -264,7 +263,7 @@ impl CentralModule {
         }
     }
 
-    fn get_map_slice(&self, zoom_coord: TermCoord) -> Vec<Vec<common::TileE>> {
+    fn get_map_slice(&self, zoom_coord: TermCoord) -> Vec<Vec<TileE>> {
         self.map_tiles[zoom_coord.y * 2..(zoom_coord.y + Self::CONTENT_ROWS) * 2]
             .iter()
             .map(|row| row[zoom_coord.x..zoom_coord.x + Self::CONTENT_COLS].to_vec())

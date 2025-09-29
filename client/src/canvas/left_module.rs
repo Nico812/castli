@@ -1,3 +1,5 @@
+use common::exports::player::PlayerE;
+
 use super::{r#const::*, module_utility};
 use crate::ansi::*;
 use crate::assets::*;
@@ -15,7 +17,7 @@ impl LeftModule {
         Self {}
     }
 
-    pub fn get_renderable_and_update(&self, player: &common::PlayerE) -> Vec<Vec<TermCell>> {
+    pub fn get_renderable_and_update(&self, player: &PlayerE) -> Vec<Vec<TermCell>> {
         let blank_row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
         let mut content = vec![blank_row.clone(); Self::CONTENT_ROWS];
 

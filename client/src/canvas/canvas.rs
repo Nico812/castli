@@ -4,6 +4,9 @@
 //! rendering the different UI modules (central map, side panels, etc.) into
 //! a single view in the terminal.
 
+use common::exports::game_object::GameObjE;
+use common::exports::player::PlayerE;
+use common::exports::tile::TileE;
 use std::collections::{HashMap, VecDeque};
 use terminal_size::{Height, Width, terminal_size};
 
@@ -70,7 +73,7 @@ impl Canvas {
         }
     }
 
-    pub fn init(&mut self, tiles: Vec<Vec<common::TileE>>) {
+    pub fn init(&mut self, tiles: Vec<Vec<TileE>>) {
         self.central_module.init(tiles);
     }
 
@@ -80,8 +83,8 @@ impl Canvas {
     /// and then prints the buffer to stdout.
     pub fn render(
         &mut self,
-        game_objs: &HashMap<common::GameID, common::GameObjE>,
-        player_data: &common::PlayerE,
+        game_objs: &HashMap<GameID, GameObjE>,
+        player_data: &PlayerE,
         map_zoom: Option<TermCoord>,
         frame_dt: u64,
         logs: &mut VecDeque<String>,
@@ -92,7 +95,7 @@ impl Canvas {
 
         // TODO: refactor modules logic
 
-        let mut selected_obj: Option<&common::GameObjE> = None;
+        let mut selected_obj: Option<&GameObjE> = None;
         if let Some(id) = sel_obj_id {
             selected_obj = Some(&game_objs[&id]);
         }

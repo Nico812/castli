@@ -21,8 +21,9 @@ use crate::canvas::{
     r#const::{CENTRAL_MODULE_CONTENT_COLS, CENTRAL_MODULE_CONTENT_ROWS},
 };
 use common::{
-    GameCoord, GameID, GameObjE, L2S4C, PlayerE, S2C, TileE,
+    GameCoord, GameID, L2S4C, S2C,
     r#const::{MAP_COLS, MAP_ROWS},
+    exports::{game_object::GameObjE, player::PlayerE, tile::TileE},
 };
 
 #[derive(Clone, Copy)]
@@ -104,11 +105,7 @@ impl Tui {
             Some(player_data) => player_data,
             None => {
                 state = TuiState::CastleCreation;
-                PlayerE {
-                    id: 0,
-                    name: "Undefined".to_string(),
-                    pos: GameCoord { x: 0, y: 0 },
-                }
+                PlayerE::undef()
             }
         };
 

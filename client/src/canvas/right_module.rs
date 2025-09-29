@@ -1,8 +1,8 @@
+use common::exports::game_object::GameObjE;
+
 use super::{r#const::*, module_utility};
 use crate::ansi::*;
 use crate::assets::*;
-
-use common::GameObjE;
 
 pub struct RightModule {
     // Inspect

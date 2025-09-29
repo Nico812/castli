@@ -16,8 +16,9 @@ use tokio::{
 
 use crate::tui::{self, Tui};
 use common::{
-    C2S, C2S4L, GameObjE, L2S4C, PlayerE, S2C, TileE,
+    C2S, C2S4L, L2S4C, S2C,
     r#const::{IP_LOCAL, ONLINE},
+    exports::{game_object::GameObjE, player::PlayerE, tile::TileE},
     stream,
 };
 

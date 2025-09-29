@@ -3,7 +3,7 @@
 //! This module defines the `Game` struct, which holds the entire state of a single
 //! game instance, including the map, structures, and units. It also contains the
 //! logic for procedural map generation.
-use std::collections::HashMap;
+use std::{any::Any, collections::HashMap};
 
 use crate::game::{
     castle::Castle,
@@ -11,7 +11,10 @@ use crate::game::{
     map::Map,
     units::{DeployedUnits, UnitGroup},
 };
-use common::{GameCoord, GameID, GameObjE, PlayerE, TileE};
+use common::{
+    GameCoord, GameID,
+    exports::{game_object::GameObjE, player::PlayerE, tile::TileE},
+};
 
 pub struct Game {
     map: Map,
@@ -69,12 +72,10 @@ impl Game {
                 id: id,
                 name: castle.name.clone(),
                 pos: castle.pos,
+                units: castle.units.export(),
+                peasants: castle.peasants,
             },
-            _ => PlayerE {
-                id: 0,
-                name: "undefined".to_string(),
-                pos: GameCoord { x: 0, y: 0 },
-            },
+            _ => PlayerE::undef(),
         }
     }
 

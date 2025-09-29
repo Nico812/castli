@@ -1,4 +1,7 @@
-use common::{GameCoord, StructureE, StructureTypeE};
+use common::{
+    GameCoord,
+    exports::game_object::{StructureE, StructureTypeE},
+};
 
 pub struct Structure {
     name: String,

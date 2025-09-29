@@ -1,4 +1,4 @@
-use common::GameObjE;
+use common::exports::game_object::GameObjE;
 
 use crate::game::{castle::Castle, structure::Structure, units::DeployedUnits};
 

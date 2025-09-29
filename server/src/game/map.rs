@@ -7,8 +7,9 @@ use crate::{
     game::pathfinding,
 };
 use common::{
-    GameCoord, TileE,
+    GameCoord,
     r#const::{MAP_COLS, MAP_ROWS},
+    exports::tile::TileE,
 };
 
 pub struct Map {
