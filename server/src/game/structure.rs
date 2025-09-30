@@ -1,9 +1,12 @@
-use common::{StructureE, StructureTypeE};
+use common::{
+    GameCoord,
+    exports::game_object::{StructureE, StructureTypeE},
+};
 
 pub struct Structure {
     name: String,
     r#type: StructureTypeE,
-    pos: (usize, usize),
+    pos: GameCoord,
 }
 
 impl Structure {

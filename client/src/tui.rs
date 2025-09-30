@@ -16,15 +16,47 @@ use tokio::{
     time,
 };
 
-use crate::{
-    canvas::canvas::Canvas,
-    r#const::{QUADRANT_COLS, QUADRANT_ROWS},
+use crate::canvas::{
+    canvas::Canvas,
+    r#const::{CENTRAL_MODULE_CONTENT_COLS, CENTRAL_MODULE_CONTENT_ROWS},
 };
-use common::{GameID, GameObjE, L2S4C, PlayerE, S2C, TileE};
+use common::{
+    GameCoord, GameID, L2S4C, S2C,
+    r#const::{MAP_COLS, MAP_ROWS},
+    exports::{game_object::GameObjE, player::PlayerE, tile::TileE},
+};
+
+#[derive(Clone, Copy)]
+pub struct TermCoord {
+    pub x: usize,
+    pub y: usize,
+}
+
+impl TermCoord {
+    pub fn from_game_coord(game_coord: GameCoord, map_zoom: TermCoord) -> (i32, i32) {
+        (
+            game_coord.y as i32 / 2 - map_zoom.y as i32,
+            game_coord.x as i32 - map_zoom.x as i32,
+        )
+    }
+}
+
+pub trait FromTermCoord {
+    fn from_term_coord(term_coord: TermCoord, map_zoom: TermCoord) -> GameCoord;
+}
+
+impl FromTermCoord for GameCoord {
+    fn from_term_coord(term_coord: TermCoord, map_zoom: TermCoord) -> GameCoord {
+        Self {
+            x: term_coord.x + map_zoom.x,
+            y: (term_coord.y + map_zoom.y) * 2,
+        }
+    }
+}
 
 /// Messages sent from the TUI to the client's network task.
 pub enum T2C {
-    NewCastle((usize, usize)),
+    NewCastle(GameCoord),
     AttackCastle(GameID),
 }
 
@@ -44,8 +76,8 @@ pub struct Tui {
     canvas: Arc<Mutex<Canvas>>,
     game_objs: Arc<Mutex<HashMap<GameID, GameObjE>>>,
     player_data: Arc<Mutex<PlayerE>>,
-    map_zoom: Arc<Mutex<Option<(usize, usize)>>>,
-    map_look: Arc<Mutex<Option<(usize, usize)>>>,
+    map_zoom: Arc<Mutex<Option<TermCoord>>>,
+    map_look: Arc<Mutex<Option<TermCoord>>>,
     logs: Arc<Mutex<VecDeque<String>>>,
 }
 
@@ -73,11 +105,7 @@ impl Tui {
             Some(player_data) => player_data,
             None => {
                 state = TuiState::CastleCreation;
-                PlayerE {
-                    id: 0,
-                    name: "Undefined".to_string(),
-                    pos: (0, 0),
-                }
+                PlayerE::undef()
             }
         };
 
@@ -135,8 +163,8 @@ impl Tui {
         canvas_arc: Arc<Mutex<Canvas>>,
         game_objs_arc: Arc<Mutex<HashMap<GameID, GameObjE>>>,
         player_data_arc: Arc<Mutex<PlayerE>>,
-        map_zoom_arc: Arc<Mutex<Option<(usize, usize)>>>,
-        map_look_arc: Arc<Mutex<Option<(usize, usize)>>>,
+        map_zoom_arc: Arc<Mutex<Option<TermCoord>>>,
+        map_look_arc: Arc<Mutex<Option<TermCoord>>>,
         logs_arc: Arc<Mutex<VecDeque<String>>>,
     ) {
         let mut render_tick = time::interval(time::Duration::from_millis(16));
@@ -208,14 +236,43 @@ impl Tui {
 
     async fn handle_player_input(
         tx: &mpsc::UnboundedSender<T2C>,
-        map_zoom_arc: Arc<Mutex<Option<(usize, usize)>>>,
-        map_look_arc: Arc<Mutex<Option<(usize, usize)>>>,
+        map_zoom_arc: Arc<Mutex<Option<TermCoord>>>,
+        map_look_arc: Arc<Mutex<Option<TermCoord>>>,
         game_objs_arc: Arc<Mutex<HashMap<GameID, GameObjE>>>,
         logs_arc: Arc<Mutex<VecDeque<String>>>,
     ) {
         loop {
-            let mut buf = [0u8; 3];
+            let mut buf = [0u8; 8];
             let n = io::stdin().read(&mut buf).await.unwrap();
+
+            // Helper function for arrow keys player input.
+            async fn apply_move(
+                map_zoom_arc: &Arc<Mutex<Option<TermCoord>>>,
+                map_look_arc: &Arc<Mutex<Option<TermCoord>>>,
+                dx: isize,
+                dy: isize,
+            ) {
+                if let Some(ref mut map_look) = *map_look_arc.lock().await {
+                    map_look.x = (map_look.x as isize + dx)
+                        .max(0)
+                        .min(CENTRAL_MODULE_CONTENT_COLS as isize - 1)
+                        as usize;
+                    map_look.y = (map_look.y as isize + dy)
+                        .max(0)
+                        .min(CENTRAL_MODULE_CONTENT_ROWS as isize - 1)
+                        as usize;
+                } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
+                    map_zoom.x = (map_zoom.x as isize + dx)
+                        .max(0)
+                        .min(MAP_COLS as isize - CENTRAL_MODULE_CONTENT_COLS as isize)
+                        as usize;
+                    map_zoom.y = (map_zoom.y as isize + dy)
+                        .max(0)
+                        .min((MAP_ROWS / 2) as isize - CENTRAL_MODULE_CONTENT_ROWS as isize)
+                        as usize;
+                }
+            }
+
             if n == 1 {
                 match buf[0] as char {
                     // quit
@@ -226,7 +283,7 @@ impl Tui {
                     'z' => {
                         let mut map_zoom = map_zoom_arc.lock().await;
                         *map_zoom = match *map_zoom {
-                            None => Some((0, 0)),
+                            None => Some(TermCoord { x: 0, y: 0 }),
                             Some(_) => None,
                         };
                     }
@@ -234,7 +291,7 @@ impl Tui {
                     'l' => {
                         let mut map_look = map_look_arc.lock().await;
                         *map_look = match *map_look {
-                            None => Some((0, 0)),
+                            None => Some(TermCoord { x: 0, y: 0 }),
                             Some(_) => None,
                         };
                     }
@@ -260,56 +317,40 @@ impl Tui {
                         let Some(map_zoom) = *map_zoom_arc.lock().await else {
                             return;
                         };
-                        let new_castle_coords = (
-                            (map_zoom.0 * QUADRANT_ROWS + map_look.0) * 2,
-                            map_zoom.1 * QUADRANT_COLS + map_look.1,
-                        );
+                        let new_castle_coords = GameCoord::from_term_coord(map_look, map_zoom);
 
                         let _ = tx.send(T2C::NewCastle(new_castle_coords));
 
                         let mut logs = logs_arc.lock().await;
                         logs.push_back(format!(
                             "Castle added | cooords: ({:?}, {:?})",
-                            new_castle_coords.0, new_castle_coords.1
+                            new_castle_coords.y, new_castle_coords.x
                         ));
                     }
                     _ => {}
                 }
             }
             // Special characters
-            if n == 3 {
-                match buf {
-                    // Up Arrow Key
-                    [0x1b, b'[', b'A'] => {
-                        if let Some(ref mut map_look) = *map_look_arc.lock().await {
-                            map_look.0 = map_look.0.saturating_sub(1);
-                        } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
-                            map_zoom.0 = map_zoom.0.saturating_sub(1);
-                        }
+            if n >= 3 {
+                match &buf[..n] {
+                    // Arrow keys
+                    [0x1b, b'[', b'A'] => apply_move(&map_zoom_arc, &map_look_arc, 0, -1).await,
+                    [0x1b, b'[', b'B'] => apply_move(&map_zoom_arc, &map_look_arc, 0, 1).await,
+                    [0x1b, b'[', b'C'] => apply_move(&map_zoom_arc, &map_look_arc, 2, 0).await,
+                    [0x1b, b'[', b'D'] => apply_move(&map_zoom_arc, &map_look_arc, -2, 0).await,
+
+                    // Ctrl + arrows (ESC [ 1 ; 5 X])
+                    [0x1b, b'[', b'1', b';', b'5', b'A'] => {
+                        apply_move(&map_zoom_arc, &map_look_arc, 0, -16).await
                     }
-                    // Down Arrow Key
-                    [0x1b, b'[', b'B'] => {
-                        if let Some(ref mut map_look) = *map_look_arc.lock().await {
-                            map_look.0 = std::cmp::min(map_look.0 + 1, QUADRANT_ROWS - 1);
-                        } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
-                            map_zoom.0 = std::cmp::min(map_zoom.0 + 1, 7);
-                        }
+                    [0x1b, b'[', b'1', b';', b'5', b'B'] => {
+                        apply_move(&map_zoom_arc, &map_look_arc, 0, 16).await
                     }
-                    // Left Arrow Key
-                    [0x1b, b'[', b'D'] => {
-                        if let Some(ref mut map_look) = *map_look_arc.lock().await {
-                            map_look.1 = map_look.1.saturating_sub(1);
-                        } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
-                            map_zoom.1 = map_zoom.1.saturating_sub(1);
-                        }
+                    [0x1b, b'[', b'1', b';', b'5', b'C'] => {
+                        apply_move(&map_zoom_arc, &map_look_arc, 32, 0).await
                     }
-                    // Right Arrow Key
-                    [0x1b, b'[', b'C'] => {
-                        if let Some(ref mut map_look) = *map_look_arc.lock().await {
-                            map_look.1 = std::cmp::min(map_look.1 + 1, QUADRANT_COLS - 1);
-                        } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
-                            map_zoom.1 = std::cmp::min(map_zoom.1 + 1, 7);
-                        }
+                    [0x1b, b'[', b'1', b';', b'5', b'D'] => {
+                        apply_move(&map_zoom_arc, &map_look_arc, -32, 0).await
                     }
                     _ => {}
                 }
@@ -328,14 +369,11 @@ impl Tui {
 
     fn get_selected_obj_id(
         game_objs: &HashMap<GameID, GameObjE>,
-        map_zoom: Option<(usize, usize)>,
-        map_look: Option<(usize, usize)>,
+        map_zoom: Option<TermCoord>,
+        map_look: Option<TermCoord>,
     ) -> Option<GameID> {
         if let (Some(zoom), Some(look)) = (map_zoom, map_look) {
-            let world_pos = (
-                (zoom.0 * QUADRANT_ROWS + look.0) * 2,
-                zoom.1 * QUADRANT_COLS + look.1,
-            );
+            let world_pos = GameCoord::from_term_coord(look, zoom);
             game_objs
                 .iter()
                 .find(|(_, obj)| obj.get_pos() == world_pos)

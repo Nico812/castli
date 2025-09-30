@@ -7,8 +7,9 @@ use crate::{
     game::pathfinding,
 };
 use common::{
-    TileE,
+    GameCoord,
     r#const::{MAP_COLS, MAP_ROWS},
+    exports::tile::TileE,
 };
 
 pub struct Map {
@@ -36,11 +37,7 @@ impl Map {
         self.tiles.clone()
     }
 
-    pub fn find_path(
-        &self,
-        start: (usize, usize),
-        end: (usize, usize),
-    ) -> Option<VecDeque<(usize, usize)>> {
+    pub fn find_path(&self, start: GameCoord, end: GameCoord) -> Option<VecDeque<GameCoord>> {
         pathfinding::bds::<MAP_ROWS, MAP_COLS>(start, end, &self.obstacles)
     }
 

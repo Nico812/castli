@@ -1,13 +1,25 @@
-use common::CastleE;
+use common::{GameCoord, exports::game_object::CastleE};
+
+use crate::game::units::UnitGroup;
 
 pub struct Castle {
     pub name: String,
-    pub pos: (usize, usize),
+    pub pos: GameCoord,
+    pub units: UnitGroup,
+    pub peasants: u32,
 }
 
 impl Castle {
-    pub fn new(name: String, pos: (usize, usize)) -> Self {
-        Self { name, pos }
+    pub fn new(name: String, pos: GameCoord) -> Self {
+        let units = UnitGroup::new();
+        let peasants = 2;
+
+        Self {
+            name,
+            pos,
+            units,
+            peasants,
+        }
     }
 
     pub fn export(&self) -> CastleE {

@@ -1,5 +1,42 @@
+use common::exports::game_object::GameObjE;
+
 use crate::ansi::*;
 use crate::assets::*;
+
+pub trait WithArt {
+    fn get_art(&self, world: bool) -> &[&[TermCell]];
+    fn get_art_size(&self, world: bool) -> (usize, usize);
+}
+
+impl WithArt for GameObjE {
+    fn get_art(&self, world: bool) -> &[&[TermCell]] {
+        match self {
+            Self::Castle(_) => {
+                if world {
+                    CASTLE_ART_WORLD
+                } else {
+                    CASTLE_ART
+                }
+            }
+            Self::DeployedUnits(_) => DEPLOYED_UNITS_ART,
+            _ => ERR_ART,
+        }
+    }
+
+    fn get_art_size(&self, world: bool) -> (usize, usize) {
+        match self {
+            Self::Castle(_) => {
+                if world {
+                    CASTLE_ART_WORLD_SIZE
+                } else {
+                    CASTLE_ART_SIZE
+                }
+            }
+            Self::DeployedUnits(_) => DEPLOYED_UNITS_ART_SIZE,
+            _ => ERR_ART_SIZE,
+        }
+    }
+}
 
 pub fn add_frame(title: &str, renderable: &mut Vec<Vec<TermCell>>) {
     let renderable_rows = renderable.len();
@@ -36,6 +73,29 @@ pub fn draw_text(content: &mut Vec<Vec<TermCell>>, text: &str, row: usize, col: 
     for (i, ch) in text.chars().enumerate() {
         if col + i < content[row].len() {
             content[row][col + i] = TermCell::new(ch, FG_WHITE, BG_BLACK);
+        }
+    }
+}
+
+pub fn string_into_content(
+    content: &mut Vec<Vec<TermCell>>,
+    string: &String,
+    pos: usize,
+    pad_left: usize,
+    pad_right: usize,
+) {
+    if pos >= content.len() {
+        return;
+    }
+    let space_available = content[0].len() - pad_right;
+
+    for (i, ch) in string.chars().enumerate() {
+        if pad_left + i < space_available {
+            content[pos][pad_left + i] = TermCell {
+                ch,
+                fg: FG_WHITE,
+                bg: BG_BLACK,
+            }
         }
     }
 }

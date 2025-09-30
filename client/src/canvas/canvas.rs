@@ -4,6 +4,9 @@
 //! rendering the different UI modules (central map, side panels, etc.) into
 //! a single view in the terminal.
 
+use common::exports::game_object::GameObjE;
+use common::exports::player::PlayerE;
+use common::exports::tile::TileE;
 use std::collections::{HashMap, VecDeque};
 use terminal_size::{Height, Width, terminal_size};
 
@@ -14,6 +17,7 @@ use crate::canvas::{
     bottom_module::BottomModule, central_module::CentralModule, left_module::LeftModule,
     right_module::RightModule,
 };
+use crate::tui::TermCoord;
 use common::{self, GameID};
 
 /// Represents the main drawing area for the TUI.
@@ -69,7 +73,7 @@ impl Canvas {
         }
     }
 
-    pub fn init(&mut self, tiles: Vec<Vec<common::TileE>>) {
+    pub fn init(&mut self, tiles: Vec<Vec<TileE>>) {
         self.central_module.init(tiles);
     }
 
@@ -79,9 +83,9 @@ impl Canvas {
     /// and then prints the buffer to stdout.
     pub fn render(
         &mut self,
-        game_objs: &HashMap<common::GameID, common::GameObjE>,
-        player_data: &common::PlayerE,
-        map_zoom: Option<(usize, usize)>,
+        game_objs: &HashMap<GameID, GameObjE>,
+        player_data: &PlayerE,
+        map_zoom: Option<TermCoord>,
         frame_dt: u64,
         logs: &mut VecDeque<String>,
         sel_obj_id: Option<GameID>,
@@ -91,7 +95,7 @@ impl Canvas {
 
         // TODO: refactor modules logic
 
-        let mut selected_obj: Option<&common::GameObjE> = None;
+        let mut selected_obj: Option<&GameObjE> = None;
         if let Some(id) = sel_obj_id {
             selected_obj = Some(&game_objs[&id]);
         }
@@ -160,13 +164,13 @@ impl Canvas {
         self.render_count += 1;
     }
 
-    pub fn update_and_print_cursor(&self, map_look: Option<(usize, usize)>) {
-        if let Some((row, col)) = map_look {
+    pub fn update_and_print_cursor(&self, map_look: Option<TermCoord>) {
+        if let Some(term_coord) = map_look {
             // Terminal coord are 1-indexed + central mod frame = 2
             print!(
                 "\r\x1b[{};{}H",
-                CENTRAL_MOD_POS.0 + row + self.canvas_pos.0 + 2,
-                CENTRAL_MOD_POS.1 + col + self.canvas_pos.1 + 2
+                CENTRAL_MOD_POS.0 + term_coord.y + self.canvas_pos.0 + 2,
+                CENTRAL_MOD_POS.1 + term_coord.x + self.canvas_pos.1 + 2
             );
         } else {
             print!("\r\x1b[0;0H");

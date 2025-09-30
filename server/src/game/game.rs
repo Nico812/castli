@@ -3,10 +3,18 @@
 //! This module defines the `Game` struct, which holds the entire state of a single
 //! game instance, including the map, structures, and units. It also contains the
 //! logic for procedural map generation.
-use std::collections::HashMap;
+use std::{any::Any, collections::HashMap};
 
-use crate::game::{castle::Castle, game_obj::GameObj, map::Map, unit_group::UnitGroup};
-use common::{GameID, GameObjE, PlayerE, TileE};
+use crate::game::{
+    castle::Castle,
+    game_obj::GameObj,
+    map::Map,
+    units::{DeployedUnits, UnitGroup},
+};
+use common::{
+    GameCoord, GameID,
+    exports::{game_object::GameObjE, player::PlayerE, tile::TileE},
+};
 
 pub struct Game {
     map: Map,
@@ -29,13 +37,13 @@ impl Game {
 
     pub fn step(&mut self) {
         for obj in self.game_objs.values_mut() {
-            if let GameObj::UnitGroup(unit_group) = obj {
-                unit_group.move_along_path();
+            if let GameObj::DeployedUnits(deployed_units) = obj {
+                deployed_units.move_along_path();
             }
         }
     }
 
-    pub fn add_player_castle(&mut self, name: String, pos: (usize, usize)) -> GameID {
+    pub fn add_player_castle(&mut self, name: String, pos: GameCoord) -> GameID {
         let id = self.id_counter;
         self.id_counter += 1;
 
@@ -64,12 +72,10 @@ impl Game {
                 id: id,
                 name: castle.name.clone(),
                 pos: castle.pos,
+                units: castle.units.export(),
+                peasants: castle.peasants,
             },
-            _ => PlayerE {
-                id: 0,
-                name: "undefined".to_string(),
-                pos: (0, 0),
-            },
+            _ => PlayerE::undef(),
         }
     }
 
@@ -93,8 +99,11 @@ impl Game {
         if let Some(path) = path {
             let id = self.id_counter;
             self.id_counter += 1;
-            let unit_group = UnitGroup::new(attacker_name, attacker_pos, path);
-            self.game_objs.insert(id, GameObj::UnitGroup(unit_group));
+
+            let unit_group = UnitGroup::new();
+            let deployed_units = DeployedUnits::new(attacker_name, attacker_pos, path, unit_group);
+            self.game_objs
+                .insert(id, GameObj::DeployedUnits(deployed_units));
         }
     }
 }

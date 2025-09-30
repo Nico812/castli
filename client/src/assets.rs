@@ -28,8 +28,6 @@ impl<'a> TermCell {
     }
 }
 
-// --- ANSI Game Elements ---
-
 pub const ERR_FG: &str = FG_MAGENTA;
 pub const ERR_BG: &str = BG_BRIGHT_MAGENTA;
 pub const ERR_EL: TermCell = TermCell::new('?', FG_MAGENTA, BG_BRIGHT_MAGENTA);
@@ -50,8 +48,10 @@ pub const WATER_EL_2: TermCell = TermCell::new('~', FG_BRIGHT_BLUE, WATER_BG);
 pub const CASTLE_FG: &str = FG_WHITE;
 pub const CASTLE_BG: &str = BG_BLACK;
 
-pub const CASTLE_ART: [[TermCell; 8]; 4] = [
-    [
+pub const ERR_ART: &[&[TermCell]] = &[&[ERR_EL]];
+
+pub const CASTLE_ART: &[&[TermCell]] = &[
+    &[
         TermCell::new('M', CASTLE_FG, CASTLE_BG),
         TermCell::new('M', CASTLE_FG, CASTLE_BG),
         TermCell::new('_', CASTLE_FG, CASTLE_BG),
@@ -61,7 +61,7 @@ pub const CASTLE_ART: [[TermCell; 8]; 4] = [
         TermCell::new('_', CASTLE_FG, CASTLE_BG),
         TermCell::new('M', CASTLE_FG, CASTLE_BG),
     ],
-    [
+    &[
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
         TermCell::new(' ', CASTLE_FG, CASTLE_BG),
@@ -71,7 +71,7 @@ pub const CASTLE_ART: [[TermCell; 8]; 4] = [
         TermCell::new(' ', CASTLE_FG, CASTLE_BG),
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
     ],
-    [
+    &[
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
         TermCell::new(' ', CASTLE_FG, CASTLE_BG),
@@ -81,7 +81,7 @@ pub const CASTLE_ART: [[TermCell; 8]; 4] = [
         TermCell::new(' ', CASTLE_FG, CASTLE_BG),
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
     ],
-    [
+    &[
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
         TermCell::new('|', CASTLE_FG, CASTLE_BG),
         TermCell::new(' ', CASTLE_FG, CASTLE_BG),
@@ -93,9 +93,19 @@ pub const CASTLE_ART: [[TermCell; 8]; 4] = [
     ],
 ];
 
-pub const CASTLE_ART_WORLD: [[TermCell; 2]; 1] = [[
+pub const CASTLE_ART_WORLD: &[&[TermCell]] = &[&[
     TermCell::new('C', FG_YELLOW, BG_BLACK),
     TermCell::new('C', FG_YELLOW, BG_BLACK),
 ]];
 
-pub const UNIT_GROUP_ART: [[TermCell; 1]; 1] = [[TermCell::new('U', FG_RED, BG_BLACK)]];
+pub const DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('U', FG_RED, BG_BLACK)]];
+
+pub const ERR_ART_SIZE: (usize, usize) = (ERR_ART.len(), ERR_ART[0].len());
+
+pub const CASTLE_ART_SIZE: (usize, usize) = (CASTLE_ART.len(), CASTLE_ART[0].len());
+
+pub const CASTLE_ART_WORLD_SIZE: (usize, usize) =
+    (CASTLE_ART_WORLD.len(), CASTLE_ART_WORLD[0].len());
+
+pub const DEPLOYED_UNITS_ART_SIZE: (usize, usize) =
+    (DEPLOYED_UNITS_ART.len(), DEPLOYED_UNITS_ART[0].len());

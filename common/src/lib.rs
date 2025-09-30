@@ -5,13 +5,22 @@
 //! It ensures that both sides of the application agree on the format of data being exchanged.
 
 pub mod r#const;
+pub mod exports;
 pub mod stream;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::exports::{game_object::GameObjE, player::PlayerE, tile::TileE};
+
 /// Global IDs for game objects
 pub type GameID = usize;
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
+pub struct GameCoord {
+    pub x: usize,
+    pub y: usize,
+}
 
 /// Represents messages sent from the Server to the Client (S2C).
 #[derive(Serialize, Deserialize, Debug)]
@@ -43,72 +52,9 @@ pub enum C2S {
 /// Represents messages sent from a Client, to the Server, for the Lobby (C2S4L).
 #[derive(Serialize, Deserialize, Debug)]
 pub enum C2S4L {
-    NewCastle((usize, usize)),
+    NewCastle(GameCoord),
     AttackCastle(GameID),
     GiveObjs,
     GiveMap,
     GivePlayer,
-}
-
-/// Exports:
-/// Those define the types of data of a game that are sent to the client
-
-/// These never change during a game.
-#[derive(Clone, Copy, PartialEq, Serialize, Deserialize, Debug)]
-pub enum TileE {
-    Water,
-    Grass,
-    Woods,
-}
-
-/// Exported information on the player info and owned castle
-#[derive(Serialize, Deserialize, Debug)]
-pub struct PlayerE {
-    pub id: GameID,
-    pub name: String,
-    pub pos: (usize, usize),
-}
-
-/// Exported information on an observable object
-#[derive(Serialize, Deserialize, Debug)]
-pub enum GameObjE {
-    Castle(CastleE),
-    Structure(StructureE),
-    UnitGroup(UnitGroupE),
-}
-
-impl GameObjE {
-    pub fn get_pos(&self) -> (usize, usize) {
-        match self {
-            GameObjE::Castle(c) => c.pos,
-            GameObjE::Structure(s) => s.pos,
-            GameObjE::UnitGroup(u) => u.pos,
-        }
-    }
-}
-
-/// Exported information on a not-owned castle
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct CastleE {
-    pub name: String,
-    pub pos: (usize, usize),
-}
-
-/// Exported information on NPSs (non player structures)
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct StructureE {
-    pub name: String,
-    pub r#type: StructureTypeE,
-    pub pos: (usize, usize),
-}
-
-#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
-pub enum StructureTypeE {
-    Farm,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct UnitGroupE {
-    pub owner: String,
-    pub pos: (usize, usize),
 }

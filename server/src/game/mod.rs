@@ -4,4 +4,4 @@ mod game_obj;
 mod map;
 mod pathfinding;
 mod structure;
-mod unit_group;
+mod units;
