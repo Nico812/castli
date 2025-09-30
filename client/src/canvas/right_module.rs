@@ -17,6 +17,7 @@ impl RightModule {
         Self {}
     }
 
+    // TODO: refactor using the utility function defined at the end of module_utility.rs
     pub fn get_renderable_and_update(
         &self,
         frame_dt: u64,
