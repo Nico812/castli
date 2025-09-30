@@ -76,3 +76,26 @@ pub fn draw_text(content: &mut Vec<Vec<TermCell>>, text: &str, row: usize, col: 
         }
     }
 }
+
+pub fn string_into_content(
+    content: &mut Vec<Vec<TermCell>>,
+    string: &String,
+    pos: usize,
+    pad_left: usize,
+    pad_right: usize,
+) {
+    if pos >= content.len() {
+        return;
+    }
+    let space_available = content[0].len() - pad_right;
+
+    for (i, ch) in string.chars().enumerate() {
+        if pad_left + i < space_available {
+            content[pos][pad_left + i] = TermCell {
+                ch,
+                fg: FG_WHITE,
+                bg: BG_BLACK,
+            }
+        }
+    }
+}
