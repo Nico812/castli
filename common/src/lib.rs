@@ -11,7 +11,7 @@ pub mod stream;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::exports::{game_object::GameObjE, player::PlayerE, tile::TileE};
+use crate::exports::{game_object::GameObjE, player::PlayerE, tile::TileE, units::UnitGroupE};
 
 /// Global IDs for game objects
 pub type GameID = usize;
@@ -53,7 +53,7 @@ pub enum C2S {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum C2S4L {
     NewCastle(GameCoord),
-    AttackCastle(GameID),
+    AttackCastle(GameID, UnitGroupE),
     GiveObjs,
     GiveMap,
     GivePlayer,

@@ -41,8 +41,9 @@ impl LeftModule {
             (&player.name, 3),
             (&pos_str, 5),
             (&peasants_str, 6),
-            (&mages_str, 7),
-            (&dragons_str, 8),
+            (&knights_str, 8),
+            (&mages_str, 9),
+            (&dragons_str, 10),
         ];
 
         for info_to_print in infos_to_print {

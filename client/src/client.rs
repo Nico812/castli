@@ -49,8 +49,8 @@ impl ClientConnection {
             Some(msg_from_tui) = t2c_rx.recv() => {
                 let msg = match msg_from_tui {
                     tui::T2C::NewCastle(pos) => C2S::C2S4L(C2S4L::NewCastle(pos)),
-                    tui::T2C::AttackCastle(target_id) => {
-                        C2S::C2S4L(C2S4L::AttackCastle(target_id))
+                    tui::T2C::AttackCastle(target_id, unit_group_e) => {
+                        C2S::C2S4L(C2S4L::AttackCastle(target_id, unit_group_e))
                     }
                 };
                 let _ = stream::send_msg_to_server(&mut self.writer, &msg).await;

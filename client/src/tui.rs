@@ -23,7 +23,7 @@ use crate::canvas::{
 use common::{
     GameCoord, GameID, L2S4C, S2C,
     r#const::{MAP_COLS, MAP_ROWS},
-    exports::{game_object::GameObjE, player::PlayerE, tile::TileE},
+    exports::{game_object::GameObjE, player::PlayerE, tile::TileE, units::UnitGroupE},
 };
 
 #[derive(Clone, Copy)]
@@ -57,7 +57,7 @@ impl FromTermCoord for GameCoord {
 /// Messages sent from the TUI to the client's network task.
 pub enum T2C {
     NewCastle(GameCoord),
-    AttackCastle(GameID),
+    AttackCastle(GameID, UnitGroupE),
 }
 
 enum TuiState {
@@ -302,7 +302,12 @@ impl Tui {
                             *map_zoom_arc.lock().await,
                             *map_look_arc.lock().await,
                         ) {
-                            let _ = tx.send(T2C::AttackCastle(selected_id));
+                            let _ = tx.send(T2C::AttackCastle(
+                                selected_id,
+                                UnitGroupE {
+                                    quantities: [1, 0, 0],
+                                },
+                            ));
                             logs_arc
                                 .lock()
                                 .await

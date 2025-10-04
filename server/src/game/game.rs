@@ -13,7 +13,7 @@ use crate::game::{
 };
 use common::{
     GameCoord, GameID,
-    exports::{game_object::GameObjE, player::PlayerE, tile::TileE},
+    exports::{game_object::GameObjE, player::PlayerE, tile::TileE, units::UnitGroupE},
 };
 
 pub struct Game {
@@ -35,6 +35,11 @@ impl Game {
         }
     }
 
+    fn new_id(&mut self) -> GameID {
+        self.id_counter += 1;
+        self.id_counter
+    }
+
     pub fn step(&mut self) {
         for obj in self.game_objs.values_mut() {
             if let GameObj::DeployedUnits(deployed_units) = obj {
@@ -44,8 +49,7 @@ impl Game {
     }
 
     pub fn add_player_castle(&mut self, name: String, pos: GameCoord) -> GameID {
-        let id = self.id_counter;
-        self.id_counter += 1;
+        let id = self.new_id();
 
         let castle = Castle::new(name, pos);
         self.game_objs.insert(id, GameObj::Castle(castle));
@@ -66,10 +70,10 @@ impl Game {
             .collect()
     }
 
-    pub fn export_player(&self, id: GameID) -> PlayerE {
-        match self.game_objs.get(&id) {
+    pub fn export_player(&self, castle_id: GameID) -> PlayerE {
+        match self.game_objs.get(&castle_id) {
             Some(GameObj::Castle(castle)) => PlayerE {
-                id: id,
+                id: castle_id,
                 name: castle.name.clone(),
                 pos: castle.pos,
                 units: castle.units.export(),
@@ -79,28 +83,35 @@ impl Game {
         }
     }
 
-    pub fn attack_castle(&mut self, attacker_id: GameID, target_id: GameID) {
-        let (attacker_pos, attacker_name) =
-            if let Some(GameObj::Castle(castle)) = self.game_objs.get(&attacker_id) {
-                (castle.pos, castle.name.clone())
-            } else {
-                return;
-            };
-
-        let target_pos = if let Some(GameObj::Castle(castle)) = self.game_objs.get(&target_id) {
-            castle.pos
-        } else {
-            return;
+    pub fn attack_castle(
+        &mut self,
+        attacker_id: GameID,
+        target_id: GameID,
+        unit_group_e: UnitGroupE,
+    ) {
+        let target_pos = match self.game_objs.get(&target_id) {
+            Some(GameObj::Castle(c)) => c.pos,
+            _ => return,
         };
 
-        let path = self.map.find_path(attacker_pos, target_pos);
-        println!("{:?}", path);
+        let attacker_castle = match self.game_objs.get_mut(&attacker_id) {
+            Some(GameObj::Castle(c)) => c,
+            _ => return,
+        };
 
-        if let Some(path) = path {
-            let id = self.id_counter;
-            self.id_counter += 1;
+        let unit_group = UnitGroup::from_export(unit_group_e);
+        if unit_group.is_empty() {
+            return;
+        }
 
-            let unit_group = UnitGroup::new();
+        if !attacker_castle.units.subtract_if_enough(&unit_group) {
+            return;
+        }
+
+        let attacker_name = attacker_castle.name.clone();
+        let attacker_pos = attacker_castle.pos;
+        if let Some(path) = self.map.find_path(attacker_castle.pos, target_pos) {
+            let id = self.new_id();
             let deployed_units = DeployedUnits::new(attacker_name, attacker_pos, path, unit_group);
             self.game_objs
                 .insert(id, GameObj::DeployedUnits(deployed_units));
