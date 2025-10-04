@@ -1,6 +1,6 @@
 use common::{GameCoord, exports::game_object::CastleE};
 
-use crate::game::units::UnitGroup;
+use crate::game::units::{Unit, UnitGroup};
 
 pub struct Castle {
     pub name: String,
@@ -11,8 +11,10 @@ pub struct Castle {
 
 impl Castle {
     pub fn new(name: String, pos: GameCoord) -> Self {
-        let units = UnitGroup::new();
+        let mut units = UnitGroup::new();
         let peasants = 2;
+
+        units.add_single_type(Unit::Knight, 6);
 
         Self {
             name,

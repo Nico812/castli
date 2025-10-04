@@ -19,9 +19,9 @@ macro_rules! all_units {
 }
 
 impl Unit {
-    pub const COUNT: usize = 4;
+    pub const COUNT: usize = 3;
 
-    fn as_index(&self) -> usize {
+    pub fn as_index(&self) -> usize {
         match self {
             Self::Knight => 0,
             Self::Mage => 1,
@@ -29,7 +29,16 @@ impl Unit {
         }
     }
 
-    fn as_mask(&self) -> u8 {
+    pub fn form_index(i: usize) -> Option<Self> {
+        match i {
+            0 => Some(Self::Knight),
+            1 => Some(Self::Mage),
+            2 => Some(Self::Dragon),
+            _ => None,
+        }
+    }
+
+    pub fn as_mask(&self) -> u8 {
         1 << self.as_index()
     }
 }
@@ -50,13 +59,34 @@ impl UnitGroup {
         }
     }
 
-    pub fn add(&mut self, unit: Unit, count: u16) {
+    pub fn add_single_type(&mut self, unit: Unit, count: u16) {
         let idx = unit.as_index();
         self.quantities[idx] = self.quantities[idx].saturating_add(count);
 
         if self.quantities[idx] > 0 {
             self.present_mask |= unit.as_mask();
         }
+    }
+
+    pub fn subtract_single_type(&mut self, unit: Unit, count: u16) {
+        let idx = unit.as_index();
+        self.quantities[idx] = self.quantities[idx].saturating_sub(count);
+
+        if self.quantities[idx] == 0 {
+            self.present_mask &= !unit.as_mask();
+        }
+    }
+
+    pub fn subtract_if_enough(&mut self, other: &Self) -> bool {
+        for (i, quantity) in other.quantities.iter().enumerate() {
+            if self.quantities[i] < *quantity {
+                return false;
+            }
+        }
+        for (i, quantity) in other.quantities.iter().enumerate() {
+            self.subtract_single_type(Unit::form_index(i).unwrap(), *quantity);
+        }
+        true
     }
 
     pub fn remove(&mut self, unit: Unit, count: u16) {
@@ -83,6 +113,27 @@ impl UnitGroup {
         UnitGroupE {
             quantities: *self.quantities.clone(),
         }
+    }
+
+    pub fn from_export(export: UnitGroupE) -> Self {
+        let quantities = export.quantities;
+        let mut unit_group = Self::new();
+        for (i, quantity) in quantities.iter().enumerate() {
+            match Unit::form_index(i) {
+                Some(unit_type) => unit_group.add_single_type(unit_type, *quantity),
+                None => continue,
+            }
+        }
+        unit_group
+    }
+
+    pub fn is_empty(&self) -> bool {
+        for quantity in self.quantities.iter() {
+            if *quantity != 0 {
+                return false;
+            }
+        }
+        true
     }
 }
 

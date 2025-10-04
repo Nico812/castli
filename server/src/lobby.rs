@@ -11,7 +11,7 @@ use crate::{
     player::{Player, PlayerStatus},
     server::{ClientID, S2L},
 };
-use common::{C2S4L, L2S4C, r#const::MAX_LOBBY_PLAYERS};
+use common::{C2S4L, L2S4C, r#const::MAX_LOBBY_PLAYERS, exports::units::UnitGroupE};
 
 /// Represents errors that can occur within a `Lobby`.
 #[derive(Debug)]
@@ -131,13 +131,13 @@ impl Lobby {
                             let _ = client_tx.send(L2S4C::Log(log));
                         };
                     }
-                    C2S4L::AttackCastle(target_id) => {
+                    C2S4L::AttackCastle(target_id, unit_group_e) => {
                         if let Some(player) = self.players.get(client_id) {
                             if player.status != PlayerStatus::Alive {
                                 break;
                             }
                             if let Some(castle_id) = player.castle_id {
-                                self.game.attack_castle(castle_id, target_id);
+                                self.game.attack_castle(castle_id, target_id, unit_group_e);
                             }
                         }
                     }
@@ -153,8 +153,9 @@ impl Lobby {
                                 let _ = client_tx.send(L2S4C::CreateCastle);
                                 break;
                             }
-                            let _ =
-                                client_tx.send(L2S4C::Player(self.game.export_player(*client_id)));
+                            let _ = client_tx.send(L2S4C::Player(
+                                self.game.export_player(player.castle_id.unwrap_or(0)),
+                            ));
                         };
                     }
                 };

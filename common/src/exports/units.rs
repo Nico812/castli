@@ -8,7 +8,7 @@ pub enum UnitE {
 }
 
 impl UnitE {
-    pub const COUNT: usize = 4;
+    pub const COUNT: usize = 3;
 
     pub fn as_index(&self) -> usize {
         match self {
