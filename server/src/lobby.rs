@@ -8,7 +8,7 @@ use tokio::{sync::mpsc, time};
 
 use crate::{
     game::game::Game,
-    player::Player,
+    player::{Player, PlayerStatus},
     server::{ClientID, S2L},
 };
 use common::{C2S4L, L2S4C, r#const::MAX_LOBBY_PLAYERS};
@@ -121,20 +121,21 @@ impl Lobby {
                         // Here i should get the ClientID and updating the Players with the new castle GameID. The two ID are different.
                         // The game itself should manage the castle ID! So i wont pass clientId
                         if let Some(player) = self.players.get_mut(client_id) {
-                            let log;
-                            if player.has_castle() {
-                                log = "You already have a castle".to_string();
-                            } else {
-                                let castle_id =
-                                    self.game.add_player_castle(player.name.clone(), pos);
-                                player.set_castle_id(castle_id);
-                                log = "Castle created successfully".to_string();
+                            if player.status != PlayerStatus::Init {
+                                break;
                             }
+                            let castle_id = self.game.add_player_castle(player.name.clone(), pos);
+                            player.set_castle_id(castle_id);
+
+                            let log = "Castle created successfully".to_string();
                             let _ = client_tx.send(L2S4C::Log(log));
                         };
                     }
                     C2S4L::AttackCastle(target_id) => {
                         if let Some(player) = self.players.get(client_id) {
+                            if player.status != PlayerStatus::Alive {
+                                break;
+                            }
                             if let Some(castle_id) = player.castle_id {
                                 self.game.attack_castle(castle_id, target_id);
                             }
@@ -148,12 +149,12 @@ impl Lobby {
                     }
                     C2S4L::GivePlayer => {
                         if let Some(player) = self.players.get(client_id) {
-                            if player.has_castle() {
-                                let _ = client_tx
-                                    .send(L2S4C::Player(self.game.export_player(*client_id)));
-                            } else {
+                            if player.status == PlayerStatus::Init {
                                 let _ = client_tx.send(L2S4C::CreateCastle);
+                                break;
                             }
+                            let _ =
+                                client_tx.send(L2S4C::Player(self.game.export_player(*client_id)));
                         };
                     }
                 };
