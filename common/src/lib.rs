@@ -54,6 +54,7 @@ pub enum C2S {
 pub enum C2S4L {
     NewCastle(GameCoord),
     AttackCastle(GameID, UnitGroupE),
+    SendUnits(GameCoord, UnitGroupE),
     GiveObjs,
     GiveMap,
     GivePlayer,

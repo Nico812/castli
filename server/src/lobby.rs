@@ -64,6 +64,7 @@ impl Lobby {
                 }
                 _ = game_tick.tick() => {
                     self.game.step();
+                    self.update_players_status();
                 }
             }
         }
@@ -141,6 +142,17 @@ impl Lobby {
                             }
                         }
                     }
+                    C2S4L::SendUnits(target_pos, unit_group_e) => {
+                        if let Some(player) = self.players.get(client_id) {
+                            if player.status != PlayerStatus::Alive {
+                                break;
+                            }
+                            if let Some(castle_id) = player.castle_id {
+                                self.game
+                                    .send_troops(castle_id, target_pos, unit_group_e, None);
+                            }
+                        }
+                    }
                     C2S4L::GiveMap => {
                         let _ = client_tx.send(L2S4C::Map(self.game.export_map()));
                     }
@@ -165,5 +177,15 @@ impl Lobby {
 
     pub fn is_full(&self) -> bool {
         self.num_players >= MAX_LOBBY_PLAYERS
+    }
+
+    fn update_players_status(&mut self) {
+        for player in self.players.values_mut() {
+            if let Some(castle_id) = player.castle_id {
+                if !self.game.is_alive(&castle_id) {
+                    player.status = PlayerStatus::Dead;
+                }
+            }
+        }
     }
 }

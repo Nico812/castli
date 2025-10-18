@@ -58,6 +58,7 @@ impl FromTermCoord for GameCoord {
 pub enum T2C {
     NewCastle(GameCoord),
     AttackCastle(GameID, UnitGroupE),
+    SendUnits(GameCoord, UnitGroupE),
 }
 
 enum TuiState {
@@ -194,7 +195,7 @@ impl Tui {
                 let mut logs = logs_arc.lock().await;
 
                 // Selected object
-                let sel_obj_id = Self::get_selected_obj_id(&game_objs, *map_zoom, *map_look);
+                let sel_obj = Self::get_selected_obj(&game_objs, *map_zoom, *map_look);
 
                 canvas.render(
                     &game_objs,
@@ -202,7 +203,7 @@ impl Tui {
                     *map_zoom,
                     frame_dt,
                     &mut *logs,
-                    sel_obj_id,
+                    sel_obj,
                 );
                 canvas.update_and_print_cursor(*map_look);
                 let _ = std::io::stdout().flush();
@@ -297,21 +298,35 @@ impl Tui {
                     }
                     // attack
                     'a' => {
-                        if let Some(selected_id) = Self::get_selected_obj_id(
+                        if let Some(selected_obj) = Self::get_selected_obj(
                             &*game_objs_arc.lock().await,
                             *map_zoom_arc.lock().await,
                             *map_look_arc.lock().await,
                         ) {
-                            let _ = tx.send(T2C::AttackCastle(
-                                selected_id,
-                                UnitGroupE {
-                                    quantities: [1, 0, 0],
-                                },
-                            ));
-                            logs_arc
-                                .lock()
-                                .await
-                                .push_back(format!("Requesting to attack object {}!", selected_id));
+                            if let Some(target_id) = selected_obj.1 {
+                                let _ = tx.send(T2C::AttackCastle(
+                                    target_id,
+                                    UnitGroupE {
+                                        quantities: [1, 0, 0],
+                                    },
+                                ));
+                                logs_arc.lock().await.push_back(format!(
+                                    "Requesting to attack object {}!",
+                                    target_id
+                                ));
+                            } else {
+                                let target_coord = selected_obj.0;
+                                let _ = tx.send(T2C::SendUnits(
+                                    target_coord,
+                                    UnitGroupE {
+                                        quantities: [1, 0, 0],
+                                    },
+                                ));
+                                logs_arc.lock().await.push_back(format!(
+                                    "Requesting to send troops to ({}, {})!",
+                                    target_coord.y, target_coord.x
+                                ));
+                            }
                         }
                     }
                     // new castle
@@ -372,17 +387,19 @@ impl Tui {
         input.trim().to_string()
     }
 
-    fn get_selected_obj_id(
+    fn get_selected_obj(
         game_objs: &HashMap<GameID, GameObjE>,
         map_zoom: Option<TermCoord>,
         map_look: Option<TermCoord>,
-    ) -> Option<GameID> {
+    ) -> Option<(GameCoord, Option<GameID>)> {
         if let (Some(zoom), Some(look)) = (map_zoom, map_look) {
             let world_pos = GameCoord::from_term_coord(look, zoom);
-            game_objs
+            let target_id = game_objs
                 .iter()
                 .find(|(_, obj)| obj.get_pos() == world_pos)
-                .map(|(id, _)| *id)
+                .map(|(id, _)| *id);
+
+            Some((world_pos, target_id))
         } else {
             None
         }

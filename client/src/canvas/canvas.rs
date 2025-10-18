@@ -4,6 +4,7 @@
 //! rendering the different UI modules (central map, side panels, etc.) into
 //! a single view in the terminal.
 
+use common::GameCoord;
 use common::exports::game_object::GameObjE;
 use common::exports::player::PlayerE;
 use common::exports::tile::TileE;
@@ -88,21 +89,25 @@ impl Canvas {
         map_zoom: Option<TermCoord>,
         frame_dt: u64,
         logs: &mut VecDeque<String>,
-        sel_obj_id: Option<GameID>,
+        sel_obj: Option<(GameCoord, Option<GameID>)>,
     ) {
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
 
         // TODO: refactor modules logic
 
-        let mut selected_obj: Option<&GameObjE> = None;
-        if let Some(id) = sel_obj_id {
-            selected_obj = Some(&game_objs[&id]);
+        let mut selected_obj = None;
+        let mut selected_pos = None;
+        if let Some((pos, id)) = sel_obj {
+            selected_pos = Some(pos);
+            if let Some(selected_id) = id {
+                selected_obj = Some(&game_objs[&selected_id]);
+            }
         }
 
         for (row, line_contents) in self
             .right_module
-            .get_renderable_and_update(frame_dt, selected_obj)
+            .get_renderable_and_update(frame_dt, selected_pos, selected_obj)
             .iter()
             .enumerate()
         {

@@ -1,7 +1,7 @@
 use std::{boxed::Box, collections::VecDeque};
 
 use common::{
-    GameCoord,
+    GameCoord, GameID,
     exports::{game_object::DeployedUnitsE, units::UnitGroupE},
 };
 
@@ -43,6 +43,7 @@ impl Unit {
     }
 }
 
+#[derive(Clone)]
 pub struct UnitGroup {
     quantities: Box<[u16; Unit::COUNT]>,
     present_mask: u8,
@@ -57,6 +58,16 @@ impl UnitGroup {
             quantities,
             present_mask,
         }
+    }
+
+    //TODO: totally hange this when coding the dynamic battles.
+    pub fn get_strength(&self) -> u32 {
+        let mut str = 0;
+
+        for _ in self.iter_present() {
+            str += 1;
+        }
+        str
     }
 
     pub fn add_single_type(&mut self, unit: Unit, count: u16) {
@@ -87,6 +98,12 @@ impl UnitGroup {
             self.subtract_single_type(Unit::form_index(i).unwrap(), *quantity);
         }
         true
+    }
+
+    pub fn saturating_add(&mut self, other: &Self) {
+        for (i, quantity) in other.quantities.iter().enumerate() {
+            self.add_single_type(Unit::form_index(i).unwrap(), *quantity);
+        }
     }
 
     pub fn remove(&mut self, unit: Unit, count: u16) {
@@ -138,37 +155,79 @@ impl UnitGroup {
 }
 
 pub struct DeployedUnits {
-    owner: String,
-    pos: GameCoord,
+    pub owner_id: GameID,
+    pub target_id: Option<GameID>,
+    pub returning: bool,
     path: VecDeque<GameCoord>,
-    unit_group: UnitGroup,
+    path_index: usize,
+    path_size: usize,
+    pub unit_group: UnitGroup,
 }
 
 impl DeployedUnits {
     pub fn new(
-        owner: String,
-        pos: GameCoord,
+        owner_id: GameID,
+        target_id: Option<GameID>,
         path: VecDeque<GameCoord>,
         unit_group: UnitGroup,
     ) -> Self {
         Self {
-            owner,
-            pos,
+            owner_id,
+            target_id,
+            path_size: path.len(),
             path,
             unit_group,
+            path_index: 0,
+            returning: false,
         }
     }
 
+    pub fn get_pos(&self) -> GameCoord {
+        self.path[self.path_index]
+    }
+
     pub fn move_along_path(&mut self) {
-        if let Some(next_pos) = self.path.pop_front() {
-            self.pos = next_pos;
+        let next_index: usize = match self.returning {
+            true => self.path_index.saturating_sub(1),
+            false => self.path_index.saturating_add(1),
+        };
+
+        if let Some(_) = self.path.get(next_index) {
+            self.path_index = next_index;
         }
+    }
+
+    pub fn pending(&self) -> bool {
+        if self.path_index == 0 && self.returning == true {
+            return true;
+        }
+        if self.path_index >= self.path_size - 1 && self.returning == false {
+            return true;
+        }
+        false
+    }
+
+    pub fn arrived_home(&self) -> bool {
+        self.pending() && self.returning
+    }
+
+    pub fn arrived_target(&self) -> bool {
+        self.pending() && !self.returning
+    }
+
+    // This needs to be fully rethinked because i want dynamic battles!
+    pub fn get_strength(&self) -> u32 {
+        self.unit_group.get_strength()
+    }
+
+    pub fn r#return(&mut self) {
+        self.returning = true;
     }
 
     pub fn export(&self) -> DeployedUnitsE {
         DeployedUnitsE {
-            owner: self.owner.clone(),
-            pos: self.pos,
+            owner_id: self.owner_id,
+            pos: self.get_pos(),
         }
     }
 }
