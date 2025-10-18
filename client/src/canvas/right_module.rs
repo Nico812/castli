@@ -1,3 +1,4 @@
+use common::GameCoord;
 use common::exports::game_object::GameObjE;
 
 use super::{r#const::*, module_utility};
@@ -21,6 +22,7 @@ impl RightModule {
     pub fn get_renderable_and_update(
         &self,
         frame_dt: u64,
+        sel_pos: Option<GameCoord>,
         sel_obj: Option<&GameObjE>,
     ) -> Vec<Vec<TermCell>> {
         let mut content = vec![
@@ -32,8 +34,13 @@ impl RightModule {
         let dt_str = format!("Frame dt: {} ms", frame_dt);
         module_utility::draw_text(&mut content, &dt_str, 1, Self::PADDING_LEFT);
 
+        if let Some(pos) = sel_pos {
+            let sel_pos_str = format!("Looking at ({}, {})", pos.y, pos.x);
+            module_utility::draw_text(&mut content, &sel_pos_str, 3, Self::PADDING_LEFT);
+        }
+
         // Show looked object
-        let mut current_row = 3;
+        let mut current_row = 4;
         if let Some(obj) = sel_obj {
             match obj {
                 GameObjE::Castle(castle) => {
@@ -106,7 +113,7 @@ impl RightModule {
                     );
                     current_row += 2;
 
-                    let owner_str = format!("Owner: {}", deployed_units.owner);
+                    let owner_str = format!("Owner_id: {}", deployed_units.owner_id);
                     module_utility::draw_text(
                         &mut content,
                         &owner_str,

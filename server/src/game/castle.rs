@@ -7,12 +7,14 @@ pub struct Castle {
     pub pos: GameCoord,
     pub units: UnitGroup,
     pub peasants: u32,
+    pub is_alive: bool,
 }
 
 impl Castle {
     pub fn new(name: String, pos: GameCoord) -> Self {
         let mut units = UnitGroup::new();
         let peasants = 2;
+        let is_alive = true;
 
         units.add_single_type(Unit::Knight, 6);
 
@@ -21,6 +23,7 @@ impl Castle {
             pos,
             units,
             peasants,
+            is_alive,
         }
     }
 
@@ -28,6 +31,7 @@ impl Castle {
         CastleE {
             name: self.name.clone(),
             pos: self.pos,
+            is_alive: self.is_alive,
         }
     }
 }

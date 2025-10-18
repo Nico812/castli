@@ -52,6 +52,9 @@ impl ClientConnection {
                     tui::T2C::AttackCastle(target_id, unit_group_e) => {
                         C2S::C2S4L(C2S4L::AttackCastle(target_id, unit_group_e))
                     }
+                    tui::T2C::SendUnits(target_pos, unit_group_e) => {
+                        C2S::C2S4L(C2S4L::SendUnits(target_pos, unit_group_e))
+                    }
                 };
                 let _ = stream::send_msg_to_server(&mut self.writer, &msg).await;
             },

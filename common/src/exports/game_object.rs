@@ -1,5 +1,5 @@
-use crate::GameCoord;
 use crate::exports::player::PlayerE;
+use crate::{GameCoord, GameID};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -23,6 +23,7 @@ impl GameObjE {
 pub struct CastleE {
     pub name: String,
     pub pos: GameCoord,
+    pub is_alive: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -39,6 +40,6 @@ pub enum StructureTypeE {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DeployedUnitsE {
-    pub owner: String,
+    pub owner_id: GameID,
     pub pos: GameCoord,
 }
