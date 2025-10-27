@@ -43,11 +43,11 @@ impl Game {
     pub fn step(&mut self) {
         let mut pending_units_ids = vec![];
 
-        for (id, obj) in self.game_objs.values_mut().enumerate() {
+        for (id, obj) in self.game_objs.iter_mut() {
             match obj {
                 GameObj::DeployedUnits(deployed_units) => {
                     if deployed_units.pending() {
-                        pending_units_ids.push(id);
+                        pending_units_ids.push(id.clone());
                     } else {
                         deployed_units.move_along_path();
                     }
@@ -56,25 +56,35 @@ impl Game {
             }
         }
 
-        self.resolve_pending_units(pending_units_ids);
+        if pending_units_ids.len() >= 1 {
+            self.resolve_pending_units(&pending_units_ids);
+        }
     }
 
-    fn resolve_pending_units(&mut self, pending_units_ids: Vec<GameID>) {
+    fn resolve_pending_units(&mut self, pending_units_ids: &Vec<GameID>) {
         let mut to_home = vec![];
-        let mut to_target = vec![];
+        let mut to_attack = vec![];
 
         for units_id in pending_units_ids {
+            println!("SOME UNITS ARRIVED AT DEST, id:{}", units_id);
             if let Some(GameObj::DeployedUnits(units)) = self.game_objs.get_mut(&units_id) {
+                println!("please print");
                 if units.arrived_home() {
                     to_home.push((units_id, units.owner_id, units.unit_group.clone()));
                 } else if units.arrived_target() {
                     if let Some(target_id) = units.target_id {
-                        to_target.push((target_id, units.get_strength()));
+                        to_attack.push((target_id, units.get_strength()));
                     }
                     units.r#return();
                 }
             }
         }
+
+        println!(
+            "found {} pending units arrived home, and {} pending units arrived at target",
+            to_home.len(),
+            to_attack.len()
+        );
 
         for (units_id, owner_id, units) in to_home {
             if let Some(GameObj::Castle(owner)) = self.game_objs.get_mut(&owner_id) {
@@ -83,7 +93,7 @@ impl Game {
             self.game_objs.remove(&units_id);
         }
 
-        for (target_id, strength) in to_target {
+        for (target_id, strength) in to_attack {
             if let Some(GameObj::Castle(target)) = self.game_objs.get_mut(&target_id) {
                 let target_strength = target.units.get_strength();
                 if target_strength < strength {
