@@ -1,4 +1,8 @@
+**Castli**
+Ongoing project of a multiplayer terminal based strategy game.
+
 **How to build and run**
+(If you have windows I don't think it will work)
 You will need to have the Rust toolchain installed.
 
 git clone <repo-url>
