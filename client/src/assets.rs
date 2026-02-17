@@ -28,6 +28,11 @@ impl<'a> TermCell {
     }
 }
 
+pub const CURSOR_UP: TermCell = TermCell::new('\u{21B1}', FG_WHITE, BG_BLACK);
+pub const CURSOR_DOWN: TermCell = TermCell::new('\u{21B3}', FG_WHITE, BG_BLACK);
+// pub const CURSOR_UP: TermCell = TermCell::new('\u{27B9}', FG_WHITE, BG_BLACK);
+// pub const CURSOR_DOWN: TermCell = TermCell::new('\u{27B7}', FG_WHITE, BG_BLACK);
+
 pub const ERR_FG: &str = FG_MAGENTA;
 pub const ERR_BG: &str = BG_BRIGHT_MAGENTA;
 pub const ERR_EL: TermCell = TermCell::new('?', FG_MAGENTA, BG_BRIGHT_MAGENTA);

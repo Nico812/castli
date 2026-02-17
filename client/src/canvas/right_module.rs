@@ -34,6 +34,7 @@ impl RightModule {
         let dt_str = format!("Frame dt: {} ms", frame_dt);
         module_utility::draw_text(&mut content, &dt_str, 1, Self::PADDING_LEFT);
 
+        // Show looking coordinates
         if let Some(pos) = sel_pos {
             let sel_pos_str = format!("Looking at ({}, {})", pos.y, pos.x);
             module_utility::draw_text(&mut content, &sel_pos_str, 3, Self::PADDING_LEFT);

@@ -171,6 +171,7 @@ impl DeployedUnits {
         path: VecDeque<GameCoord>,
         unit_group: UnitGroup,
     ) -> Self {
+        println!("Deployed units, path length is {}", path.len());
         Self {
             owner_id,
             target_id,
@@ -189,7 +190,7 @@ impl DeployedUnits {
     pub fn move_along_path(&mut self) {
         let next_index: usize = match self.returning {
             true => self.path_index.saturating_sub(1),
-            false => self.path_index.saturating_add(1),
+            false => (self.path_index + 1).min(self.path_size - 1),
         };
 
         if let Some(_) = self.path.get(next_index) {
