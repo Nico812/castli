@@ -101,7 +101,7 @@ impl Canvas {
 
         for (row, line_contents) in self
             .right_module
-            .get_renderable_and_update(frame_dt, selected_pos, selected_obj)
+            .get_renderable_and_update(frame_dt, selected_pos)
             .iter()
             .enumerate()
         {

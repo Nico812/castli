@@ -226,8 +226,8 @@ impl CentralModule {
             };
             let pos = obj.get_pos();
             let rel_pos_in_quad: (isize, isize) = (
-                ((pos.y - zoom_coord.y) / 2) as isize,
-                (pos.x - zoom_coord.x) as isize,
+                ((pos.y as isize - zoom_coord.y as isize) / 2),
+                (pos.x as isize - zoom_coord.x as isize),
             );
             let art = obj.get_art(false);
             Self::add_art_to_cells(cells, art, rel_pos_in_quad);
@@ -282,8 +282,8 @@ impl CentralModule {
     }
 
     fn is_in_view(pos: GameCoord, zoom_coord: GameCoord, obj_size: (usize, usize)) -> bool {
-        let y = pos.y + obj_size.0 > zoom_coord.y && pos.y < zoom_coord.y + Self::CONTENT_ROWS * 2;
-        let x = pos.x + obj_size.1 > zoom_coord.x && pos.x < zoom_coord.x + Self::CONTENT_COLS;
+        let y = pos.y + obj_size.0 >= zoom_coord.y && pos.y < zoom_coord.y + Self::CONTENT_ROWS * 2;
+        let x = pos.x + obj_size.1 >= zoom_coord.x && pos.x < zoom_coord.x + Self::CONTENT_COLS;
         y && x
     }
 }
