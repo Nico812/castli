@@ -1,8 +1,5 @@
 //! # Client Core Logic
-//!
-//! This module contains the `Client` struct, which manages the client's
-//! connection to the server and orchestrates the different parts of the
-//! client application, such as the TUI and server communication.
+
 use std::collections::HashMap;
 use tokio::{
     io::BufReader,
@@ -27,16 +24,12 @@ pub enum ClientErr {
     DataNotReceived,
 }
 
-// --- Client Connection ---
-
-/// Manages the state and logic for the TCP connection to the server.
 struct ClientConnection {
     writer: OwnedWriteHalf,
     reader: BufReader<OwnedReadHalf>,
 }
 
 impl ClientConnection {
-    /// Handles the ongoing communication with the server in a loop.
     async fn communicate_with_server(
         &mut self,
         s2c_tx: &mpsc::UnboundedSender<S2C>,
@@ -86,7 +79,7 @@ impl ClientConnection {
         }
     }
 
-    /// Makes the initial request to get the game map from the server.
+    // Makes the initial request to get the game map from the server.
     async fn ask_for_map(&mut self) -> Result<Vec<Vec<TileE>>, ClientErr> {
         let _ = stream::send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GiveMap)).await;
 
@@ -96,7 +89,7 @@ impl ClientConnection {
         }
     }
 
-    /// Fetches the initial game objects and player data required to start the TUI.
+    // Fetches the initial game objects and player data required to start the TUI.
     async fn fetch_initial_state(
         &mut self,
     ) -> Result<(HashMap<usize, GameObjE>, Option<PlayerE>), ClientErr> {
@@ -119,9 +112,6 @@ impl ClientConnection {
     }
 }
 
-// --- Client ---
-
-/// The main Client struct acts as the application's orchestrator.
 pub struct Client {}
 
 impl Client {
@@ -131,7 +121,7 @@ impl Client {
 
     /// Runs the main client application.
     pub async fn run(&mut self) {
-        // 1. Connect to the Server
+        // Connect to the Server
         let addr = if ONLINE { IP_LOCAL } else { IP_LOCAL };
         let stream = match TcpStream::connect(addr).await {
             Ok(s) => s,
@@ -140,20 +130,20 @@ impl Client {
                 return;
             }
         };
+
         let (reader, mut writer) = stream.into_split();
 
-        // 2. Authenticate
+        // Authentication
         println!("Connection established. Please log in.");
         let name = Tui::login();
         let _ = stream::send_msg_to_server(&mut writer, &C2S::Login(name)).await;
 
-        // 3. Create the connection manager
+        // Fetch initial state required for the TUI
         let mut connection = ClientConnection {
             writer,
             reader: BufReader::new(reader),
         };
 
-        // 4. Fetch all initial state required for the TUI
         println!("Fetching initial game state...");
         let map = connection
             .ask_for_map()
@@ -165,11 +155,11 @@ impl Client {
             .expect("Failed to receive initial state.");
         println!("Game state received.");
 
-        // 5. Set up communication channels
+        // Set up communication channels
         let (s2c_tx, s2c_rx) = mpsc::unbounded_channel(); // Server -> TUI
         let (t2c_tx, mut t2c_rx) = mpsc::unbounded_channel(); // TUI -> Server
 
-        // 6. Spawn the dedicated network task
+        // Spawn the dedicated network task
         let communication_handle = tokio::spawn(async move {
             loop {
                 connection
@@ -178,11 +168,11 @@ impl Client {
             }
         });
 
-        // 7. Create and run the TUI. The main thread will now be dedicated to the UI.
-        let mut tui = Tui::new(t2c_tx, s2c_rx, map, initial_objs, initial_data);
-        tui.run().await; // This blocks until the user quits the TUI.
+        // Create and run the TUI. The main thread will now be dedicated to the UI.
+        let mut tui = Tui::new(t2c_tx, s2c_rx, initial_objs, initial_data);
+        tui.run(map).await; // This blocks until the user quits the TUI.
 
-        // 8. Cleanup
+        // Cleanup
         communication_handle.abort();
         println!("\nClient shutting down. Goodbye!");
     }

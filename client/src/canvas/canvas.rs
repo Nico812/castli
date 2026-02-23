@@ -19,6 +19,7 @@ use crate::canvas::RightModuleTab;
 use crate::canvas::r#const::*;
 use crate::canvas::{central_module::CentralModule, right_module::RightModule};
 use crate::coord::TermCoord;
+use crate::tui::SharedState;
 use common::{self, GameID};
 
 /// Represents the main drawing area for the TUI.
@@ -76,33 +77,19 @@ impl Canvas {
     ///
     /// It gets the content from each module, assembles it into a buffer,
     /// and then prints the buffer to stdout.
-    pub fn render(
-        &mut self,
-        game_objs: &HashMap<GameID, GameObjE>,
-        player_data: &PlayerE,
-        map_zoom: Option<GameCoord>,
-        map_look: Option<GameCoord>,
-        frame_dt: u64,
-        logs: &mut VecDeque<String>,
-        sel_obj: Option<(GameCoord, Option<GameID>)>,
-        right_mod_tab: RightModuleTab,
-    ) {
+    pub fn render(&mut self, state: &mut SharedState, frame_dt: u64) {
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
 
-        let mut selected_obj = None;
-        let mut selected_pos = None;
-        if let Some((pos, id)) = sel_obj {
-            selected_pos = Some(pos);
-            if let Some(selected_id) = id {
-                selected_obj = Some(&game_objs[&selected_id]);
-            }
-        }
-
-        self.right_module.change_tab(right_mod_tab);
+        self.right_module.change_tab(state.right_mod_tab);
         for (row, line_contents) in self
             .right_module
-            .get_renderable_and_update(frame_dt, selected_pos, player_data, logs)
+            .get_renderable_and_update(
+                frame_dt,
+                state.map_look,
+                &state.player_data,
+                &mut state.chat,
+            )
             .iter()
             .enumerate()
         {
@@ -113,7 +100,7 @@ impl Canvas {
 
         for (row, line_contents) in self
             .central_module
-            .get_renderable_and_update(game_objs, map_zoom, self.render_count)
+            .get_renderable_and_update(&state.game_objs, state.map_zoom, self.render_count)
             .iter()
             .enumerate()
         {
@@ -123,7 +110,7 @@ impl Canvas {
         }
 
         // Adding the cursor
-        if let (Some(look_coord), Some(zoom_coord)) = (map_look, map_zoom) {
+        if let (Some(look_coord), Some(zoom_coord)) = (state.map_look, state.map_zoom) {
             if let Some(term_coord) = TermCoord::from_game_coord(look_coord, zoom_coord) {
                 // Checks if the cursor is inside the central module
                 let is_inside_fov = term_coord.y > CENTRAL_MOD_POS.0

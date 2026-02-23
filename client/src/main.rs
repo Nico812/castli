@@ -10,6 +10,7 @@ mod client;
 mod r#const;
 mod coord;
 mod tui;
+mod input_handler;
 
 use client::Client;
 
