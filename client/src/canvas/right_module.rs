@@ -1,7 +1,6 @@
 use std::collections::VecDeque;
 
 use common::GameCoord;
-use common::exports::game_object::GameObjE;
 use common::exports::player::PlayerE;
 use common::exports::units::UnitE;
 
@@ -31,7 +30,7 @@ impl RightModule {
         frame_dt: u64,
         look_pos: Option<GameCoord>,
         player: &PlayerE,
-        logs: &mut VecDeque<String>,
+        logs: &VecDeque<String>,
     ) -> Vec<Vec<TermCell>> {
         let mut content = vec![
             vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
@@ -51,7 +50,7 @@ impl RightModule {
         self.current_tab = new_tab;
     }
 
-    fn add_debug_tab(content: &mut Vec<Vec<TermCell>>, frame_dt: u64, look_pos: Option<GameCoord>) {
+    fn add_debug_tab(content: &mut [Vec<TermCell>], frame_dt: u64, look_pos: Option<GameCoord>) {
         // Show FPS
         let dt_str = format!("Frame dt: {} ms", frame_dt);
         module_utility::draw_text_in_row(
@@ -75,7 +74,7 @@ impl RightModule {
         }
     }
 
-    fn add_castle_tab(content: &mut Vec<Vec<TermCell>>, player: &PlayerE) {
+    fn add_castle_tab(content: &mut [Vec<TermCell>], player: &PlayerE) {
         let pos_str = format!("({}, {})", player.pos.y, player.pos.x);
         let peasants_str = format!("Peasants: {}", player.peasants);
         let knights_str = format!(
@@ -108,7 +107,7 @@ impl RightModule {
         }
     }
 
-    pub fn add_logs_tab(content: &mut Vec<Vec<TermCell>>, logs: &mut VecDeque<String>) {
+    fn add_logs_tab(content: &mut Vec<Vec<TermCell>>, logs: &VecDeque<String>) {
         let mut chatbox: VecDeque<Vec<TermCell>> = VecDeque::with_capacity(Self::CONTENT_ROWS);
 
         for _ in 0..Self::CONTENT_ROWS {

@@ -55,20 +55,19 @@ pub fn add_frame(title: &str, renderable: &mut Vec<Vec<TermCell>>) {
     renderable.push(bot_row);
 
     for (pos, rend_col) in renderable.iter_mut().enumerate() {
-        let cell;
-        if pos == 0 || pos == renderable_rows + 1 {
-            cell = TermCell::new('+', FG_WHITE, BG_BLACK);
+        let cell = if pos == 0 || pos == renderable_rows + 1 {
+            TermCell::new('+', FG_WHITE, BG_BLACK)
         } else {
-            cell = TermCell::new('|', FG_WHITE, BG_BLACK);
-        }
+            TermCell::new('|', FG_WHITE, BG_BLACK)
+        };
         rend_col.insert(0, cell);
         rend_col.push(cell);
     }
 }
 
 pub fn draw_text_in_row(
-    content: &mut Vec<Vec<TermCell>>,
-    string: &String,
+    content: &mut [Vec<TermCell>],
+    string: &str,
     row: usize,
     pad_left: usize,
     pad_right: usize,

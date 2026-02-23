@@ -1,31 +1,23 @@
-//! # TUI Central Module
-//!
-//! Defines the `CentralModule`, which handles the central area of the Canvas.
+use std::collections::HashMap;
 
 use common::exports::game_object::GameObjE;
 use common::exports::tile::TileE;
 use common::{GameCoord, GameID};
-use rand::SeedableRng;
-use rand::{self, Rng, rngs};
-use std::collections::HashMap;
+use rand::rngs::SmallRng;
+use rand::{Rng, SeedableRng};
 
-use super::module_utility;
+use super::module_utility::{self, WithArt};
 use crate::ansi::*;
 use crate::assets::*;
-use crate::canvas::r#const::{
-    CENTRAL_MOD_POS, CENTRAL_MODULE_CONTENT_COLS, CENTRAL_MODULE_CONTENT_ROWS,
-};
-use crate::canvas::module_utility::WithArt;
-use crate::coord::TermCoord;
+use crate::canvas::r#const::{CENTRAL_MODULE_CONTENT_COLS, CENTRAL_MODULE_CONTENT_ROWS};
 
-use common::r#const::{self, MAP_COLS, MAP_ROWS};
+use common::r#const::{MAP_COLS, MAP_ROWS};
 
 pub struct CentralModule {
-    // Stores the tiles for the rest of the game, since they should be immutable
     map_tiles: Vec<Vec<TileE>>,
     world_map_tiles: Vec<Vec<TileE>>,
     wind_map: Vec<Vec<bool>>,
-    rng: rngs::SmallRng,
+    rng: SmallRng,
 }
 
 impl CentralModule {
@@ -33,17 +25,13 @@ impl CentralModule {
     pub const CONTENT_COLS: usize = CENTRAL_MODULE_CONTENT_COLS;
     const ZOOM_FACTOR: usize = 8;
 
-    // PUB
     pub fn new() -> Self {
-        let map_tiles = vec![vec![TileE::Grass; r#const::MAP_COLS]; r#const::MAP_ROWS];
-        let world_map_tiles = vec![
-            vec![TileE::Grass; r#const::MAP_COLS / Self::ZOOM_FACTOR];
-            r#const::MAP_ROWS / Self::ZOOM_FACTOR
-        ];
+        let map_tiles = vec![vec![TileE::Grass; MAP_COLS]; MAP_ROWS];
+        let world_map_tiles =
+            vec![vec![TileE::Grass; MAP_COLS / Self::ZOOM_FACTOR]; MAP_ROWS / Self::ZOOM_FACTOR];
 
-        // Wind
-        let mut rng = rand::rngs::SmallRng::seed_from_u64(1);
-        let mut wind_map = vec![vec![false; r#const::MAP_COLS]; r#const::MAP_ROWS / 2];
+        let mut rng = SmallRng::seed_from_u64(1);
+        let mut wind_map = vec![vec![false; MAP_COLS]; MAP_ROWS / 2];
         for cell in wind_map.iter_mut().flat_map(|row| row.iter_mut()) {
             *cell = rng.random_bool(0.1);
         }
@@ -92,9 +80,8 @@ impl CentralModule {
         cells
     }
 
-    // PRIVATE
     fn update_wind(&mut self, render_count: u32, zoom_coord: GameCoord) {
-        if render_count % 10 != 0 {
+        if !render_count.is_multiple_of(10) {
             return;
         }
         let row_start = zoom_coord.y / 2;
@@ -144,9 +131,9 @@ impl CentralModule {
                         let mut grass_count = 0;
                         let mut water_count = 0;
 
-                        for row in top_left_row..bottom_right_row {
-                            for col in top_left_col..bottom_right_col {
-                                match tiles[row][col] {
+                        for tile_row in &tiles[top_left_row..bottom_right_row] {
+                            for tile in &tile_row[top_left_col..bottom_right_col] {
+                                match tile {
                                     TileE::Grass => grass_count += 1,
                                     TileE::Water => water_count += 1,
                                     _ => {}
@@ -166,7 +153,7 @@ impl CentralModule {
         self.map_tiles = tiles;
     }
 
-    fn tiles_to_cells<'a>(tiles: &Vec<Vec<TileE>>, wind: &Vec<Vec<bool>>) -> Vec<Vec<TermCell>> {
+    fn tiles_to_cells(tiles: &[Vec<TileE>], wind: &[Vec<bool>]) -> Vec<Vec<TermCell>> {
         tiles
             .iter()
             .step_by(2)
@@ -216,18 +203,18 @@ impl CentralModule {
     }
 
     fn add_objs_to_cells(
-        cells: &mut Vec<Vec<TermCell>>,
+        cells: &mut [Vec<TermCell>],
         objs: &HashMap<GameID, GameObjE>,
         zoom_coord: GameCoord,
     ) {
         for obj in objs.values() {
             if !Self::is_in_view(obj.get_pos(), zoom_coord, obj.get_art_size(false)) {
                 continue;
-            };
+            }
             let pos = obj.get_pos();
             let rel_pos_in_quad: (isize, isize) = (
-                ((pos.y as isize - zoom_coord.y as isize) / 2),
-                (pos.x as isize - zoom_coord.x as isize),
+                (pos.y as isize - zoom_coord.y as isize) / 2,
+                pos.x as isize - zoom_coord.x as isize,
             );
             let art = obj.get_art(false);
             Self::add_art_to_cells(cells, art, rel_pos_in_quad);
@@ -235,7 +222,7 @@ impl CentralModule {
     }
 
     fn add_world_objs_to_cells(
-        cells: &mut Vec<Vec<TermCell>>,
+        cells: &mut [Vec<TermCell>],
         world_objs: &HashMap<GameID, GameObjE>,
     ) {
         for obj in world_objs.values() {
@@ -249,9 +236,7 @@ impl CentralModule {
         }
     }
 
-    // This can take negative positions to account for the objects that have origin outsize of view but
-    // with art that enters the view
-    fn add_art_to_cells(cells: &mut Vec<Vec<TermCell>>, art: &[&[TermCell]], pos: (isize, isize)) {
+    fn add_art_to_cells(cells: &mut [Vec<TermCell>], art: &[&[TermCell]], pos: (isize, isize)) {
         for (art_row, art_row_iter) in art.iter().enumerate() {
             for (art_col, art_cell) in art_row_iter.iter().enumerate() {
                 let cell_pos_y = pos.0 + art_row as isize;

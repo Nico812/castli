@@ -1,7 +1,7 @@
-pub mod canvas;
 mod central_module;
 pub mod r#const;
 mod module_utility;
+pub mod renderer;
 mod right_module;
 
 #[derive(Copy, Clone)]

@@ -1,14 +1,3 @@
-//! # Game Asset Definitions
-//!
-//! This module serves as a central "sprite sheet" for the terminal application,
-//! defining all static visual elements.
-//!
-//! The fundamental building block for all art is the `TermCell` struct, which
-//! represents a single character cell with a specific glyph, foreground color, and
-//! background color.
-
-#![allow(dead_code)]
-
 use crate::ansi::*;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -18,7 +7,7 @@ pub struct TermCell {
     pub bg: &'static str,
 }
 
-impl<'a> TermCell {
+impl TermCell {
     pub const fn new(ch: char, fg: &'static str, bg: &'static str) -> Self {
         Self { ch, fg, bg }
     }
@@ -30,14 +19,10 @@ impl<'a> TermCell {
 
 pub const CURSOR_UP: TermCell = TermCell::new('\u{21B1}', FG_WHITE, BG_BLACK);
 pub const CURSOR_DOWN: TermCell = TermCell::new('\u{21B3}', FG_WHITE, BG_BLACK);
-// pub const CURSOR_UP: TermCell = TermCell::new('\u{27B9}', FG_WHITE, BG_BLACK);
-// pub const CURSOR_DOWN: TermCell = TermCell::new('\u{27B7}', FG_WHITE, BG_BLACK);
 
 pub const ERR_FG: &str = FG_MAGENTA;
 pub const ERR_BG: &str = BG_BRIGHT_MAGENTA;
 pub const ERR_EL: TermCell = TermCell::new('?', FG_MAGENTA, BG_BRIGHT_MAGENTA);
-pub const BKG_FG: &str = FG_BLACK;
-pub const BKG_BG: &str = BG_BLACK;
 pub const BKG_EL: TermCell = TermCell::new('.', FG_RED, BG_BLACK);
 
 pub const GRASS_FG: &str = FG_GREEN;
@@ -106,11 +91,8 @@ pub const CASTLE_ART_WORLD: &[&[TermCell]] = &[&[
 pub const DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('U', FG_RED, BG_BLACK)]];
 
 pub const ERR_ART_SIZE: (usize, usize) = (ERR_ART.len(), ERR_ART[0].len());
-
 pub const CASTLE_ART_SIZE: (usize, usize) = (CASTLE_ART.len(), CASTLE_ART[0].len());
-
 pub const CASTLE_ART_WORLD_SIZE: (usize, usize) =
     (CASTLE_ART_WORLD.len(), CASTLE_ART_WORLD[0].len());
-
 pub const DEPLOYED_UNITS_ART_SIZE: (usize, usize) =
     (DEPLOYED_UNITS_ART.len(), DEPLOYED_UNITS_ART[0].len());
