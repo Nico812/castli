@@ -66,32 +66,21 @@ pub fn add_frame(title: &str, renderable: &mut Vec<Vec<TermCell>>) {
     }
 }
 
-pub fn draw_text(content: &mut Vec<Vec<TermCell>>, text: &str, row: usize, col: usize) {
-    if row >= content.len() {
-        return;
-    }
-    for (i, ch) in text.chars().enumerate() {
-        if col + i < content[row].len() {
-            content[row][col + i] = TermCell::new(ch, FG_WHITE, BG_BLACK);
-        }
-    }
-}
-
-pub fn string_into_content(
+pub fn draw_text_in_row(
     content: &mut Vec<Vec<TermCell>>,
     string: &String,
-    pos: usize,
+    row: usize,
     pad_left: usize,
     pad_right: usize,
 ) {
-    if pos >= content.len() {
+    if row >= content.len() {
         return;
     }
     let space_available = content[0].len() - pad_right;
 
     for (i, ch) in string.chars().enumerate() {
         if pad_left + i < space_available {
-            content[pos][pad_left + i] = TermCell {
+            content[row][pad_left + i] = TermCell {
                 ch,
                 fg: FG_WHITE,
                 bg: BG_BLACK,

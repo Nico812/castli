@@ -38,7 +38,18 @@ impl Map {
     }
 
     pub fn find_path(&self, start: GameCoord, end: GameCoord) -> Option<VecDeque<GameCoord>> {
-        pathfinding::bds::<MAP_ROWS, MAP_COLS>(start, end, &self.obstacles)
+        println!(
+            "Trying to make path from ({}, {}) to ({}, {})",
+            start.y, start.x, end.y, end.x
+        );
+        let path_opt = pathfinding::bds::<MAP_ROWS, MAP_COLS>(start, end, &self.obstacles);
+
+        if let Some(path) = path_opt {
+            if path.len() != 0 {
+                return Some(path);
+            };
+        }
+        None
     }
 
     fn cellular_automata() -> Vec<Vec<TileE>> {

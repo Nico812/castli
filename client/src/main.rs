@@ -8,6 +8,7 @@ mod assets;
 mod canvas;
 mod client;
 mod r#const;
+mod coord;
 mod tui;
 
 use client::Client;

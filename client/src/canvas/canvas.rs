@@ -13,12 +13,12 @@ use terminal_size::{Height, Width, terminal_size};
 
 use crate::ansi;
 use crate::assets;
+use crate::assets::CURSOR_DOWN;
+use crate::assets::CURSOR_UP;
+use crate::canvas::RightModuleTab;
 use crate::canvas::r#const::*;
-use crate::canvas::{
-    bottom_module::BottomModule, central_module::CentralModule, left_module::LeftModule,
-    right_module::RightModule,
-};
-use crate::tui::TermCoord;
+use crate::canvas::{central_module::CentralModule, right_module::RightModule};
+use crate::coord::TermCoord;
 use common::{self, GameID};
 
 /// Represents the main drawing area for the TUI.
@@ -31,9 +31,7 @@ pub struct Canvas {
     render_count: u32,
     // Modules
     central_module: CentralModule,
-    left_module: LeftModule,
     right_module: RightModule,
-    bottom_module: BottomModule,
 }
 
 impl Canvas {
@@ -60,17 +58,13 @@ impl Canvas {
         }
         let prev_frame = vec![vec![assets::ERR_EL; CANVAS_COLS]; CANVAS_ROWS];
         let central_module = CentralModule::new();
-        let left_module = LeftModule::new();
         let right_module = RightModule::new();
-        let bottom_module = BottomModule::new();
         Self {
             prev_frame,
             canvas_pos,
             render_count: 0,
             central_module,
-            left_module,
             right_module,
-            bottom_module,
         }
     }
 
@@ -86,15 +80,15 @@ impl Canvas {
         &mut self,
         game_objs: &HashMap<GameID, GameObjE>,
         player_data: &PlayerE,
-        map_zoom: Option<TermCoord>,
+        map_zoom: Option<GameCoord>,
+        map_look: Option<GameCoord>,
         frame_dt: u64,
         logs: &mut VecDeque<String>,
         sel_obj: Option<(GameCoord, Option<GameID>)>,
+        right_mod_tab: RightModuleTab,
     ) {
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
-
-        // TODO: refactor modules logic
 
         let mut selected_obj = None;
         let mut selected_pos = None;
@@ -105,9 +99,10 @@ impl Canvas {
             }
         }
 
+        self.right_module.change_tab(right_mod_tab);
         for (row, line_contents) in self
             .right_module
-            .get_renderable_and_update(frame_dt, selected_pos, selected_obj)
+            .get_renderable_and_update(frame_dt, selected_pos, player_data, logs)
             .iter()
             .enumerate()
         {
@@ -127,28 +122,26 @@ impl Canvas {
             }
         }
 
-        for (row, line_contents) in self
-            .left_module
-            .get_renderable_and_update(player_data)
-            .iter()
-            .enumerate()
-        {
-            for (col, cell) in line_contents.iter().enumerate() {
-                new_frame[row + LEFT_MOD_POS.0][col + LEFT_MOD_POS.1] = cell.clone();
+        // Adding the cursor
+        if let (Some(look_coord), Some(zoom_coord)) = (map_look, map_zoom) {
+            if let Some(term_coord) = TermCoord::from_game_coord(look_coord, zoom_coord) {
+                // Checks if the cursor is inside the central module
+                let is_inside_fov = term_coord.y > CENTRAL_MOD_POS.0
+                    && term_coord.x > CENTRAL_MOD_POS.1
+                    && term_coord.y <= (CENTRAL_MOD_POS.0 + CENTRAL_MODULE_CONTENT_ROWS)
+                    && term_coord.x <= (CENTRAL_MOD_POS.1 + CENTRAL_MODULE_CONTENT_COLS);
+
+                if is_inside_fov {
+                    if look_coord.y % 2 == 0 {
+                        new_frame[term_coord.y][term_coord.x - 1] = CURSOR_UP;
+                    } else {
+                        new_frame[term_coord.y][term_coord.x - 1] = CURSOR_DOWN;
+                    }
+                }
             }
         }
 
-        for (row, line_contents) in self
-            .bottom_module
-            .get_renderable_and_update(logs)
-            .iter()
-            .enumerate()
-        {
-            for (col, cell) in line_contents.iter().enumerate() {
-                new_frame[row + BOTTOM_MOD_POS.0][col + BOTTOM_MOD_POS.1] = cell.clone();
-            }
-        }
-
+        // Only prints where the canvas has changed to avoid studdering
         for row in 0..CANVAS_ROWS {
             for col in 0..CANVAS_COLS {
                 let new_cell = &new_frame[row][col];
@@ -167,18 +160,5 @@ impl Canvas {
         print!("{}", ansi::RESET_COLOR);
         self.prev_frame = new_frame;
         self.render_count += 1;
-    }
-
-    pub fn update_and_print_cursor(&self, map_look: Option<TermCoord>) {
-        if let Some(term_coord) = map_look {
-            // Terminal coord are 1-indexed + central mod frame = 2
-            print!(
-                "\r\x1b[{};{}H",
-                CENTRAL_MOD_POS.0 + term_coord.y + self.canvas_pos.0 + 2,
-                CENTRAL_MOD_POS.1 + term_coord.x + self.canvas_pos.1 + 2
-            );
-        } else {
-            print!("\r\x1b[0;0H");
-        }
     }
 }

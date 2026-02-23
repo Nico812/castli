@@ -12,9 +12,11 @@ use std::collections::HashMap;
 use super::module_utility;
 use crate::ansi::*;
 use crate::assets::*;
-use crate::canvas::r#const::{CENTRAL_MODULE_CONTENT_COLS, CENTRAL_MODULE_CONTENT_ROWS};
+use crate::canvas::r#const::{
+    CENTRAL_MOD_POS, CENTRAL_MODULE_CONTENT_COLS, CENTRAL_MODULE_CONTENT_ROWS,
+};
 use crate::canvas::module_utility::WithArt;
-use crate::tui::TermCoord;
+use crate::coord::TermCoord;
 
 use common::r#const::{self, MAP_COLS, MAP_ROWS};
 
@@ -61,7 +63,7 @@ impl CentralModule {
     pub fn get_renderable_and_update(
         &mut self,
         game_objs: &HashMap<GameID, GameObjE>,
-        map_zoom: Option<TermCoord>,
+        map_zoom: Option<GameCoord>,
         render_count: u32,
     ) -> Vec<Vec<TermCell>> {
         let mut cells;
@@ -79,7 +81,7 @@ impl CentralModule {
                 );
             }
             None => {
-                let wind_pos = TermCoord { x: 0, y: 0 };
+                let wind_pos = GameCoord { x: 0, y: 0 };
                 let cut_wind = self.get_wind_slice(wind_pos);
                 cells = Self::tiles_to_cells(&self.world_map_tiles, &cut_wind);
                 Self::add_world_objs_to_cells(&mut cells, game_objs);
@@ -91,11 +93,11 @@ impl CentralModule {
     }
 
     // PRIVATE
-    fn update_wind(&mut self, render_count: u32, zoom_coord: TermCoord) {
+    fn update_wind(&mut self, render_count: u32, zoom_coord: GameCoord) {
         if render_count % 10 != 0 {
             return;
         }
-        let row_start = zoom_coord.y;
+        let row_start = zoom_coord.y / 2;
         let col_start = zoom_coord.x;
 
         for row in row_start..row_start + Self::CONTENT_ROWS {
@@ -216,17 +218,19 @@ impl CentralModule {
     fn add_objs_to_cells(
         cells: &mut Vec<Vec<TermCell>>,
         objs: &HashMap<GameID, GameObjE>,
-        zoom_coord: TermCoord,
+        zoom_coord: GameCoord,
     ) {
         for obj in objs.values() {
-            if !Self::is_in_view_from_game_coord(obj.get_pos(), zoom_coord, obj.get_art_size(false))
-            {
+            if !Self::is_in_view(obj.get_pos(), zoom_coord, obj.get_art_size(false)) {
                 continue;
             };
             let pos = obj.get_pos();
-            let pos_in_quadrant = TermCoord::from_game_coord(pos, zoom_coord);
+            let rel_pos_in_quad: (isize, isize) = (
+                ((pos.y as isize - zoom_coord.y as isize) / 2),
+                (pos.x as isize - zoom_coord.x as isize),
+            );
             let art = obj.get_art(false);
-            Self::add_art_to_cells(cells, art, pos_in_quadrant);
+            Self::add_art_to_cells(cells, art, rel_pos_in_quad);
         }
     }
 
@@ -236,26 +240,26 @@ impl CentralModule {
     ) {
         for obj in world_objs.values() {
             let pos = obj.get_pos();
-            let term_pos: (i32, i32) = (
-                (pos.y / (Self::ZOOM_FACTOR * 2)) as i32,
-                (pos.x / Self::ZOOM_FACTOR) as i32,
+            let rel_pos_in_quad: (isize, isize) = (
+                (pos.y / (Self::ZOOM_FACTOR * 2)) as isize,
+                (pos.x / Self::ZOOM_FACTOR) as isize,
             );
             let art = obj.get_art(true);
-            Self::add_art_to_cells(cells, art, term_pos);
+            Self::add_art_to_cells(cells, art, rel_pos_in_quad);
         }
     }
 
     // This can take negative positions to account for the objects that have origin outsize of view but
     // with art that enters the view
-    fn add_art_to_cells(cells: &mut Vec<Vec<TermCell>>, art: &[&[TermCell]], pos: (i32, i32)) {
+    fn add_art_to_cells(cells: &mut Vec<Vec<TermCell>>, art: &[&[TermCell]], pos: (isize, isize)) {
         for (art_row, art_row_iter) in art.iter().enumerate() {
             for (art_col, art_cell) in art_row_iter.iter().enumerate() {
-                let cell_pos_y = pos.0 + art_row as i32;
-                let cell_pos_x = pos.1 + art_col as i32;
+                let cell_pos_y = pos.0 + art_row as isize;
+                let cell_pos_x = pos.1 + art_col as isize;
                 if cell_pos_y >= 0
                     && cell_pos_x >= 0
-                    && cell_pos_y < cells.len() as i32
-                    && cell_pos_x < cells[0].len() as i32
+                    && cell_pos_y < cells.len() as isize
+                    && cell_pos_x < cells[0].len() as isize
                 {
                     cells[cell_pos_y as usize][cell_pos_x as usize] = *art_cell;
                 }
@@ -263,28 +267,23 @@ impl CentralModule {
         }
     }
 
-    fn get_map_slice(&self, zoom_coord: TermCoord) -> Vec<Vec<TileE>> {
-        self.map_tiles[zoom_coord.y * 2..(zoom_coord.y + Self::CONTENT_ROWS) * 2]
+    fn get_map_slice(&self, zoom_coord: GameCoord) -> Vec<Vec<TileE>> {
+        self.map_tiles[zoom_coord.y..(zoom_coord.y + Self::CONTENT_ROWS * 2)]
             .iter()
             .map(|row| row[zoom_coord.x..zoom_coord.x + Self::CONTENT_COLS].to_vec())
             .collect()
     }
 
-    fn get_wind_slice(&self, zoom_coord: TermCoord) -> Vec<Vec<bool>> {
-        self.wind_map[zoom_coord.y..zoom_coord.y + Self::CONTENT_ROWS]
+    fn get_wind_slice(&self, zoom_coord: GameCoord) -> Vec<Vec<bool>> {
+        self.wind_map[zoom_coord.y / 2..zoom_coord.y / 2 + Self::CONTENT_ROWS]
             .iter()
             .map(|row| row[zoom_coord.x..zoom_coord.x + Self::CONTENT_COLS].to_vec())
             .collect()
     }
 
-    fn is_in_view_from_game_coord(
-        pos: GameCoord,
-        zoom_coord: TermCoord,
-        obj_size: (usize, usize),
-    ) -> bool {
-        let y =
-            pos.y / 2 + obj_size.0 > zoom_coord.y && pos.y / 2 < zoom_coord.y + Self::CONTENT_ROWS;
-        let x = pos.x + obj_size.1 > zoom_coord.x && pos.x < zoom_coord.x + Self::CONTENT_COLS;
+    fn is_in_view(pos: GameCoord, zoom_coord: GameCoord, obj_size: (usize, usize)) -> bool {
+        let y = pos.y + obj_size.0 >= zoom_coord.y && pos.y < zoom_coord.y + Self::CONTENT_ROWS * 2;
+        let x = pos.x + obj_size.1 >= zoom_coord.x && pos.x < zoom_coord.x + Self::CONTENT_COLS;
         y && x
     }
 }

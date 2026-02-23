@@ -17,42 +17,18 @@ use tokio::{
 };
 
 use crate::canvas::{
+    RightModuleTab,
     canvas::Canvas,
-    r#const::{CENTRAL_MODULE_CONTENT_COLS, CENTRAL_MODULE_CONTENT_ROWS},
+    r#const::{
+        CANVAS_COLS, CANVAS_ROWS, CENTRAL_MOD_POS, CENTRAL_MODULE_CONTENT_COLS,
+        CENTRAL_MODULE_CONTENT_ROWS,
+    },
 };
 use common::{
     GameCoord, GameID, L2S4C, S2C,
     r#const::{MAP_COLS, MAP_ROWS},
     exports::{game_object::GameObjE, player::PlayerE, tile::TileE, units::UnitGroupE},
 };
-
-#[derive(Clone, Copy)]
-pub struct TermCoord {
-    pub x: usize,
-    pub y: usize,
-}
-
-impl TermCoord {
-    pub fn from_game_coord(game_coord: GameCoord, map_zoom: TermCoord) -> (i32, i32) {
-        (
-            game_coord.y as i32 / 2 - map_zoom.y as i32,
-            game_coord.x as i32 - map_zoom.x as i32,
-        )
-    }
-}
-
-pub trait FromTermCoord {
-    fn from_term_coord(term_coord: TermCoord, map_zoom: TermCoord) -> GameCoord;
-}
-
-impl FromTermCoord for GameCoord {
-    fn from_term_coord(term_coord: TermCoord, map_zoom: TermCoord) -> GameCoord {
-        Self {
-            x: term_coord.x + map_zoom.x,
-            y: (term_coord.y + map_zoom.y) * 2,
-        }
-    }
-}
 
 /// Messages sent from the TUI to the client's network task.
 pub enum T2C {
@@ -77,9 +53,10 @@ pub struct Tui {
     canvas: Arc<Mutex<Canvas>>,
     game_objs: Arc<Mutex<HashMap<GameID, GameObjE>>>,
     player_data: Arc<Mutex<PlayerE>>,
-    map_zoom: Arc<Mutex<Option<TermCoord>>>,
-    map_look: Arc<Mutex<Option<TermCoord>>>,
+    map_zoom: Arc<Mutex<Option<GameCoord>>>,
+    map_look: Arc<Mutex<Option<GameCoord>>>,
     logs: Arc<Mutex<VecDeque<String>>>,
+    right_mod_tab: Arc<Mutex<RightModuleTab>>,
 }
 
 impl Tui {
@@ -110,6 +87,8 @@ impl Tui {
             }
         };
 
+        let right_mod_tab = RightModuleTab::Castle;
+
         Self {
             _state: state,
             to_server_tx: tx,
@@ -120,11 +99,13 @@ impl Tui {
             map_zoom: Arc::new(Mutex::new(map_zoom)),
             map_look: Arc::new(Mutex::new(map_look)),
             logs: Arc::new(Mutex::new(logs)),
+            right_mod_tab: Arc::new(Mutex::new(right_mod_tab)),
         }
     }
 
     pub async fn run(&mut self) {
         Self::set_raw_mode();
+        Self::hide_cursor();
 
         // Spawn a task to listen for updates from the server
         let com_handle = tokio::spawn(Self::listen_for_server_updates(
@@ -142,6 +123,7 @@ impl Tui {
             Arc::clone(&self.map_zoom),
             Arc::clone(&self.map_look),
             Arc::clone(&self.logs),
+            Arc::clone(&self.right_mod_tab),
         ));
 
         // The main TUI task now only handles player input
@@ -151,6 +133,7 @@ impl Tui {
             Arc::clone(&self.map_look),
             Arc::clone(&self.game_objs),
             Arc::clone(&self.logs),
+            Arc::clone(&self.right_mod_tab),
         )
         .await;
 
@@ -164,9 +147,10 @@ impl Tui {
         canvas_arc: Arc<Mutex<Canvas>>,
         game_objs_arc: Arc<Mutex<HashMap<GameID, GameObjE>>>,
         player_data_arc: Arc<Mutex<PlayerE>>,
-        map_zoom_arc: Arc<Mutex<Option<TermCoord>>>,
-        map_look_arc: Arc<Mutex<Option<TermCoord>>>,
+        map_zoom_arc: Arc<Mutex<Option<GameCoord>>>,
+        map_look_arc: Arc<Mutex<Option<GameCoord>>>,
         logs_arc: Arc<Mutex<VecDeque<String>>>,
+        right_mod_tab_arc: Arc<Mutex<RightModuleTab>>,
     ) {
         let mut render_tick = time::interval(time::Duration::from_millis(16));
         let mut last_frame = time::Instant::now();
@@ -187,25 +171,29 @@ impl Tui {
             // Rendering
             // Self::clear_screen(); // For cool visuals
             {
+                // TODO: Magari qui dovrei fare una copia degli oggetti che non vengono modificati,
+                // così che non tengo il lock più di quello di cui ho bisogno?
                 let mut canvas = canvas_arc.lock().await;
                 let game_objs = game_objs_arc.lock().await;
                 let player_data = player_data_arc.lock().await;
                 let map_zoom = map_zoom_arc.lock().await;
                 let map_look = map_look_arc.lock().await;
                 let mut logs = logs_arc.lock().await;
+                let right_mod_tab = right_mod_tab_arc.lock().await;
 
                 // Selected object
-                let sel_obj = Self::get_selected_obj(&game_objs, *map_zoom, *map_look);
+                let sel_obj = Self::get_selected_obj(&game_objs, *map_look);
 
                 canvas.render(
                     &game_objs,
                     &player_data,
                     *map_zoom,
+                    *map_look,
                     frame_dt,
                     &mut *logs,
                     sel_obj,
+                    *right_mod_tab,
                 );
-                canvas.update_and_print_cursor(*map_look);
                 let _ = std::io::stdout().flush();
             }
 
@@ -237,10 +225,11 @@ impl Tui {
 
     async fn handle_player_input(
         tx: &mpsc::UnboundedSender<T2C>,
-        map_zoom_arc: Arc<Mutex<Option<TermCoord>>>,
-        map_look_arc: Arc<Mutex<Option<TermCoord>>>,
+        map_zoom_arc: Arc<Mutex<Option<GameCoord>>>,
+        map_look_arc: Arc<Mutex<Option<GameCoord>>>,
         game_objs_arc: Arc<Mutex<HashMap<GameID, GameObjE>>>,
         logs_arc: Arc<Mutex<VecDeque<String>>>,
+        right_mod_tab: Arc<Mutex<RightModuleTab>>,
     ) {
         loop {
             let mut buf = [0u8; 8];
@@ -248,29 +237,17 @@ impl Tui {
 
             // Helper function for arrow keys player input.
             async fn apply_move(
-                map_zoom_arc: &Arc<Mutex<Option<TermCoord>>>,
-                map_look_arc: &Arc<Mutex<Option<TermCoord>>>,
+                map_zoom_arc: &Arc<Mutex<Option<GameCoord>>>,
+                map_look_arc: &Arc<Mutex<Option<GameCoord>>>,
                 dx: isize,
                 dy: isize,
             ) {
                 if let Some(ref mut map_look) = *map_look_arc.lock().await {
-                    map_look.x = (map_look.x as isize + dx)
-                        .max(0)
-                        .min(CENTRAL_MODULE_CONTENT_COLS as isize - 1)
-                        as usize;
-                    map_look.y = (map_look.y as isize + dy)
-                        .max(0)
-                        .min(CENTRAL_MODULE_CONTENT_ROWS as isize - 1)
-                        as usize;
+                    map_look.x = ((map_look.x as isize + dx).max(0) as usize).min(MAP_COLS);
+                    map_look.y = ((map_look.y as isize + dy).max(0) as usize).min(MAP_ROWS);
                 } else if let Some(ref mut map_zoom) = *map_zoom_arc.lock().await {
-                    map_zoom.x = (map_zoom.x as isize + dx)
-                        .max(0)
-                        .min(MAP_COLS as isize - CENTRAL_MODULE_CONTENT_COLS as isize)
-                        as usize;
-                    map_zoom.y = (map_zoom.y as isize + dy)
-                        .max(0)
-                        .min((MAP_ROWS / 2) as isize - CENTRAL_MODULE_CONTENT_ROWS as isize)
-                        as usize;
+                    map_zoom.x = ((map_zoom.x as isize + dx * 2).max(0) as usize).min(MAP_COLS);
+                    map_zoom.y = ((map_zoom.y as isize + dy * 2).max(0) as usize).min(MAP_ROWS);
                 }
             }
 
@@ -284,23 +261,25 @@ impl Tui {
                     'z' => {
                         let mut map_zoom = map_zoom_arc.lock().await;
                         *map_zoom = match *map_zoom {
-                            None => Some(TermCoord { x: 0, y: 0 }),
+                            None => Some(GameCoord { x: 0, y: 0 }),
                             Some(_) => None,
                         };
                     }
                     // look
                     'l' => {
                         let mut map_look = map_look_arc.lock().await;
-                        *map_look = match *map_look {
-                            None => Some(TermCoord { x: 0, y: 0 }),
-                            Some(_) => None,
-                        };
+                        let map_zoom = map_zoom_arc.lock().await;
+                        if let Some(zoom_coord) = *map_zoom {
+                            *map_look = match *map_look {
+                                None => Some(zoom_coord),
+                                Some(_) => None,
+                            };
+                        }
                     }
                     // attack
                     'a' => {
                         if let Some(selected_obj) = Self::get_selected_obj(
                             &*game_objs_arc.lock().await,
-                            *map_zoom_arc.lock().await,
                             *map_look_arc.lock().await,
                         ) {
                             if let Some(target_id) = selected_obj.1 {
@@ -334,10 +313,7 @@ impl Tui {
                         let Some(map_look) = *map_look_arc.lock().await else {
                             return;
                         };
-                        let Some(map_zoom) = *map_zoom_arc.lock().await else {
-                            return;
-                        };
-                        let new_castle_coords = GameCoord::from_term_coord(map_look, map_zoom);
+                        let new_castle_coords = map_look;
 
                         let _ = tx.send(T2C::NewCastle(new_castle_coords));
 
@@ -347,6 +323,17 @@ impl Tui {
                             new_castle_coords.y, new_castle_coords.x
                         ));
                     }
+                    // right module tab change
+                    '1' => {
+                        *right_mod_tab.lock().await = RightModuleTab::Castle;
+                    }
+                    '2' => {
+                        *right_mod_tab.lock().await = RightModuleTab::Logs;
+                    }
+                    '3' => {
+                        *right_mod_tab.lock().await = RightModuleTab::Debug;
+                    }
+
                     _ => {}
                 }
             }
@@ -356,8 +343,8 @@ impl Tui {
                     // Arrow keys
                     [0x1b, b'[', b'A'] => apply_move(&map_zoom_arc, &map_look_arc, 0, -1).await,
                     [0x1b, b'[', b'B'] => apply_move(&map_zoom_arc, &map_look_arc, 0, 1).await,
-                    [0x1b, b'[', b'C'] => apply_move(&map_zoom_arc, &map_look_arc, 2, 0).await,
-                    [0x1b, b'[', b'D'] => apply_move(&map_zoom_arc, &map_look_arc, -2, 0).await,
+                    [0x1b, b'[', b'C'] => apply_move(&map_zoom_arc, &map_look_arc, 1, 0).await,
+                    [0x1b, b'[', b'D'] => apply_move(&map_zoom_arc, &map_look_arc, -1, 0).await,
 
                     // Ctrl + arrows (ESC [ 1 ; 5 X])
                     [0x1b, b'[', b'1', b';', b'5', b'A'] => {
@@ -367,10 +354,10 @@ impl Tui {
                         apply_move(&map_zoom_arc, &map_look_arc, 0, 16).await
                     }
                     [0x1b, b'[', b'1', b';', b'5', b'C'] => {
-                        apply_move(&map_zoom_arc, &map_look_arc, 32, 0).await
+                        apply_move(&map_zoom_arc, &map_look_arc, 16, 0).await
                     }
                     [0x1b, b'[', b'1', b';', b'5', b'D'] => {
-                        apply_move(&map_zoom_arc, &map_look_arc, -32, 0).await
+                        apply_move(&map_zoom_arc, &map_look_arc, -16, 0).await
                     }
                     _ => {}
                 }
@@ -389,11 +376,9 @@ impl Tui {
 
     fn get_selected_obj(
         game_objs: &HashMap<GameID, GameObjE>,
-        map_zoom: Option<TermCoord>,
-        map_look: Option<TermCoord>,
+        map_look: Option<GameCoord>,
     ) -> Option<(GameCoord, Option<GameID>)> {
-        if let (Some(zoom), Some(look)) = (map_zoom, map_look) {
-            let world_pos = GameCoord::from_term_coord(look, zoom);
+        if let Some(world_pos) = map_look {
             let target_id = game_objs
                 .iter()
                 .find(|(_, obj)| obj.get_pos() == world_pos)
@@ -426,5 +411,9 @@ impl Tui {
             .arg("sane")
             .status()
             .expect("Failed to reset terminal mode");
+    }
+
+    fn hide_cursor() {
+        print!("\x1b[?25l");
     }
 }

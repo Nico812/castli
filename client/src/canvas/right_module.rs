@@ -1,130 +1,134 @@
+use std::collections::VecDeque;
+
 use common::GameCoord;
 use common::exports::game_object::GameObjE;
+use common::exports::player::PlayerE;
+use common::exports::units::UnitE;
 
 use super::{r#const::*, module_utility};
 use crate::ansi::*;
 use crate::assets::*;
+use crate::canvas::RightModuleTab;
+use crate::canvas::module_utility::draw_text_in_row;
 
 pub struct RightModule {
-    // Inspect
+    current_tab: RightModuleTab,
 }
 
 impl RightModule {
-    const PADDING_LEFT: usize = 2;
-    const CONTENT_ROWS: usize = RIGHT_MODULE_ROWS - 2;
-    const CONTENT_COLS: usize = RIGHT_MODULE_COLS - 2;
+    const PADDING_HORI: usize = 2;
+    const PADDING_VERT: usize = 1;
+    const CONTENT_ROWS: usize = RIGHT_MODULE_ROWS.saturating_sub(Self::PADDING_VERT * 2);
+    const CONTENT_COLS: usize = RIGHT_MODULE_COLS.saturating_sub(Self::PADDING_HORI * 2);
 
     pub fn new() -> Self {
-        Self {}
+        let current_tab = RightModuleTab::Castle;
+        Self { current_tab }
     }
 
-    // TODO: refactor using the utility function defined at the end of module_utility.rs
     pub fn get_renderable_and_update(
         &self,
         frame_dt: u64,
-        sel_pos: Option<GameCoord>,
-        sel_obj: Option<&GameObjE>,
+        look_pos: Option<GameCoord>,
+        player: &PlayerE,
+        logs: &mut VecDeque<String>,
     ) -> Vec<Vec<TermCell>> {
         let mut content = vec![
             vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
             Self::CONTENT_ROWS
         ];
 
-        // Show FPS
-        let dt_str = format!("Frame dt: {} ms", frame_dt);
-        module_utility::draw_text(&mut content, &dt_str, 1, Self::PADDING_LEFT);
-
-        if let Some(pos) = sel_pos {
-            let sel_pos_str = format!("Looking at ({}, {})", pos.y, pos.x);
-            module_utility::draw_text(&mut content, &sel_pos_str, 3, Self::PADDING_LEFT);
-        }
-
-        // Show looked object
-        let mut current_row = 4;
-        if let Some(obj) = sel_obj {
-            match obj {
-                GameObjE::Castle(castle) => {
-                    module_utility::draw_text(
-                        &mut content,
-                        "--- Castle ---",
-                        current_row,
-                        Self::PADDING_LEFT,
-                    );
-                    current_row += 2;
-
-                    let name_str = format!("Name: {}", castle.name);
-                    module_utility::draw_text(
-                        &mut content,
-                        &name_str,
-                        current_row,
-                        Self::PADDING_LEFT,
-                    );
-                    current_row += 1;
-
-                    let pos_str = format!("Position: ({}, {})", castle.pos.y, castle.pos.x);
-                    module_utility::draw_text(
-                        &mut content,
-                        &pos_str,
-                        current_row,
-                        Self::PADDING_LEFT,
-                    );
-                }
-                GameObjE::Structure(structure) => {
-                    module_utility::draw_text(
-                        &mut content,
-                        "--- Structure ---",
-                        current_row,
-                        Self::PADDING_LEFT,
-                    );
-                    current_row += 2;
-
-                    let name_str = format!("Name: {}", structure.name);
-                    module_utility::draw_text(
-                        &mut content,
-                        &name_str,
-                        current_row,
-                        Self::PADDING_LEFT,
-                    );
-                    current_row += 1;
-
-                    let type_str = format!("Type: {:?}", structure.r#type);
-                    module_utility::draw_text(
-                        &mut content,
-                        &type_str,
-                        current_row,
-                        Self::PADDING_LEFT,
-                    );
-                    current_row += 1;
-
-                    let pos_str = format!("Position: ({}, {})", structure.pos.y, structure.pos.x);
-                    module_utility::draw_text(
-                        &mut content,
-                        &pos_str,
-                        current_row,
-                        Self::PADDING_LEFT,
-                    );
-                }
-                GameObjE::DeployedUnits(deployed_units) => {
-                    module_utility::draw_text(
-                        &mut content,
-                        "--- Unit Group ---",
-                        current_row,
-                        Self::PADDING_LEFT,
-                    );
-                    current_row += 2;
-
-                    let owner_str = format!("Owner_id: {}", deployed_units.owner_id);
-                    module_utility::draw_text(
-                        &mut content,
-                        &owner_str,
-                        current_row,
-                        Self::PADDING_LEFT,
-                    );
-                }
-            }
-        }
-
+        match self.current_tab {
+            RightModuleTab::Castle => Self::add_castle_tab(&mut content, player),
+            RightModuleTab::Debug => Self::add_debug_tab(&mut content, frame_dt, look_pos),
+            RightModuleTab::Logs => Self::add_logs_tab(&mut content, logs),
+        };
         module_utility::add_frame("inspect", &mut content);
         content
+    }
+
+    pub fn change_tab(&mut self, new_tab: RightModuleTab) {
+        self.current_tab = new_tab;
+    }
+
+    fn add_debug_tab(content: &mut Vec<Vec<TermCell>>, frame_dt: u64, look_pos: Option<GameCoord>) {
+        // Show FPS
+        let dt_str = format!("Frame dt: {} ms", frame_dt);
+        module_utility::draw_text_in_row(
+            content,
+            &dt_str,
+            1,
+            Self::PADDING_HORI,
+            Self::PADDING_HORI,
+        );
+
+        // Show looking coordinates
+        if let Some(pos) = look_pos {
+            let look_pos_str = format!("Looking at ({}, {})", pos.y, pos.x);
+            module_utility::draw_text_in_row(
+                content,
+                &look_pos_str,
+                3,
+                Self::PADDING_HORI,
+                Self::PADDING_HORI,
+            );
+        }
+    }
+
+    fn add_castle_tab(content: &mut Vec<Vec<TermCell>>, player: &PlayerE) {
+        let pos_str = format!("({}, {})", player.pos.y, player.pos.x);
+        let peasants_str = format!("Peasants: {}", player.peasants);
+        let knights_str = format!(
+            "Knights: {}",
+            player.units.quantities[UnitE::Knight.as_index()]
+        );
+        let mages_str = format!("Mages: {}", player.units.quantities[UnitE::Mage.as_index()]);
+        let dragons_str = format!(
+            "Dragons: {}",
+            player.units.quantities[UnitE::Dragon.as_index()]
+        );
+
+        let infos_to_print = [
+            (&player.name, 3),
+            (&pos_str, 5),
+            (&peasants_str, 6),
+            (&knights_str, 8),
+            (&mages_str, 9),
+            (&dragons_str, 10),
+        ];
+
+        for info_to_print in infos_to_print {
+            draw_text_in_row(
+                content,
+                info_to_print.0,
+                info_to_print.1,
+                Self::PADDING_HORI,
+                Self::PADDING_HORI,
+            );
+        }
+    }
+
+    pub fn add_logs_tab(content: &mut Vec<Vec<TermCell>>, logs: &mut VecDeque<String>) {
+        let mut chatbox: VecDeque<Vec<TermCell>> = VecDeque::with_capacity(Self::CONTENT_ROWS);
+
+        for _ in 0..Self::CONTENT_ROWS {
+            chatbox.push_back(vec![
+                TermCell::new(' ', FG_BLACK, BG_BLACK);
+                Self::CONTENT_COLS
+            ]);
+        }
+
+        for log in logs {
+            chatbox.pop_front();
+            let mut row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
+            for (i, ch) in log.chars().enumerate() {
+                if i < Self::CONTENT_COLS - Self::PADDING_HORI {
+                    row[Self::PADDING_HORI + i] = TermCell::new(ch, FG_WHITE, BG_BLACK);
+                }
+            }
+            chatbox.push_back(row);
+        }
+
+        *content = chatbox.into();
     }
 }
