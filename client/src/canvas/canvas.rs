@@ -15,6 +15,7 @@ use crate::ansi;
 use crate::assets;
 use crate::assets::CURSOR_DOWN;
 use crate::assets::CURSOR_UP;
+use crate::canvas::RightModuleTab;
 use crate::canvas::r#const::*;
 use crate::canvas::{central_module::CentralModule, right_module::RightModule};
 use crate::coord::TermCoord;
@@ -84,11 +85,10 @@ impl Canvas {
         frame_dt: u64,
         logs: &mut VecDeque<String>,
         sel_obj: Option<(GameCoord, Option<GameID>)>,
+        right_mod_tab: RightModuleTab,
     ) {
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
-
-        // TODO: refactor modules logic
 
         let mut selected_obj = None;
         let mut selected_pos = None;
@@ -99,9 +99,10 @@ impl Canvas {
             }
         }
 
+        self.right_module.change_tab(right_mod_tab);
         for (row, line_contents) in self
             .right_module
-            .get_renderable_and_update(frame_dt, selected_pos)
+            .get_renderable_and_update(frame_dt, selected_pos, player_data, logs)
             .iter()
             .enumerate()
         {

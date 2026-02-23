@@ -17,6 +17,7 @@ use tokio::{
 };
 
 use crate::canvas::{
+    RightModuleTab,
     canvas::Canvas,
     r#const::{
         CANVAS_COLS, CANVAS_ROWS, CENTRAL_MOD_POS, CENTRAL_MODULE_CONTENT_COLS,
@@ -55,6 +56,7 @@ pub struct Tui {
     map_zoom: Arc<Mutex<Option<GameCoord>>>,
     map_look: Arc<Mutex<Option<GameCoord>>>,
     logs: Arc<Mutex<VecDeque<String>>>,
+    right_mod_tab: Arc<Mutex<RightModuleTab>>,
 }
 
 impl Tui {
@@ -85,6 +87,8 @@ impl Tui {
             }
         };
 
+        let right_mod_tab = RightModuleTab::Castle;
+
         Self {
             _state: state,
             to_server_tx: tx,
@@ -95,6 +99,7 @@ impl Tui {
             map_zoom: Arc::new(Mutex::new(map_zoom)),
             map_look: Arc::new(Mutex::new(map_look)),
             logs: Arc::new(Mutex::new(logs)),
+            right_mod_tab: Arc::new(Mutex::new(right_mod_tab)),
         }
     }
 
@@ -118,6 +123,7 @@ impl Tui {
             Arc::clone(&self.map_zoom),
             Arc::clone(&self.map_look),
             Arc::clone(&self.logs),
+            Arc::clone(&self.right_mod_tab),
         ));
 
         // The main TUI task now only handles player input
@@ -127,6 +133,7 @@ impl Tui {
             Arc::clone(&self.map_look),
             Arc::clone(&self.game_objs),
             Arc::clone(&self.logs),
+            Arc::clone(&self.right_mod_tab),
         )
         .await;
 
@@ -143,6 +150,7 @@ impl Tui {
         map_zoom_arc: Arc<Mutex<Option<GameCoord>>>,
         map_look_arc: Arc<Mutex<Option<GameCoord>>>,
         logs_arc: Arc<Mutex<VecDeque<String>>>,
+        right_mod_tab_arc: Arc<Mutex<RightModuleTab>>,
     ) {
         let mut render_tick = time::interval(time::Duration::from_millis(16));
         let mut last_frame = time::Instant::now();
@@ -163,12 +171,15 @@ impl Tui {
             // Rendering
             // Self::clear_screen(); // For cool visuals
             {
+                // TODO: Magari qui dovrei fare una copia degli oggetti che non vengono modificati,
+                // così che non tengo il lock più di quello di cui ho bisogno?
                 let mut canvas = canvas_arc.lock().await;
                 let game_objs = game_objs_arc.lock().await;
                 let player_data = player_data_arc.lock().await;
                 let map_zoom = map_zoom_arc.lock().await;
                 let map_look = map_look_arc.lock().await;
                 let mut logs = logs_arc.lock().await;
+                let right_mod_tab = right_mod_tab_arc.lock().await;
 
                 // Selected object
                 let sel_obj = Self::get_selected_obj(&game_objs, *map_look);
@@ -181,6 +192,7 @@ impl Tui {
                     frame_dt,
                     &mut *logs,
                     sel_obj,
+                    *right_mod_tab,
                 );
                 let _ = std::io::stdout().flush();
             }
@@ -217,6 +229,7 @@ impl Tui {
         map_look_arc: Arc<Mutex<Option<GameCoord>>>,
         game_objs_arc: Arc<Mutex<HashMap<GameID, GameObjE>>>,
         logs_arc: Arc<Mutex<VecDeque<String>>>,
+        right_mod_tab: Arc<Mutex<RightModuleTab>>,
     ) {
         loop {
             let mut buf = [0u8; 8];
@@ -310,6 +323,17 @@ impl Tui {
                             new_castle_coords.y, new_castle_coords.x
                         ));
                     }
+                    // right module tab change
+                    '1' => {
+                        *right_mod_tab.lock().await = RightModuleTab::Castle;
+                    }
+                    '2' => {
+                        *right_mod_tab.lock().await = RightModuleTab::Logs;
+                    }
+                    '3' => {
+                        *right_mod_tab.lock().await = RightModuleTab::Debug;
+                    }
+
                     _ => {}
                 }
             }
