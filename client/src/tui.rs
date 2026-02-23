@@ -1,21 +1,19 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    io::Write,
-    process::Command,
-    sync::Arc,
-};
-use tokio::{
-    io::{self, AsyncReadExt},
-    sync::{Mutex, mpsc},
-    time,
-};
+use std::collections::{HashMap, VecDeque};
+use std::sync::Arc;
 
-use crate::canvas::{RightModuleTab, renderer::Canvas};
-use common::{
-    GameCoord, GameID, L2S4C, S2C,
-    r#const::{MAP_COLS, MAP_ROWS},
-    exports::{game_object::GameObjE, player::PlayerE, tile::TileE, units::UnitGroupE},
-};
+use tokio::io::{self, AsyncReadExt};
+use tokio::sync::{Mutex, mpsc};
+use tokio::time;
+
+use crate::canvas::{Canvas, RightModuleTab};
+use crate::logger;
+use crate::terminal;
+use common::r#const::{MAP_COLS, MAP_ROWS};
+use common::exports::game_object::GameObjE;
+use common::exports::player::PlayerE;
+use common::exports::tile::TileE;
+use common::exports::units::UnitGroupE;
+use common::{GameCoord, GameID, L2S4C, S2C};
 
 pub enum T2C {
     NewCastle(GameCoord),
@@ -68,8 +66,9 @@ impl Tui {
     }
 
     pub async fn run(self) {
-        Self::set_raw_mode();
-        Self::hide_cursor();
+        terminal::set_raw_mode();
+        terminal::hide_cursor();
+        logger::write(format_args!("tui: started"));
 
         let state = self.state;
 
@@ -84,14 +83,15 @@ impl Tui {
 
         com_handle.abort();
         ui_handle.abort();
-        Self::reset_mode();
+        terminal::reset_mode();
+        logger::write(format_args!("tui: shutdown"));
     }
 
     async fn render_loop(mut canvas: Canvas, state: Arc<Mutex<SharedState>>) {
         let mut render_tick = time::interval(time::Duration::from_millis(16));
         let mut last_frame = time::Instant::now();
         let mut frame_dt: u64 = 0;
-        Self::clear_screen();
+        terminal::clear_screen();
 
         loop {
             let now = time::Instant::now();
@@ -113,7 +113,6 @@ impl Tui {
                     frame_dt,
                     &guard.logs,
                 );
-                let _ = std::io::stdout().flush();
             }
 
             render_tick.tick().await;
@@ -127,9 +126,15 @@ impl Tui {
         while let Some(msg) = rx.recv().await {
             let mut state = state.lock().await;
             match msg {
-                S2C::L2S4C(L2S4C::GameObjs(objs)) => state.game_objs = objs,
+                S2C::L2S4C(L2S4C::GameObjs(objs)) => {
+                    logger::write(format_args!("tui: received {} game objects", objs.len()));
+                    state.game_objs = objs;
+                }
                 S2C::L2S4C(L2S4C::Player(data)) => state.player_data = data,
-                S2C::L2S4C(L2S4C::Log(log)) => state.logs.push_back(log),
+                S2C::L2S4C(L2S4C::Log(msg)) => {
+                    logger::write(format_args!("tui: server log: {msg}"));
+                    state.logs.push_back(msg);
+                }
                 _ => {}
             }
         }
@@ -138,11 +143,24 @@ impl Tui {
     async fn handle_player_input(tx: mpsc::UnboundedSender<T2C>, state: Arc<Mutex<SharedState>>) {
         loop {
             let mut buf = [0u8; 8];
-            let n = io::stdin().read(&mut buf).await.unwrap();
+            let n = match io::stdin().read(&mut buf).await {
+                Ok(0) => {
+                    logger::write(format_args!("tui: stdin EOF"));
+                    break;
+                }
+                Err(e) => {
+                    logger::write(format_args!("tui: stdin error: {e}"));
+                    break;
+                }
+                Ok(n) => n,
+            };
 
             if n == 1 {
                 match buf[0] as char {
-                    'q' => break,
+                    'q' => {
+                        logger::write(format_args!("tui: quit requested"));
+                        break;
+                    }
                     'z' => {
                         let mut s = state.lock().await;
                         s.map_zoom = match s.map_zoom {
@@ -218,13 +236,6 @@ impl Tui {
         }
     }
 
-    pub fn login() -> String {
-        let mut input = String::new();
-        println!("Login:");
-        std::io::stdin().read_line(&mut input).unwrap();
-        input.trim().to_string()
-    }
-
     fn get_selected_obj(
         game_objs: &HashMap<GameID, GameObjE>,
         map_look: Option<GameCoord>,
@@ -235,28 +246,5 @@ impl Tui {
             .find(|(_, obj)| obj.get_pos() == world_pos)
             .map(|(id, _)| *id);
         Some((world_pos, target_id))
-    }
-
-    fn clear_screen() {
-        let _ = Command::new("clear").status();
-    }
-
-    fn set_raw_mode() {
-        Command::new("stty")
-            .arg("raw")
-            .arg("-echo")
-            .status()
-            .expect("Failed to set terminal to raw mode");
-    }
-
-    fn reset_mode() {
-        Command::new("stty")
-            .arg("sane")
-            .status()
-            .expect("Failed to reset terminal mode");
-    }
-
-    fn hide_cursor() {
-        print!("\x1b[?25l");
     }
 }

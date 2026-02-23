@@ -1,21 +1,6 @@
-use crate::ansi::*;
+use common::exports::game_object::GameObjE;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct TermCell {
-    pub ch: char,
-    pub fg: &'static str,
-    pub bg: &'static str,
-}
-
-impl TermCell {
-    pub const fn new(ch: char, fg: &'static str, bg: &'static str) -> Self {
-        Self { ch, fg, bg }
-    }
-
-    pub fn as_string(&self) -> String {
-        format!("{}{}{}", self.fg, self.bg, self.ch)
-    }
-}
+use super::cell::*;
 
 pub const CURSOR_UP: TermCell = TermCell::new('\u{21B1}', FG_WHITE, BG_BLACK);
 pub const CURSOR_DOWN: TermCell = TermCell::new('\u{21B3}', FG_WHITE, BG_BLACK);
@@ -28,7 +13,7 @@ pub const BKG_EL: TermCell = TermCell::new('.', FG_RED, BG_BLACK);
 pub const GRASS_FG: &str = FG_GREEN;
 pub const GRASS_BG: &str = BG_GREEN;
 pub const GRASS_EL_1: TermCell = TermCell::new(' ', FG_BRIGHT_GREEN, GRASS_BG);
-pub const GRASS_EL_2: TermCell = TermCell::new('\"', FG_BRIGHT_GREEN, GRASS_BG);
+pub const GRASS_EL_2: TermCell = TermCell::new('"', FG_BRIGHT_GREEN, GRASS_BG);
 
 pub const WATER_FG: &str = FG_BLUE;
 pub const WATER_BG: &str = BG_BLUE;
@@ -96,3 +81,38 @@ pub const CASTLE_ART_WORLD_SIZE: (usize, usize) =
     (CASTLE_ART_WORLD.len(), CASTLE_ART_WORLD[0].len());
 pub const DEPLOYED_UNITS_ART_SIZE: (usize, usize) =
     (DEPLOYED_UNITS_ART.len(), DEPLOYED_UNITS_ART[0].len());
+
+pub trait WithArt {
+    fn get_art(&self, world: bool) -> &[&[TermCell]];
+    fn get_art_size(&self, world: bool) -> (usize, usize);
+}
+
+impl WithArt for GameObjE {
+    fn get_art(&self, world: bool) -> &[&[TermCell]] {
+        match self {
+            Self::Castle(_) => {
+                if world {
+                    CASTLE_ART_WORLD
+                } else {
+                    CASTLE_ART
+                }
+            }
+            Self::DeployedUnits(_) => DEPLOYED_UNITS_ART,
+            _ => ERR_ART,
+        }
+    }
+
+    fn get_art_size(&self, world: bool) -> (usize, usize) {
+        match self {
+            Self::Castle(_) => {
+                if world {
+                    CASTLE_ART_WORLD_SIZE
+                } else {
+                    CASTLE_ART_SIZE
+                }
+            }
+            Self::DeployedUnits(_) => DEPLOYED_UNITS_ART_SIZE,
+            _ => ERR_ART_SIZE,
+        }
+    }
+}

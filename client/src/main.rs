@@ -1,11 +1,11 @@
-mod ansi;
-mod assets;
 mod canvas;
-mod client;
-mod coord;
+mod logger;
+mod net;
+mod terminal;
 mod tui;
 
 #[tokio::main]
 async fn main() {
-    client::run().await;
+    logger::init();
+    net::run().await;
 }

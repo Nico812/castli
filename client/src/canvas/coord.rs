@@ -1,6 +1,6 @@
 use common::GameCoord;
 
-use crate::canvas::r#const::{CANVAS_COLS, CANVAS_ROWS, CENTRAL_MOD_POS};
+use super::layout::{CANVAS_COLS, CANVAS_ROWS, CENTRAL_MOD_POS};
 
 #[derive(Clone, Copy)]
 pub struct TermCoord {
