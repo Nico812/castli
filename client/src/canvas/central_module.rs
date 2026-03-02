@@ -31,6 +31,8 @@ pub struct CentralModule {
 impl CentralModule {
     pub const CONTENT_ROWS: usize = CENTRAL_MODULE_CONTENT_ROWS;
     pub const CONTENT_COLS: usize = CENTRAL_MODULE_CONTENT_COLS;
+    pub const WIND_ROWS: usize = MAP_ROWS / 2;
+    pub const WIND_COLS: usize = MAP_COLS;
     const ZOOM_FACTOR: usize = 8;
 
     // PUB
@@ -43,7 +45,7 @@ impl CentralModule {
 
         // Wind
         let mut rng = rand::rngs::SmallRng::seed_from_u64(1);
-        let mut wind_map = vec![vec![false; r#const::MAP_COLS]; r#const::MAP_ROWS / 2];
+        let mut wind_map = vec![vec![false; Self::WIND_COLS]; Self::WIND_ROWS];
         for cell in wind_map.iter_mut().flat_map(|row| row.iter_mut()) {
             *cell = rng.random_bool(0.1);
         }
@@ -100,18 +102,11 @@ impl CentralModule {
         let row_start = zoom_coord.y / 2;
         let col_start = zoom_coord.x;
 
-        for row in row_start..row_start + Self::CONTENT_ROWS {
-            for col in col_start..col_start + Self::CONTENT_COLS {
-                let next_col = if col < col_start + Self::CONTENT_COLS - 1 {
-                    col + 1
-                } else {
-                    col_start
-                };
-                let next_row = if row < row_start + Self::CONTENT_ROWS - 1 {
-                    row + 1
-                } else {
-                    row_start
-                };
+        for row in row_start..(row_start + Self::CONTENT_ROWS).min(Self::WIND_ROWS) {
+            for col in col_start..(col_start + Self::CONTENT_COLS).min(Self::WIND_COLS) {
+                let next_col = (col + 1).min(Self::WIND_COLS - 1);
+                let next_row = (row + 1).min(Self::WIND_ROWS - 1);
+
                 if self.rng.random_bool(0.05)
                     && !self.wind_map[row][col]
                     && self.wind_map[row][next_col]
@@ -176,7 +171,12 @@ impl CentralModule {
                     .iter()
                     .enumerate()
                     .map(|(cells_col, &tile_top)| {
-                        let tile_bottom = tiles[cells_row * 2 + 1][cells_col];
+                        let Some(tile_bottom) = tiles
+                            .get(cells_row * 2 + 1)
+                            .map(|next_row| next_row[cells_col])
+                        else {
+                            return ERR_EL;
+                        };
 
                         if tile_top == tile_bottom {
                             match tile_top {
@@ -268,16 +268,21 @@ impl CentralModule {
     }
 
     fn get_map_slice(&self, zoom_coord: GameCoord) -> Vec<Vec<TileE>> {
-        self.map_tiles[zoom_coord.y..(zoom_coord.y + Self::CONTENT_ROWS * 2)]
+        self.map_tiles[zoom_coord.y..(zoom_coord.y + Self::CONTENT_ROWS * 2).min(MAP_ROWS)]
             .iter()
-            .map(|row| row[zoom_coord.x..zoom_coord.x + Self::CONTENT_COLS].to_vec())
+            .map(|row| {
+                row[zoom_coord.x..(zoom_coord.x + Self::CONTENT_COLS).min(MAP_COLS)].to_vec()
+            })
             .collect()
     }
 
     fn get_wind_slice(&self, zoom_coord: GameCoord) -> Vec<Vec<bool>> {
-        self.wind_map[zoom_coord.y / 2..zoom_coord.y / 2 + Self::CONTENT_ROWS]
+        self.wind_map
+            [zoom_coord.y / 2..(zoom_coord.y / 2 + Self::CONTENT_ROWS).min(Self::WIND_ROWS)]
             .iter()
-            .map(|row| row[zoom_coord.x..zoom_coord.x + Self::CONTENT_COLS].to_vec())
+            .map(|row| {
+                row[zoom_coord.x..(zoom_coord.x + Self::CONTENT_COLS).min(Self::WIND_COLS)].to_vec()
+            })
             .collect()
     }
 

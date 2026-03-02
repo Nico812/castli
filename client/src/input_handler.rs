@@ -68,12 +68,8 @@ impl InputHandler {
 
     async fn apply_move(state: &mut SharedState, dx: isize, dy: isize) {
         if let Some(ref mut look) = state.map_look {
-            look.x = (look.x as isize + dx)
-                .max(0)
-                .min(CENTRAL_MODULE_CONTENT_COLS as isize - 1) as usize;
-            look.y = (look.y as isize + dy)
-                .max(0)
-                .min(CENTRAL_MODULE_CONTENT_ROWS as isize - 1) as usize;
+            look.x = (look.x as isize + dx).max(0).min(MAP_COLS as isize - 1) as usize;
+            look.y = (look.y as isize + dy).max(0).min(MAP_ROWS as isize - 1) as usize;
         } else {
             if let Some(ref mut zoom) = state.map_zoom {
                 zoom.x = (zoom.x as isize + 2 * dx)
@@ -82,22 +78,34 @@ impl InputHandler {
                     as usize;
                 zoom.y = (zoom.y as isize + 2 * dy)
                     .max(0)
-                    .min((MAP_ROWS) as isize - CENTRAL_MODULE_CONTENT_ROWS as isize)
+                    .min((MAP_ROWS) as isize - (CENTRAL_MODULE_CONTENT_ROWS * 2) as isize)
                     as usize;
             }
         }
     }
 
     async fn toggle_zoom(state: &mut SharedState) {
+        let map_look = &mut state.map_look;
         state.map_zoom = match state.map_zoom {
             None => Some(GameCoord { x: 0, y: 0 }),
-            Some(_) => None,
+            Some(_) => {
+                *map_look = None;
+                None
+            }
         };
     }
 
     async fn toggle_look(state: &mut SharedState) {
+        if state.map_zoom == None {
+            return;
+        }
+
+        let map_zoom = state.map_zoom.unwrap();
         state.map_look = match state.map_look {
-            None => Some(GameCoord { x: 0, y: 0 }),
+            None => Some(GameCoord {
+                x: map_zoom.x,
+                y: map_zoom.y,
+            }),
             Some(_) => None,
         };
     }
