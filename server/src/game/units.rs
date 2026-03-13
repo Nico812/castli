@@ -171,7 +171,7 @@ pub struct DeployedUnits {
     pub owner_id: GameID,
     pub target_id: Option<GameID>,
     pub returning: bool,
-    path: VecDeque<GameCoord>,
+    path: Option<VecDeque<GameCoord>>,
     path_index: usize,
     path_size: usize,
     pub unit_group: UnitGroup,
@@ -181,14 +181,17 @@ impl DeployedUnits {
     pub fn new(
         owner_id: GameID,
         target_id: Option<GameID>,
-        path: VecDeque<GameCoord>,
+        path: Option<VecDeque<GameCoord>>,
         unit_group: UnitGroup,
     ) -> Self {
-        println!("Deployed units, path length is {}", path.len());
+        let path_size = match path {
+            Some(ref path) => path.len(),
+            None => 0,
+        };
         Self {
             owner_id,
             target_id,
-            path_size: path.len(),
+            path_size,
             path,
             unit_group,
             path_index: 0,
@@ -196,18 +199,23 @@ impl DeployedUnits {
         }
     }
 
-    pub fn get_pos(&self) -> GameCoord {
-        self.path[self.path_index]
+    pub fn get_pos(&self) -> Option<GameCoord> {
+        match self.path {
+            Some(ref path) => Some(path[self.path_index]),
+            None => None,
+        }
     }
 
     pub fn move_along_path(&mut self) {
-        let next_index: usize = match self.returning {
-            true => self.path_index.saturating_sub(1),
-            false => (self.path_index + 1).min(self.path_size - 1),
-        };
+        if let Some(ref path) = self.path {
+            let next_index: usize = match self.returning {
+                true => self.path_index.saturating_sub(1),
+                false => (self.path_index + 1).min(self.path_size - 1),
+            };
 
-        if let Some(_) = self.path.get(next_index) {
-            self.path_index = next_index;
+            if let Some(_) = path.get(next_index) {
+                self.path_index = next_index;
+            }
         }
     }
 
@@ -215,7 +223,7 @@ impl DeployedUnits {
         if self.path_index == 0 && self.returning == true {
             return true;
         }
-        if self.path_index >= self.path_size - 1 && self.returning == false {
+        if self.path_index >= self.path_size.saturating_sub(1) && self.returning == false {
             return true;
         }
         false
@@ -238,10 +246,15 @@ impl DeployedUnits {
         self.returning = true;
     }
 
+    pub fn set_path(&mut self, path: VecDeque<GameCoord>) {
+        self.path_size = path.len();
+        self.path = Some(path);
+    }
+
     pub fn export(&self) -> DeployedUnitsE {
         DeployedUnitsE {
             owner_id: self.owner_id,
-            pos: self.get_pos(),
+            pos: self.get_pos().unwrap(),
         }
     }
 }

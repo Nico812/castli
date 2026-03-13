@@ -60,7 +60,7 @@ impl Lobby {
                     self.listen_clients().await;
                 }
                 _ = game_tick.tick() => {
-                    self.game.step();
+                    self.game.step().await;
                     self.update_players_status();
                 }
             }
@@ -145,8 +145,12 @@ impl Lobby {
                                 break;
                             }
                             if let Some(castle_id) = player.castle_id {
-                                self.game
-                                    .send_troops(castle_id, target_pos, unit_group_e, None);
+                                self.game.request_send_units(
+                                    castle_id,
+                                    target_pos,
+                                    unit_group_e,
+                                    None,
+                                );
                             }
                         }
                     }

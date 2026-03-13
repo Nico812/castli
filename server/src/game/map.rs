@@ -37,25 +37,6 @@ impl Map {
         self.tiles.clone()
     }
 
-    pub fn find_path(&self, start: GameCoord, end: GameCoord) -> Option<VecDeque<GameCoord>> {
-        println!(
-            "Trying to make path from ({}, {}) to ({}, {})",
-            start.y, start.x, end.y, end.x
-        );
-
-        let t_in = Instant::now();
-        let path_opt = pathfinding::a_star(start, end, &self.obstacles);
-
-        if let Some(path) = path_opt {
-            if path.len() != 0 {
-                println!("Elapsed: {}ms", t_in.elapsed().as_millis());
-                return Some(path);
-            };
-        }
-        println!("Path not found");
-        None
-    }
-
     fn cellular_automata() -> Vec<Vec<TileE>> {
         let mut tiles = vec![vec![TileE::Grass; MAP_COLS]; MAP_ROWS];
         Self::fill_random(&mut tiles);
