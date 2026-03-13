@@ -11,9 +11,8 @@ use crate::{
     player::{Player, PlayerStatus},
     server::{ClientID, S2L},
 };
-use common::{C2S4L, L2S4C, r#const::MAX_LOBBY_PLAYERS, exports::units::UnitGroupE};
+use common::{C2S4L, L2S4C, r#const::MAX_LOBBY_PLAYERS};
 
-/// Represents errors that can occur within a `Lobby`.
 #[derive(Debug)]
 enum LobbyErr {
     AddClientFail,
@@ -43,9 +42,7 @@ impl Lobby {
         }
     }
 
-    /// Runs the main loop for the lobby.
-    ///
-    /// This loop listens for messages from the server, listens and responds to messages from clients,
+    /// Lobby listens for messages from the server, listens and responds to messages from clients,
     /// and periodically updates the game state.
     pub async fn run(&mut self, mut main_rx: mpsc::UnboundedReceiver<S2L>) {
         let mut client_comunication_tick = time::interval(time::Duration::from_millis(100));

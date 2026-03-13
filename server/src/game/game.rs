@@ -3,7 +3,7 @@
 //! This module defines the `Game` struct, which holds the entire state of a single
 //! game instance, including the map, structures, and units. It also contains the
 //! logic for procedural map generation.
-use std::{any::Any, collections::HashMap};
+use std::collections::HashMap;
 
 use crate::game::{
     castle::Castle,
@@ -168,11 +168,12 @@ impl Game {
             return;
         }
 
-        if !attacker_castle.units.subtract_if_enough(&unit_group) {
+        if !unit_group.is_inside(&attacker_castle.units) {
             return;
         }
 
         if let Some(path) = self.map.find_path(attacker_castle.pos, target_pos) {
+            attacker_castle.units.subtract_unchecked(&unit_group);
             let id = self.new_id();
             let deployed_units = DeployedUnits::new(attacker_id, target_id, path, unit_group);
             self.game_objs

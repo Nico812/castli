@@ -52,6 +52,22 @@ impl LobbyManager {
         }
     }
 
+    async fn run_new_lobby(&self) -> Option<UnboundedSender<S2L>> {
+        let mut lobby_txs = self.lobby_txs.lock().unwrap();
+        for i in 0..MAX_LOBBIES {
+            if lobby_txs[i].is_none() {
+                let (new_lobby_tx, new_lobby_rx) = mpsc::unbounded_channel();
+
+                let mut lobby = Lobby::new();
+                tokio::spawn(async move { lobby.run(new_lobby_rx).await });
+
+                lobby_txs[i] = Some(new_lobby_tx.clone());
+                return Some(new_lobby_tx);
+            }
+        }
+        None
+    }
+
     /// Finds an available lobby or creates a new one for a client.
     async fn assign_client_to_lobby(
         &self,
@@ -78,21 +94,11 @@ impl LobbyManager {
         }
 
         // If no lobby has space, try to create a new one
-        let mut lobby_txs = self.lobby_txs.lock().unwrap();
-        for i in 0..MAX_LOBBIES {
-            if lobby_txs[i].is_none() {
-                let (new_lobby_tx, new_lobby_rx) = mpsc::unbounded_channel();
-
-                let mut lobby = Lobby::new();
-                tokio::spawn(async move { lobby.run(new_lobby_rx).await });
-
-                lobby_txs[i] = Some(new_lobby_tx.clone());
-
-                let (c2s_tx, c2s_rx) = mpsc::unbounded_channel();
-                let (s2c_tx, s2c_rx) = mpsc::unbounded_channel();
-                let _ = new_lobby_tx.send(S2L::NewClient(client_id, player_name, s2c_tx, c2s_rx));
-                return Ok((c2s_tx, s2c_rx));
-            }
+        if let Some(new_lobby_tx) = self.run_new_lobby().await {
+            let (c2s_tx, c2s_rx) = mpsc::unbounded_channel();
+            let (s2c_tx, s2c_rx) = mpsc::unbounded_channel();
+            let _ = new_lobby_tx.send(S2L::NewClient(client_id, player_name, s2c_tx, c2s_rx));
+            return Ok((c2s_tx, s2c_rx));
         }
 
         Err(ServerErr::ServerFull)
@@ -138,8 +144,6 @@ impl ClientHandler {
         }
     }
 }
-
-// --- Server ---
 
 pub struct Server {
     lobby_manager: Arc<LobbyManager>,

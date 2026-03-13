@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, time::Instant};
 
 use rand::Rng;
 
@@ -42,13 +42,17 @@ impl Map {
             "Trying to make path from ({}, {}) to ({}, {})",
             start.y, start.x, end.y, end.x
         );
-        let path_opt = pathfinding::bds::<MAP_ROWS, MAP_COLS>(start, end, &self.obstacles);
+
+        let t_in = Instant::now();
+        let path_opt = pathfinding::a_star(start, end, &self.obstacles);
 
         if let Some(path) = path_opt {
             if path.len() != 0 {
+                println!("Elapsed: {}ms", t_in.elapsed().as_millis());
                 return Some(path);
             };
         }
+        println!("Path not found");
         None
     }
 

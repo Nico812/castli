@@ -12,11 +12,8 @@ use std::collections::HashMap;
 use super::module_utility;
 use crate::ansi::*;
 use crate::assets::*;
-use crate::canvas::r#const::{
-    CENTRAL_MOD_POS, CENTRAL_MODULE_CONTENT_COLS, CENTRAL_MODULE_CONTENT_ROWS,
-};
+use crate::canvas::r#const::{CENTRAL_MODULE_CONTENT_COLS, CENTRAL_MODULE_CONTENT_ROWS};
 use crate::canvas::module_utility::WithArt;
-use crate::coord::TermCoord;
 
 use common::r#const::{self, MAP_COLS, MAP_ROWS};
 

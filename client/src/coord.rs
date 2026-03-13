@@ -35,21 +35,3 @@ impl TermCoord {
         })
     }
 }
-
-// GameCoord are defined in the server crate and are the game's map coordinates
-pub trait GameCoordExtension {
-    fn from_zoom_coord(term_coord: TermCoord, y_shift: bool) -> Self;
-}
-
-impl GameCoordExtension for GameCoord {
-    fn from_zoom_coord(term_coord: TermCoord, y_shift: bool) -> Self {
-        let x = term_coord.x;
-        let mut y = term_coord.y * 2;
-
-        if y_shift {
-            y += 1;
-        }
-
-        Self { x, y }
-    }
-}

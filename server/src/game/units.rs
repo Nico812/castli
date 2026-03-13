@@ -89,15 +89,19 @@ impl UnitGroup {
     }
 
     pub fn subtract_if_enough(&mut self, other: &Self) -> bool {
-        for (i, quantity) in other.quantities.iter().enumerate() {
-            if self.quantities[i] < *quantity {
-                return false;
-            }
+        if !other.is_inside(self) {
+            return false;
         }
         for (i, quantity) in other.quantities.iter().enumerate() {
             self.subtract_single_type(Unit::form_index(i).unwrap(), *quantity);
         }
         true
+    }
+
+    pub fn subtract_unchecked(&mut self, other: &Self) {
+        for (i, quantity) in other.quantities.iter().enumerate() {
+            self.subtract_single_type(Unit::form_index(i).unwrap(), *quantity);
+        }
     }
 
     pub fn saturating_add(&mut self, other: &Self) {
@@ -117,6 +121,15 @@ impl UnitGroup {
 
     pub fn contains(&self, unit: Unit) -> bool {
         self.present_mask & unit.as_mask() != 0
+    }
+
+    pub fn is_inside(&self, other: &Self) -> bool {
+        for (i, quantity) in other.quantities.iter().enumerate() {
+            if self.quantities[i] > *quantity {
+                return false;
+            }
+        }
+        true
     }
 
     pub fn iter_present(&self) -> impl Iterator<Item = (Unit, u16)> + '_ {

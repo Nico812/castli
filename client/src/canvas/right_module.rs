@@ -1,7 +1,6 @@
 use std::collections::VecDeque;
 
 use common::GameCoord;
-use common::exports::game_object::GameObjE;
 use common::exports::player::PlayerE;
 use common::exports::units::UnitE;
 

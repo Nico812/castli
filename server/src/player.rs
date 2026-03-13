@@ -9,7 +9,6 @@ pub enum PlayerStatus {
     Alive,
     Dead,
     Init,
-    Disconnected,
 }
 pub struct Player {
     pub name: String,

@@ -1,8 +1,127 @@
-use std::collections::VecDeque;
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::collections::{HashMap, VecDeque};
 use std::usize;
 
 use common::GameCoord;
+use common::r#const::{MAP_COLS, MAP_ROWS};
 
+#[derive(Clone)]
+struct Node {
+    coord: GameCoord,
+    prev: Option<GameCoord>,
+    g: u16,
+    f: u16,
+}
+
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.f.cmp(&other.f).then_with(|| self.g.cmp(&other.g))
+    }
+}
+
+impl PartialEq for Node {
+    fn eq(&self, other: &Self) -> bool {
+        self.f == other.f && self.g == other.g
+    }
+}
+
+impl Eq for Node {}
+
+#[allow(dead_code)]
+pub fn a_star(
+    start: GameCoord,
+    end: GameCoord,
+    obstacles: &Vec<Vec<bool>>,
+) -> Option<VecDeque<GameCoord>> {
+    fn chebyshev(p1: GameCoord, p2: GameCoord) -> u16 {
+        p1.x.abs_diff(p2.x).max(p1.y.abs_diff(p2.y)) as u16
+    }
+    fn trace_path(
+        end_node: Node,
+        closed_list: &mut HashMap<GameCoord, Node>,
+    ) -> VecDeque<GameCoord> {
+        let mut path = VecDeque::new();
+        let mut curr_node = end_node;
+        while let Some(prev_coord) = curr_node.prev {
+            path.push_front(curr_node.coord);
+            curr_node = closed_list.remove(&prev_coord).unwrap();
+        }
+        path.push_front(curr_node.coord);
+        path
+    }
+
+    if obstacles[start.y][start.x] || obstacles[end.y][end.x] {
+        return None;
+    }
+
+    let mut open_ord_list = BinaryHeap::new();
+    let mut open_list = HashMap::new();
+    let mut closed_list = HashMap::new();
+    let start_node = Node {
+        coord: start,
+        prev: None,
+        g: 0,
+        f: chebyshev(start, end),
+    };
+
+    open_ord_list.push(Reverse(start_node.clone()));
+    open_list.insert(start, start_node);
+
+    while open_ord_list.len() != 0 {
+        let Reverse(current) = open_ord_list.pop().unwrap();
+        let current_coord = current.coord;
+        let _ = open_list.remove(&current_coord);
+
+        let current_g = current.g;
+        closed_list.insert(current_coord, current);
+        for new_x in
+            current_coord.x.saturating_sub(1)..=current_coord.x.saturating_add(1).min(MAP_COLS - 1)
+        {
+            for new_y in current_coord.y.saturating_sub(1)
+                ..=current_coord.y.saturating_add(1).min(MAP_ROWS - 1)
+            {
+                let new_coord = GameCoord { x: new_x, y: new_y };
+                if new_coord == current_coord {
+                    continue;
+                }
+                if obstacles[new_coord.y][new_coord.x] {
+                    continue;
+                }
+                let new_node = Node {
+                    coord: new_coord,
+                    prev: Some(current_coord),
+                    g: current_g + 1,
+                    f: chebyshev(new_coord, end) + current_g + 1,
+                };
+                if new_coord == end {
+                    return Some(trace_path(new_node, &mut closed_list));
+                }
+                if let Some(node) = open_list.get(&new_coord) {
+                    if *node <= new_node {
+                        continue;
+                    }
+                }
+                if let Some(node) = closed_list.get(&new_coord) {
+                    if *node <= new_node {
+                        continue;
+                    }
+                }
+                open_ord_list.push(Reverse(new_node.clone()));
+                open_list.insert(new_coord, new_node);
+            }
+        }
+    }
+    None
+}
+
+#[allow(dead_code)]
 pub fn bds<const M: usize, const N: usize>(
     start: GameCoord,
     end: GameCoord,

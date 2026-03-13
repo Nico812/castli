@@ -4,23 +4,17 @@
 //! rendering the different UI modules (central map, side panels, etc.) into
 //! a single view in the terminal.
 
-use common::GameCoord;
-use common::exports::game_object::GameObjE;
-use common::exports::player::PlayerE;
 use common::exports::tile::TileE;
-use std::collections::{HashMap, VecDeque};
 use terminal_size::{Height, Width, terminal_size};
 
 use crate::ansi;
 use crate::assets;
 use crate::assets::CURSOR_DOWN;
 use crate::assets::CURSOR_UP;
-use crate::canvas::RightModuleTab;
 use crate::canvas::r#const::*;
 use crate::canvas::{central_module::CentralModule, right_module::RightModule};
 use crate::coord::TermCoord;
 use crate::tui::SharedState;
-use common::{self, GameID};
 
 /// Represents the main drawing area for the TUI.
 ///

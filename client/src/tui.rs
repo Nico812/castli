@@ -4,19 +4,11 @@
 //! input, and server updates through separate task handlers.
 
 use crate::{
-    canvas::{
-        RightModuleTab,
-        canvas::Canvas,
-        r#const::{
-            CANVAS_COLS, CANVAS_ROWS, CENTRAL_MOD_POS, CENTRAL_MODULE_CONTENT_COLS,
-            CENTRAL_MODULE_CONTENT_ROWS,
-        },
-    },
+    canvas::{RightModuleTab, canvas::Canvas},
     input_handler::InputHandler,
 };
 use common::{
     GameCoord, GameID, L2S4C, S2C,
-    r#const::{MAP_COLS, MAP_ROWS},
     exports::{game_object::GameObjE, player::PlayerE, tile::TileE, units::UnitGroupE},
 };
 use std::{
@@ -26,7 +18,6 @@ use std::{
     sync::Arc,
 };
 use tokio::{
-    io::{self, AsyncReadExt},
     sync::{Mutex, mpsc},
     time,
 };
@@ -111,6 +102,7 @@ impl Tui {
         com_handle.abort();
         ui_handle.abort();
         Self::clear_screen();
+        Self::show_cursor();
         Self::reset_mode();
     }
 
@@ -198,5 +190,9 @@ impl Tui {
 
     fn hide_cursor() {
         print!("\x1b[?25l");
+    }
+
+    fn show_cursor() {
+        print!("\x1b[?25h");
     }
 }

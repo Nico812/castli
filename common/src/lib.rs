@@ -16,7 +16,7 @@ use crate::exports::{game_object::GameObjE, player::PlayerE, tile::TileE, units:
 /// Global IDs for game objects
 pub type GameID = usize;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GameCoord {
     pub x: usize,
     pub y: usize,
