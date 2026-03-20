@@ -50,6 +50,21 @@ pub const WATER_BG: &str = BG_BLUE;
 pub const WATER_EL_1: TermCell = TermCell::new(' ', FG_BRIGHT_BLUE, WATER_BG);
 pub const WATER_EL_2: TermCell = TermCell::new('~', FG_BRIGHT_BLUE, WATER_BG);
 
+pub const WOODS_FG: &str = FG_RED;
+pub const WOODS_BG: &str = BG_RED;
+pub const WOODS_EL_1: TermCell = TermCell::new('#', FG_BRIGHT_RED, WOODS_BG);
+pub const WOODS_EL_2: TermCell = TermCell::new('#', FG_BRIGHT_YELLOW, WOODS_BG);
+
+pub const MOUNTAIN_FG: &str = FG_GREEN;
+pub const MOUNTAIN_BG: &str = BG_GREEN;
+pub const MOUNTAIN_EL_1: TermCell = TermCell::new('#', FG_BRIGHT_RED, MOUNTAIN_BG);
+pub const MOUNTAIN_EL_2: TermCell = TermCell::new('#', FG_BRIGHT_YELLOW, MOUNTAIN_BG);
+
+pub const HIGH_MOUNTAIN_FG: &str = FG_GREEN;
+pub const HIGH_MOUNTAIN_BG: &str = BG_GREEN;
+pub const HIGH_MOUNTAIN_EL_1: TermCell = TermCell::new('#', FG_BRIGHT_RED, HIGH_MOUNTAIN_BG);
+pub const HIGH_MOUNTAIN_EL_2: TermCell = TermCell::new('#', FG_BRIGHT_YELLOW, HIGH_MOUNTAIN_BG);
+
 pub const CASTLE_FG: &str = FG_WHITE;
 pub const CASTLE_BG: &str = BG_BLACK;
 

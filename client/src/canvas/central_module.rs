@@ -191,17 +191,44 @@ impl CentralModule {
                                         WATER_EL_1
                                     }
                                 }
+                                TileE::Woods => {
+                                    if wind[cells_row][cells_col] {
+                                        WOODS_EL_2
+                                    } else {
+                                        WOODS_EL_1
+                                    }
+                                }
+                                TileE::Mountain => {
+                                    if wind[cells_row][cells_col] {
+                                        MOUNTAIN_EL_2
+                                    } else {
+                                        MOUNTAIN_EL_1
+                                    }
+                                }
+                                TileE::HighMountain => {
+                                    if wind[cells_row][cells_col] {
+                                        HIGH_MOUNTAIN_EL_2
+                                    } else {
+                                        HIGH_MOUNTAIN_EL_1
+                                    }
+                                }
                                 _ => ERR_EL,
                             }
                         } else {
                             let fg = match tile_top {
                                 TileE::Grass => GRASS_FG,
                                 TileE::Water => WATER_FG,
+                                TileE::Woods => WOODS_FG,
+                                TileE::Mountain => MOUNTAIN_FG,
+                                TileE::HighMountain => HIGH_MOUNTAIN_FG,
                                 _ => ERR_FG,
                             };
                             let bg = match tile_bottom {
                                 TileE::Grass => GRASS_BG,
                                 TileE::Water => WATER_BG,
+                                TileE::Woods => WOODS_BG,
+                                TileE::Mountain => MOUNTAIN_BG,
+                                TileE::HighMountain => HIGH_MOUNTAIN_BG,
                                 _ => ERR_BG,
                             };
                             TermCell::new(BLOCK, fg, bg)
