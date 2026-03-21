@@ -32,7 +32,6 @@ impl CentralModule {
     pub const WIND_COLS: usize = MAP_COLS;
     const ZOOM_FACTOR: usize = 8;
 
-    // PUB
     pub fn new() -> Self {
         let map_tiles = vec![vec![TileE::Grass; r#const::MAP_COLS]; r#const::MAP_ROWS];
         let world_map_tiles = vec![
@@ -91,34 +90,44 @@ impl CentralModule {
         cells
     }
 
-    // PRIVATE
     fn update_wind(&mut self, render_count: u32, zoom_coord: GameCoord) {
         if render_count % 10 != 0 {
             return;
         }
+
+        let mut tmp_wind = self.wind_map.clone();
         let row_start = zoom_coord.y / 2;
+        let row_end = (row_start + Self::CONTENT_ROWS - 1).min(Self::WIND_ROWS);
         let col_start = zoom_coord.x;
+        let col_end = (col_start + Self::CONTENT_COLS - 1).min(Self::WIND_COLS);
 
-        for row in row_start..(row_start + Self::CONTENT_ROWS).min(Self::WIND_ROWS) {
-            for col in col_start..(col_start + Self::CONTENT_COLS).min(Self::WIND_COLS) {
-                let next_col = (col + 1).min(Self::WIND_COLS - 1);
-                let next_row = (row + 1).min(Self::WIND_ROWS - 1);
+        for row in row_start..=row_end {
+            for col in col_start..=col_end {
+                if self.wind_map[row][col] {
+                    let mut next_col = col;
+                    let mut next_row = row;
+                    if row == row_end {
+                        next_row = row_start;
+                    } else {
+                        next_row += 1;
+                    }
+                    if col == col_end {
+                        next_col = col_start;
+                    } else {
+                        next_col += 1;
+                    }
 
-                if self.rng.random_bool(0.05)
-                    && !self.wind_map[row][col]
-                    && self.wind_map[row][next_col]
-                {
-                    self.wind_map[row][col] = true;
-                    self.wind_map[row][next_col] = false;
-                } else if self.rng.random_bool(0.01)
-                    && !self.wind_map[row][col]
-                    && self.wind_map[next_row][col]
-                {
-                    self.wind_map[row][col] = true;
-                    self.wind_map[next_row][col] = false;
+                    if self.rng.random_bool(0.3) && !tmp_wind[row][next_col] {
+                        tmp_wind[row][col] = false;
+                        tmp_wind[row][next_col] = true;
+                    } else if self.rng.random_bool(0.1) && !tmp_wind[next_row][col] {
+                        tmp_wind[row][col] = false;
+                        tmp_wind[next_row][col] = true;
+                    }
                 }
             }
         }
+        self.wind_map = tmp_wind;
     }
 
     fn set_tiles(&mut self, tiles: Vec<Vec<TileE>>) {

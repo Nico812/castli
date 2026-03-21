@@ -53,12 +53,12 @@ pub const WATER_EL_2: TermCell = TermCell::new('~', FG_BLUE_BRIGHT, WATER_BG);
 pub const WOODS_FG: &str = FG_GREEN_DARK;
 pub const WOODS_BG: &str = BG_GREEN_DARK;
 pub const WOODS_EL_1: TermCell = TermCell::new(' ', FG_GREEN, WOODS_BG);
-pub const WOODS_EL_2: TermCell = TermCell::new('#', FG_WHITE, WOODS_BG);
+pub const WOODS_EL_2: TermCell = TermCell::new('"', FG_GREEN, WOODS_BG);
 
 pub const MOUNTAIN_FG: &str = FG_GREEN;
 pub const MOUNTAIN_BG: &str = BG_GREEN;
 pub const MOUNTAIN_EL_1: TermCell = TermCell::new(' ', FG_RED_BRIGHT, MOUNTAIN_BG);
-pub const MOUNTAIN_EL_2: TermCell = TermCell::new('#', FG_WHITE, MOUNTAIN_BG);
+pub const MOUNTAIN_EL_2: TermCell = TermCell::new('"', FG_WHITE, MOUNTAIN_BG);
 
 pub const HIGH_MOUNTAIN_FG: &str = FG_GREEN;
 pub const HIGH_MOUNTAIN_BG: &str = BG_GREEN;
