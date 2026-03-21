@@ -3,8 +3,11 @@ use std::{collections::VecDeque, time::Instant};
 use rand::Rng;
 
 use crate::r#const::{
-    CA_ITER_WATER, CA_ITER_WOODS, COUNTS_TO_SPREAD_WATER, COUNTS_TO_SPREAD_WOODS,
-    COUNTS_TO_SURVIVE_WATER, COUNTS_TO_SURVIVE_WOODS, PERCENT_IS_WATER, PERCENT_IS_WOODS,
+    CA_ITER_HIGH_MOUNTAINS, CA_ITER_MOUNTAINS, CA_ITER_WATER, CA_ITER_WOODS,
+    COUNTS_TO_SPREAD_HIGH_MOUNTAINS, COUNTS_TO_SPREAD_MOUNTAINS, COUNTS_TO_SPREAD_WATER,
+    COUNTS_TO_SPREAD_WOODS, COUNTS_TO_SURVIVE_HIGH_MOUNTAINS, COUNTS_TO_SURVIVE_MOUNTAINS,
+    COUNTS_TO_SURVIVE_WATER, COUNTS_TO_SURVIVE_WOODS, PERCENT_IS_HIGH_MOUNTAINS,
+    PERCENT_IS_MOUNTAINS, PERCENT_IS_WATER, PERCENT_IS_WOODS,
 };
 use common::{
     r#const::{MAP_COLS, MAP_ROWS},
@@ -83,6 +86,54 @@ impl Map {
                 &woods_spreads_on,
                 COUNTS_TO_SPREAD_WOODS,
                 COUNTS_TO_SURVIVE_WOODS,
+            );
+            tiles.clone_from(&temp_tiles);
+        }
+
+        // Creating mountains
+        before_add_random = tiles.clone();
+        let mountains_spreads_on = vec![TileE::Grass, TileE::Woods];
+        Self::add_random(
+            &mut tiles,
+            TileE::Mountain,
+            &mountains_spreads_on,
+            PERCENT_IS_MOUNTAINS,
+        );
+
+        let mut temp_tiles = tiles.clone();
+        for _ in 0..CA_ITER_MOUNTAINS {
+            Self::step_life(
+                &tiles,
+                &mut temp_tiles,
+                &before_add_random,
+                TileE::Mountain,
+                &mountains_spreads_on,
+                COUNTS_TO_SPREAD_MOUNTAINS,
+                COUNTS_TO_SURVIVE_MOUNTAINS,
+            );
+            tiles.clone_from(&temp_tiles);
+        }
+
+        // Creating high mountains
+        before_add_random = tiles.clone();
+        let high_mountains_spreads_on = vec![TileE::Mountain];
+        Self::add_random(
+            &mut tiles,
+            TileE::HighMountain,
+            &high_mountains_spreads_on,
+            PERCENT_IS_HIGH_MOUNTAINS,
+        );
+
+        let mut temp_tiles = tiles.clone();
+        for _ in 0..CA_ITER_HIGH_MOUNTAINS {
+            Self::step_life(
+                &tiles,
+                &mut temp_tiles,
+                &before_add_random,
+                TileE::HighMountain,
+                &high_mountains_spreads_on,
+                COUNTS_TO_SPREAD_HIGH_MOUNTAINS,
+                COUNTS_TO_SURVIVE_HIGH_MOUNTAINS,
             );
             tiles.clone_from(&temp_tiles);
         }

@@ -43,7 +43,6 @@ pub const BG_MAGENTA_BRIGHT: &str = "\x1b[105m";
 pub const BG_RED: &str = "\x1b[41m";
 pub const BG_RED_BRIGHT: &str = "\x1b[101m";
 pub const BG_WHITE: &str = "\x1b[47m";
-pub const BG_WHITE_BRIGHT: &str = "\x1b[107m";
 pub const BG_YELLOW: &str = "\x1b[43m";
 pub const BG_YELLOW_BRIGHT: &str = "\x1b[103m";
 
