@@ -1,16 +1,11 @@
-//! # Castli Client
-//!
-//! This is the main entry point for the Castli game client.
-//! It initializes and runs the `Client` instance, which connects to the
-//! server and manages the terminal user interface (TUI).
 mod ansi;
 mod assets;
 mod canvas;
 mod client;
 mod r#const;
 mod coord;
-mod tui;
 mod input_handler;
+mod tui;
 
 use client::Client;
 

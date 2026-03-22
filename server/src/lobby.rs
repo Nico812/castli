@@ -1,8 +1,3 @@
-//! # Game Lobby Management
-//!
-//! This module defines the `Lobby` struct, which represents a single game session.
-//! A lobby contains a group of players, a game instance, and manages the communication
-//! between them.
 use std::collections::HashMap;
 use tokio::{sync::mpsc, time};
 

@@ -1,5 +1,3 @@
-//! # ANSI Escape Codes, Constants, Colors
-
 #![allow(dead_code)]
 
 // === ANSI COLORS ===
@@ -14,14 +12,16 @@ pub const FG_CYAN_BRIGHT: &str = "\x1b[96m";
 pub const FG_GREEN: &str = "\x1b[32m";
 pub const FG_GREEN_BRIGHT: &str = "\x1b[92m";
 pub const FG_GREEN_DARK: &str = "\x1b[38;2;0;100;0m";
+pub const FG_GREEN_DARKER: &str = "\x1b[38;2;0;70;0m";
 pub const FG_GREY: &str = "\x1b[38;2;128;128;128m";
+pub const FG_GREY_BRIGHT: &str = "\x1b[38;2;192;192;192m";
+pub const FG_GREY_GREENISH: &str = "\x1b[38;2;128;138;115m";
 pub const FG_LIGHT_BROWN: &str = "\x1b[38;2;205;133;63m";
 pub const FG_MAGENTA: &str = "\x1b[35m";
 pub const FG_MAGENTA_BRIGHT: &str = "\x1b[95m";
 pub const FG_RED: &str = "\x1b[31m";
 pub const FG_RED_BRIGHT: &str = "\x1b[91m";
 pub const FG_WHITE: &str = "\x1b[37m";
-pub const FG_WHITE_BRIGHT: &str = "\x1b[97m";
 pub const FG_YELLOW: &str = "\x1b[33m";
 pub const FG_YELLOW_BRIGHT: &str = "\x1b[93m";
 
@@ -36,7 +36,10 @@ pub const BG_CYAN_BRIGHT: &str = "\x1b[106m";
 pub const BG_GREEN: &str = "\x1b[42m";
 pub const BG_GREEN_BRIGHT: &str = "\x1b[102m";
 pub const BG_GREEN_DARK: &str = "\x1b[48;2;0;100;0m";
+pub const BG_GREEN_DARKER: &str = "\x1b[48;2;0;70;0m";
 pub const BG_GREY: &str = "\x1b[48;2;128;128;128m";
+pub const BG_GREY_BRIGHT: &str = "\x1b[48;2;192;192;192m";
+pub const BG_GREY_GREENISH: &str = "\x1b[48;2;128;138;115m";
 pub const BG_LIGHT_BROWN: &str = "\x1b[48;2;205;133;63m";
 pub const BG_MAGENTA: &str = "\x1b[45m";
 pub const BG_MAGENTA_BRIGHT: &str = "\x1b[105m";

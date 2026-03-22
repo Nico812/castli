@@ -1,7 +1,3 @@
-//! # TUI Central Module
-//!
-//! Defines the `CentralModule`, which handles the central area of the Canvas.
-
 use common::exports::game_object::GameObjE;
 use common::exports::tile::TileE;
 use common::{GameCoord, GameID};
@@ -64,29 +60,32 @@ impl CentralModule {
         map_zoom: Option<GameCoord>,
         render_count: u32,
     ) -> Vec<Vec<TermCell>> {
-        let mut cells;
-
-        match map_zoom {
-            Some(zoom_coord) => {
-                let cut_tiles = self.get_map_slice(zoom_coord);
-                let cut_wind = self.get_wind_slice(zoom_coord);
-                cells = Self::tiles_to_cells(&cut_tiles, &cut_wind);
-                Self::add_objs_to_cells(&mut cells, game_objs, zoom_coord);
-                self.update_wind(render_count, zoom_coord);
-                module_utility::add_frame(
-                    &format!("zoom (y:{}, x:{})", zoom_coord.y, zoom_coord.x),
-                    &mut cells,
-                );
+        let (tiles, zoom_coord, frame_title) = match map_zoom {
+            Some(coord) => {
+                let tiles = self.get_map_slice(coord);
+                let title = format!("zoom (y:{}, x:{})", coord.y, coord.x);
+                (tiles, Some(coord), title)
             }
             None => {
-                let wind_pos = GameCoord { x: 0, y: 0 };
-                let cut_wind = self.get_wind_slice(wind_pos);
-                cells = Self::tiles_to_cells(&self.world_map_tiles, &cut_wind);
-                Self::add_world_objs_to_cells(&mut cells, game_objs);
-                self.update_wind(render_count, wind_pos);
-                module_utility::add_frame("world map", &mut cells);
+                let tiles = self.world_map_tiles.clone();
+                let title = "world map".to_string();
+                (tiles, None, title)
             }
+        };
+
+        let wind_pos = zoom_coord.unwrap_or(GameCoord { x: 0, y: 0 });
+        let cut_wind = self.get_wind_slice(wind_pos);
+
+        let mut cells = Self::tiles_to_cells(&tiles, &cut_wind);
+
+        match zoom_coord {
+            Some(coord) => Self::add_objs_to_cells(&mut cells, game_objs, coord),
+            None => Self::add_world_objs_to_cells(&mut cells, game_objs),
         }
+
+        self.update_wind(render_count, wind_pos);
+        module_utility::add_frame(&frame_title, &mut cells);
+
         cells
     }
 
@@ -177,70 +176,22 @@ impl CentralModule {
                     .iter()
                     .enumerate()
                     .map(|(cells_col, &tile_top)| {
-                        let Some(tile_bottom) = tiles
+                        let Some(tile_bot) = tiles
                             .get(cells_row * 2 + 1)
                             .map(|next_row| next_row[cells_col])
                         else {
                             return ERR_EL;
                         };
 
-                        if tile_top == tile_bottom {
-                            match tile_top {
-                                TileE::Grass => {
-                                    if wind[cells_row][cells_col] {
-                                        GRASS_EL_2
-                                    } else {
-                                        GRASS_EL_1
-                                    }
-                                }
-                                TileE::Water => {
-                                    if wind[cells_row][cells_col] {
-                                        WATER_EL_2
-                                    } else {
-                                        WATER_EL_1
-                                    }
-                                }
-                                TileE::Woods => {
-                                    if wind[cells_row][cells_col] {
-                                        WOODS_EL_2
-                                    } else {
-                                        WOODS_EL_1
-                                    }
-                                }
-                                TileE::Mountain => {
-                                    if wind[cells_row][cells_col] {
-                                        MOUNTAIN_EL_2
-                                    } else {
-                                        MOUNTAIN_EL_1
-                                    }
-                                }
-                                TileE::HighMountain => {
-                                    if wind[cells_row][cells_col] {
-                                        HIGH_MOUNTAIN_EL_2
-                                    } else {
-                                        HIGH_MOUNTAIN_EL_1
-                                    }
-                                }
-                                _ => ERR_EL,
+                        let top_tile_asset = TileAsset::get_asset(tile_top);
+                        let bot_tile_asset = TileAsset::get_asset(tile_bot);
+                        if tile_top == tile_bot {
+                            match wind[cells_row][cells_col] {
+                                true => top_tile_asset.wind,
+                                false => top_tile_asset.std,
                             }
                         } else {
-                            let fg = match tile_top {
-                                TileE::Grass => GRASS_FG,
-                                TileE::Water => WATER_FG,
-                                TileE::Woods => WOODS_FG,
-                                TileE::Mountain => MOUNTAIN_FG,
-                                TileE::HighMountain => HIGH_MOUNTAIN_FG,
-                                _ => ERR_FG,
-                            };
-                            let bg = match tile_bottom {
-                                TileE::Grass => GRASS_BG,
-                                TileE::Water => WATER_BG,
-                                TileE::Woods => WOODS_BG,
-                                TileE::Mountain => MOUNTAIN_BG,
-                                TileE::HighMountain => HIGH_MOUNTAIN_BG,
-                                _ => ERR_BG,
-                            };
-                            TermCell::new(BLOCK, fg, bg)
+                            TermCell::new(BLOCK, top_tile_asset.fg, bot_tile_asset.bg)
                         }
                     })
                     .collect()

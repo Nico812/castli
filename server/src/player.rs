@@ -1,7 +1,3 @@
-//! # Player Representation
-//!
-//! This module defines the `Player` struct, which holds information
-//! about a single player in the game.
 use common::GameID;
 
 #[derive(PartialEq)]

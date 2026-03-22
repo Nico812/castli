@@ -1,9 +1,3 @@
-//! # Server Core Logic
-//!
-//! This module contains the `Server` struct, which is the heart of the server application.
-//! It is responsible for listening for incoming TCP connections, managing game lobbies,
-//! and routing clients to the appropriate lobby.
-
 use std::sync::{Arc, Mutex};
 use tokio::{
     io::BufReader,

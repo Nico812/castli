@@ -1,13 +1,11 @@
-//! # Game Asset Definitions
-//!
-//! This module serves as a central "sprite sheet" for the terminal application,
-//! defining all static visual elements.
-//!
-//! The fundamental building block for all art is the `TermCell` struct, which
-//! represents a single character cell with a specific glyph, foreground color, and
-//! background color.
+// In this game the renderables are all Vec<Vec<TermCell>>.
+//
+// Each asset has two version. One is used as a standard, the other as the cell where wind is present.
+// This will proably change in the future.
 
 #![allow(dead_code)]
+
+use common::exports::tile::TileE;
 
 use crate::ansi::*;
 
@@ -28,48 +26,102 @@ impl<'a> TermCell {
     }
 }
 
+// Misc
+
 pub const CURSOR_UP: TermCell = TermCell::new('\u{21B1}', FG_WHITE, BG_BLACK);
 pub const CURSOR_DOWN: TermCell = TermCell::new('\u{21B3}', FG_WHITE, BG_BLACK);
-// pub const CURSOR_UP: TermCell = TermCell::new('\u{27B9}', FG_WHITE, BG_BLACK);
-// pub const CURSOR_DOWN: TermCell = TermCell::new('\u{27B7}', FG_WHITE, BG_BLACK);
 
 pub const ERR_FG: &str = FG_MAGENTA;
 pub const ERR_BG: &str = BG_MAGENTA_BRIGHT;
 pub const ERR_EL: TermCell = TermCell::new('?', FG_MAGENTA, ERR_BG);
+
 pub const BKG_FG: &str = FG_BLACK;
 pub const BKG_BG: &str = BG_BLACK;
 pub const BKG_EL: TermCell = TermCell::new('.', FG_RED, BG_BLACK);
 
-pub const GRASS_FG: &str = FG_GREEN;
-pub const GRASS_BG: &str = BG_GREEN;
-pub const GRASS_EL_1: TermCell = TermCell::new(' ', FG_GREEN_BRIGHT, GRASS_BG);
-pub const GRASS_EL_2: TermCell = TermCell::new('\"', FG_GREEN_BRIGHT, GRASS_BG);
+// Tiles
 
-pub const WATER_FG: &str = FG_BLUE;
-pub const WATER_BG: &str = BG_BLUE;
-pub const WATER_EL_1: TermCell = TermCell::new(' ', FG_BLUE_BRIGHT, WATER_BG);
-pub const WATER_EL_2: TermCell = TermCell::new('~', FG_BLUE_BRIGHT, WATER_BG);
+pub struct TileAsset {
+    pub fg: &'static str,
+    pub bg: &'static str,
+    pub std: TermCell,
+    pub wind: TermCell,
+}
 
-pub const WOODS_FG: &str = FG_GREEN_DARK;
-pub const WOODS_BG: &str = BG_GREEN_DARK;
-pub const WOODS_EL_1: TermCell = TermCell::new(' ', FG_GREEN, WOODS_BG);
-pub const WOODS_EL_2: TermCell = TermCell::new('"', FG_GREEN, WOODS_BG);
+impl TileAsset {
+    pub fn get_asset(tile: TileE) -> Self {
+        match tile {
+            TileE::Grass => GRASS,
+            TileE::Water => WATER,
+            TileE::Woods => WOODS,
+            TileE::Mountain => MOUNTAIN,
+            TileE::HighMountain => HIGH_MOUNTAIN,
+        }
+    }
+}
 
-pub const MOUNTAIN_FG: &str = FG_GREY;
-pub const MOUNTAIN_BG: &str = BG_GREY;
-pub const MOUNTAIN_EL_1: TermCell = TermCell::new('\'', FG_GREEN, MOUNTAIN_BG);
-pub const MOUNTAIN_EL_2: TermCell = TermCell::new('"', FG_GREEN, MOUNTAIN_BG);
+pub const GRASS: TileAsset = TileAsset {
+    fg: FG_GREEN,
+    bg: BG_GREEN,
+    std: TermCell::new(' ', FG_GREEN_BRIGHT, BG_GREEN),
+    wind: TermCell::new('\"', FG_GREEN_BRIGHT, BG_GREEN),
+};
 
-pub const HIGH_MOUNTAIN_FG: &str = FG_WHITE;
-pub const HIGH_MOUNTAIN_BG: &str = BG_WHITE;
-pub const HIGH_MOUNTAIN_EL_1: TermCell = TermCell::new(' ', FG_WHITE, HIGH_MOUNTAIN_BG);
-pub const HIGH_MOUNTAIN_EL_2: TermCell = TermCell::new('^', FG_BLUE_BRIGHT, HIGH_MOUNTAIN_BG);
+pub const WATER: TileAsset = TileAsset {
+    fg: FG_BLUE,
+    bg: BG_BLUE_BRIGHT,
+    std: TermCell::new(' ', FG_BLUE_BRIGHT, BG_BLUE),
+    wind: TermCell::new('~', FG_BLUE_BRIGHT, BG_BLUE),
+};
 
-pub const CASTLE_FG: &str = FG_WHITE;
-pub const CASTLE_BG: &str = BG_BLACK;
+pub const WOODS: TileAsset = TileAsset {
+    fg: FG_GREEN_DARK,
+    bg: BG_GREEN_DARK,
+    std: TermCell::new(' ', FG_GREEN, BG_GREEN_DARK),
+    wind: TermCell::new('"', FG_GREEN_DARKER, BG_GREEN_DARK),
+};
+
+pub const MOUNTAIN: TileAsset = TileAsset {
+    fg: FG_GREY_BRIGHT,
+    bg: BG_GREY,
+    std: TermCell::new('^', FG_GREY, BG_GREY_GREENISH),
+    wind: TermCell::new('^', FG_WHITE, BG_GREY_GREENISH),
+};
+
+pub const HIGH_MOUNTAIN: TileAsset = TileAsset {
+    fg: FG_WHITE,
+    bg: BG_WHITE,
+    std: TermCell::new(' ', FG_WHITE, BG_WHITE),
+    wind: TermCell::new('^', FG_BLUE_BRIGHT, BG_WHITE),
+};
+
+// Game elements
+
+pub const MY_CASTLE_FG: &str = FG_WHITE;
+pub const MY_CASTLE_BG: &str = BG_BLACK;
+pub const MY_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', FG_WHITE, BG_BLACK)]];
+pub const MY_CASTLE_ART_WORLD: &[&[TermCell]] = &[&[TermCell::new('@', FG_WHITE, BG_BLACK)]];
+pub const MY_CASTLE_ART_SIZE: (usize, usize) = (MY_CASTLE_ART.len(), MY_CASTLE_ART[0].len());
+pub const MY_CASTLE_ART_WORLD_SIZE: (usize, usize) =
+    (MY_CASTLE_ART_WORLD.len(), MY_CASTLE_ART_WORLD[0].len());
+
+pub const CASTLE_FG: &str = FG_BLACK;
+pub const CASTLE_BG: &str = BG_WHITE;
+pub const CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', FG_WHITE, BG_BLACK)]];
+pub const CASTLE_ART_WORLD: &[&[TermCell]] = &[&[TermCell::new('@', FG_WHITE, BG_BLACK)]];
+pub const CASTLE_ART_SIZE: (usize, usize) = (CASTLE_ART.len(), CASTLE_ART[0].len());
+pub const CASTLE_ART_WORLD_SIZE: (usize, usize) =
+    (CASTLE_ART_WORLD.len(), CASTLE_ART_WORLD[0].len());
+
+pub const DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', FG_RED, BG_BLACK)]];
+pub const DEPLOYED_UNITS_ART_SIZE: (usize, usize) =
+    (DEPLOYED_UNITS_ART.len(), DEPLOYED_UNITS_ART[0].len());
 
 pub const ERR_ART: &[&[TermCell]] = &[&[ERR_EL]];
+pub const ERR_ART_SIZE: (usize, usize) = (ERR_ART.len(), ERR_ART[0].len());
 
+// Old assets
+//
 // pub const CASTLE_ART: &[&[TermCell]] = &[
 //     &[
 //         TermCell::new('M', CASTLE_FG, CASTLE_BG),
@@ -117,19 +169,3 @@ pub const ERR_ART: &[&[TermCell]] = &[&[ERR_EL]];
 //     TermCell::new('C', FG_YELLOW, BG_BLACK),
 //     TermCell::new('C', FG_YELLOW, BG_BLACK),
 // ]];
-
-pub const CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', FG_WHITE_BRIGHT, BG_BLACK)]];
-
-pub const CASTLE_ART_WORLD: &[&[TermCell]] = &[&[TermCell::new('@', FG_WHITE_BRIGHT, BG_BLACK)]];
-
-pub const DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', FG_RED, BG_BLACK)]];
-
-pub const ERR_ART_SIZE: (usize, usize) = (ERR_ART.len(), ERR_ART[0].len());
-
-pub const CASTLE_ART_SIZE: (usize, usize) = (CASTLE_ART.len(), CASTLE_ART[0].len());
-
-pub const CASTLE_ART_WORLD_SIZE: (usize, usize) =
-    (CASTLE_ART_WORLD.len(), CASTLE_ART_WORLD[0].len());
-
-pub const DEPLOYED_UNITS_ART_SIZE: (usize, usize) =
-    (DEPLOYED_UNITS_ART.len(), DEPLOYED_UNITS_ART[0].len());

@@ -1,8 +1,3 @@
-//! # Terminal User Interface (TUI)
-//!
-//! Manages the terminal user interface, coordinating rendering,
-//! input, and server updates through separate task handlers.
-
 use crate::{
     canvas::{RightModuleTab, canvas::Canvas},
     input_handler::InputHandler,

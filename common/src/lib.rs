@@ -1,9 +1,3 @@
-//! # Common Crate
-//!
-//! This crate defines the shared data structures, constants, and communication
-//! protocols used by both the `server` and `client` components of the Castli project.
-//! It ensures that both sides of the application agree on the format of data being exchanged.
-
 pub mod r#const;
 pub mod exports;
 pub mod stream;

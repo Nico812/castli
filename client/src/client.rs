@@ -1,5 +1,3 @@
-//! # Client Core Logic
-
 use std::collections::HashMap;
 use tokio::{
     io::BufReader,

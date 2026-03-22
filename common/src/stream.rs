@@ -1,9 +1,3 @@
-//! # Stream Communication Helpers
-//!
-//! This module provides helper functions for sending and receiving messages
-//! over a `TcpStream`. It handles serialization to JSON and deserialization
-//! from JSON, using newline characters to delimit messages.
-
 use crate::{C2S, S2C};
 use serde_json;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
