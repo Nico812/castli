@@ -9,6 +9,7 @@ use crate::ansi::*;
 use crate::assets::*;
 use crate::canvas::RightModuleTab;
 use crate::canvas::module_utility::draw_text_in_row;
+use crate::tui::SharedState;
 
 pub struct RightModule {
     current_tab: RightModuleTab,
@@ -17,8 +18,8 @@ pub struct RightModule {
 impl RightModule {
     const PADDING_HORI: usize = 2;
     const PADDING_VERT: usize = 1;
-    const CONTENT_ROWS: usize = RIGHT_MODULE_ROWS.saturating_sub(Self::PADDING_VERT * 2);
-    const CONTENT_COLS: usize = RIGHT_MODULE_COLS.saturating_sub(Self::PADDING_HORI * 2);
+    const CONTENT_ROWS: usize = RIGHT_MODULE_ROWS.saturating_sub(2);
+    const CONTENT_COLS: usize = RIGHT_MODULE_COLS.saturating_sub(2);
 
     pub fn new() -> Self {
         let current_tab = RightModuleTab::Castle;
@@ -28,9 +29,7 @@ impl RightModule {
     pub fn get_renderable_and_update(
         &self,
         frame_dt: u64,
-        look_pos: Option<GameCoord>,
-        player: &PlayerE,
-        logs: &mut VecDeque<String>,
+        state: &mut SharedState,
     ) -> Vec<Vec<TermCell>> {
         let mut content = vec![
             vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
@@ -38,15 +37,15 @@ impl RightModule {
         ];
 
         match self.current_tab {
-            RightModuleTab::Castle => Self::add_castle_tab(&mut content, player),
-            RightModuleTab::Debug => Self::add_debug_tab(&mut content, frame_dt, look_pos),
-            RightModuleTab::Logs => Self::add_logs_tab(&mut content, logs),
+            RightModuleTab::Castle => Self::add_castle_tab(&mut content, &state.player_data),
+            RightModuleTab::Debug => Self::add_debug_tab(&mut content, frame_dt, state.map_look),
+            RightModuleTab::Logs => Self::add_logs_tab(&mut content, &mut state.chat),
         };
         module_utility::add_frame("inspect", &mut content);
         content
     }
 
-    pub fn change_tab(&mut self, new_tab: RightModuleTab) {
+    pub fn update_tab(&mut self, new_tab: RightModuleTab) {
         self.current_tab = new_tab;
     }
 
@@ -110,22 +109,24 @@ impl RightModule {
     pub fn add_logs_tab(content: &mut Vec<Vec<TermCell>>, logs: &mut VecDeque<String>) {
         let mut chatbox: VecDeque<Vec<TermCell>> = VecDeque::with_capacity(Self::CONTENT_ROWS);
 
-        for _ in 0..Self::CONTENT_ROWS {
-            chatbox.push_back(vec![
-                TermCell::new(' ', FG_BLACK, BG_BLACK);
-                Self::CONTENT_COLS
-            ]);
-        }
+        let recent_logs: Vec<&String> = logs.iter().take(Self::CONTENT_ROWS).collect();
 
-        for log in logs {
-            chatbox.pop_front();
+        // Aggiungi i log dal più vecchio al più recente (per visualizzazione dall'alto verso il basso)
+        for log in recent_logs.iter().rev() {
             let mut row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
+
             for (i, ch) in log.chars().enumerate() {
                 if i < Self::CONTENT_COLS - Self::PADDING_HORI {
                     row[Self::PADDING_HORI + i] = TermCell::new(ch, FG_WHITE, BG_BLACK);
                 }
             }
             chatbox.push_back(row);
+        }
+
+        // Riempie con righe vuote all'inizio se non ci sono abbastanza log
+        while chatbox.len() < Self::CONTENT_ROWS {
+            let empty_row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
+            chatbox.push_front(empty_row);
         }
 
         *content = chatbox.into();

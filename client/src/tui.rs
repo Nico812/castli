@@ -46,7 +46,7 @@ impl SharedState {
     }
 
     pub fn add_log(&mut self, message: impl Into<String>) {
-        self.chat.push_back(message.into());
+        self.chat.push_front(message.into());
     }
 }
 

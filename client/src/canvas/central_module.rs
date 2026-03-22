@@ -3,13 +3,14 @@ use common::exports::tile::TileE;
 use common::{GameCoord, GameID};
 use rand::SeedableRng;
 use rand::{self, Rng, rngs};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 use super::module_utility;
 use crate::ansi::*;
 use crate::assets::*;
-use crate::canvas::r#const::{CENTRAL_MODULE_CONTENT_COLS, CENTRAL_MODULE_CONTENT_ROWS};
+use crate::canvas::r#const::{CENTRAL_MODULE_COLS, CENTRAL_MODULE_ROWS};
 use crate::canvas::module_utility::WithArt;
+use crate::tui::SharedState;
 
 use common::r#const::{self, MAP_COLS, MAP_ROWS};
 
@@ -22,8 +23,8 @@ pub struct CentralModule {
 }
 
 impl CentralModule {
-    pub const CONTENT_ROWS: usize = CENTRAL_MODULE_CONTENT_ROWS;
-    pub const CONTENT_COLS: usize = CENTRAL_MODULE_CONTENT_COLS;
+    pub const CONTENT_ROWS: usize = CENTRAL_MODULE_ROWS - 2;
+    pub const CONTENT_COLS: usize = CENTRAL_MODULE_COLS - 2;
     pub const WIND_ROWS: usize = MAP_ROWS / 2;
     pub const WIND_COLS: usize = MAP_COLS;
     const ZOOM_FACTOR: usize = 8;
@@ -56,11 +57,10 @@ impl CentralModule {
 
     pub fn get_renderable_and_update(
         &mut self,
-        game_objs: &HashMap<GameID, GameObjE>,
-        map_zoom: Option<GameCoord>,
         render_count: u32,
+        state: &mut SharedState,
     ) -> Vec<Vec<TermCell>> {
-        let (tiles, zoom_coord, frame_title) = match map_zoom {
+        let (tiles, zoom_coord, frame_title) = match state.map_zoom {
             Some(coord) => {
                 let tiles = self.get_map_slice(coord);
                 let title = format!("zoom (y:{}, x:{})", coord.y, coord.x);
@@ -79,8 +79,8 @@ impl CentralModule {
         let mut cells = Self::tiles_to_cells(&tiles, &cut_wind);
 
         match zoom_coord {
-            Some(coord) => Self::add_objs_to_cells(&mut cells, game_objs, coord),
-            None => Self::add_world_objs_to_cells(&mut cells, game_objs),
+            Some(coord) => Self::add_objs_to_cells(&mut cells, &state.game_objs, coord),
+            None => Self::add_world_objs_to_cells(&mut cells, &state.game_objs),
         }
 
         self.update_wind(render_count, wind_pos);
@@ -137,15 +137,15 @@ impl CentralModule {
                         let top_left_row = world_map_row * Self::ZOOM_FACTOR;
                         let top_left_col = world_map_col * Self::ZOOM_FACTOR;
                         let bottom_right_row =
-                            ((world_map_row + 1) * Self::ZOOM_FACTOR).min(MAP_ROWS);
+                            ((world_map_row + 1) * Self::ZOOM_FACTOR).min(MAP_ROWS) - 1;
                         let bottom_right_col =
-                            ((world_map_col + 1) * Self::ZOOM_FACTOR).min(MAP_COLS);
+                            ((world_map_col + 1) * Self::ZOOM_FACTOR).min(MAP_COLS) - 1;
 
                         let mut grass_count = 0;
                         let mut water_count = 0;
 
-                        for row in top_left_row..bottom_right_row {
-                            for col in top_left_col..bottom_right_col {
+                        for row in top_left_row..=bottom_right_row {
+                            for col in top_left_col..=bottom_right_col {
                                 match tiles[row][col] {
                                     TileE::Grass => grass_count += 1,
                                     TileE::Water => water_count += 1,

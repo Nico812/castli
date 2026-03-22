@@ -61,15 +61,10 @@ impl Canvas {
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
 
-        self.right_module.change_tab(state.right_mod_tab);
+        self.right_module.update_tab(state.right_mod_tab);
         for (row, line_contents) in self
             .right_module
-            .get_renderable_and_update(
-                frame_dt,
-                state.map_look,
-                &state.player_data,
-                &mut state.chat,
-            )
+            .get_renderable_and_update(frame_dt, state)
             .iter()
             .enumerate()
         {
@@ -80,7 +75,7 @@ impl Canvas {
 
         for (row, line_contents) in self
             .central_module
-            .get_renderable_and_update(&state.game_objs, state.map_zoom, self.render_count)
+            .get_renderable_and_update(self.render_count, state)
             .iter()
             .enumerate()
         {
@@ -95,8 +90,8 @@ impl Canvas {
                 // Checks if the cursor is inside the central module
                 let is_inside_fov = term_coord.y > CENTRAL_MOD_POS.0
                     && term_coord.x > CENTRAL_MOD_POS.1
-                    && term_coord.y <= (CENTRAL_MOD_POS.0 + CENTRAL_MODULE_CONTENT_ROWS)
-                    && term_coord.x <= (CENTRAL_MOD_POS.1 + CENTRAL_MODULE_CONTENT_COLS);
+                    && term_coord.y <= (CENTRAL_MOD_POS.0 + CentralModule::CONTENT_ROWS)
+                    && term_coord.x <= (CENTRAL_MOD_POS.1 + CentralModule::CONTENT_COLS);
 
                 if is_inside_fov {
                     if look_coord.y % 2 == 0 {

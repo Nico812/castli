@@ -1,10 +1,8 @@
-//! # Player Input Handling
-
 use std::sync::Arc;
 use tokio::io::{self, AsyncReadExt};
 use tokio::sync::Mutex;
 
-use crate::canvas::r#const::{CENTRAL_MODULE_CONTENT_COLS, CENTRAL_MODULE_CONTENT_ROWS};
+use crate::canvas::central_module::CentralModule;
 use crate::tui::{SharedState, T2C};
 use common::r#const::{MAP_COLS, MAP_ROWS};
 use common::{GameCoord, exports::units::UnitGroupE};
@@ -74,11 +72,11 @@ impl InputHandler {
             if let Some(ref mut zoom) = state.map_zoom {
                 zoom.x = (zoom.x as isize + 2 * dx)
                     .max(0)
-                    .min(MAP_COLS as isize - CENTRAL_MODULE_CONTENT_COLS as isize)
+                    .min(MAP_COLS as isize - CentralModule::CONTENT_COLS as isize)
                     as usize;
                 zoom.y = (zoom.y as isize + 2 * dy)
                     .max(0)
-                    .min((MAP_ROWS) as isize - (CENTRAL_MODULE_CONTENT_ROWS * 2) as isize)
+                    .min((MAP_ROWS) as isize - (CentralModule::CONTENT_ROWS * 2) as isize)
                     as usize;
             }
         }
