@@ -77,10 +77,10 @@ pub fn draw_text_in_row(
     if row >= content.len() {
         return;
     }
-    let space_available = content[0].len() - pad_right;
+    let space_available = content[0].len().saturating_sub(pad_right + pad_left);
 
     for (i, ch) in string.chars().enumerate() {
-        if pad_left + i < space_available {
+        if i < space_available {
             content[row][pad_left + i] = TermCell {
                 ch,
                 fg: FG_WHITE,

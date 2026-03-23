@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use tokio::{sync::mpsc, time};
 
 use crate::{
+    r#const::{CLIENT_COM_TICK, GAME_TICK, SERVER_COM_TICK},
     game::game::Game,
     player::{Player, PlayerStatus},
     server::{ClientID, S2L},
@@ -40,9 +41,11 @@ impl Lobby {
     /// Lobby listens for messages from the server, listens and responds to messages from clients,
     /// and periodically updates the game state.
     pub async fn run(&mut self, mut main_rx: mpsc::UnboundedReceiver<S2L>) {
-        let mut client_comunication_tick = time::interval(time::Duration::from_millis(100));
-        let mut server_comunication_tick = time::interval(time::Duration::from_millis(1000));
-        let mut game_tick = time::interval(time::Duration::from_millis(1000));
+        let mut client_comunication_tick =
+            time::interval(time::Duration::from_millis(CLIENT_COM_TICK));
+        let mut server_comunication_tick =
+            time::interval(time::Duration::from_millis(SERVER_COM_TICK));
+        let mut game_tick = time::interval(time::Duration::from_millis(GAME_TICK));
 
         let mut running = true;
 

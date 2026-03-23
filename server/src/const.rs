@@ -1,3 +1,9 @@
+// Lobby constants
+
+pub const GAME_TICK: u64 = 10000;
+pub const CLIENT_COM_TICK: u64 = 100;
+pub const SERVER_COM_TICK: u64 = 1000;
+
 // Map initialization constants
 
 pub const CA_ITER_WATER: usize = 15;

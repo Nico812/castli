@@ -5,22 +5,26 @@ use crate::ansi;
 use crate::assets;
 use crate::assets::CURSOR_DOWN;
 use crate::assets::CURSOR_UP;
-use crate::canvas::r#const::*;
-use crate::canvas::{central_module::CentralModule, right_module::RightModule};
 use crate::coord::TermCoord;
+use crate::game_renderer::r#const::*;
+use crate::game_renderer::map_data::MapData;
+use crate::game_renderer::mod_inspect::ModInspect;
+use crate::game_renderer::{mod_central::ModCentral, mod_right::ModRight};
 use crate::tui::SharedState;
 
-pub struct Canvas {
+pub struct GameRenderer {
     prev_frame: Vec<Vec<assets::TermCell>>,
     canvas_pos: (usize, usize),
     render_count: u32,
-    // Modules
-    central_module: CentralModule,
-    right_module: RightModule,
+    map_data: MapData,
 }
 
-impl Canvas {
-    pub fn new() -> Self {
+impl GameRenderer {
+    pub const FOV_ROWS: usize = MOD_CENTRAL_ROWS - 2;
+    pub const FOV_COLS: usize = MOD_CENTRAL_COLS - 2;
+    pub const ZOOM_FACTOR: usize = 8;
+
+    pub fn new(map_tiles: Vec<Vec<TileE>>) -> Self {
         let canvas_pos;
         match terminal_size() {
             Some((Width(w), Height(h))) => {
@@ -41,46 +45,50 @@ impl Canvas {
                 canvas_pos = (0, 0);
             }
         }
-        let prev_frame = vec![vec![assets::ERR_EL; CANVAS_COLS]; CANVAS_ROWS];
-        let central_module = CentralModule::new();
-        let right_module = RightModule::new();
+        let prev_frame = vec![vec![assets::ERR.std; CANVAS_COLS]; CANVAS_ROWS];
+        let map_data = MapData::new(map_tiles);
+
         Self {
             prev_frame,
             canvas_pos,
             render_count: 0,
-            central_module,
-            right_module,
+            map_data,
         }
-    }
-
-    pub fn init(&mut self, tiles: Vec<Vec<TileE>>) {
-        self.central_module.init(tiles);
     }
 
     pub fn render(&mut self, state: &mut SharedState, frame_dt: u64) {
+        self.map_data.update_wind(self.render_count, state.map_zoom);
+
+        // Right module
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
 
-        self.right_module.update_tab(state.right_mod_tab);
-        for (row, line_contents) in self
-            .right_module
-            .get_renderable_and_update(frame_dt, state)
-            .iter()
-            .enumerate()
-        {
+        for (row, line_contents) in ModRight::get_renderable(frame_dt, state).iter().enumerate() {
             for (col, cell) in line_contents.iter().enumerate() {
-                new_frame[row + RIGHT_MOD_POS.0][col + RIGHT_MOD_POS.1] = cell.clone();
+                new_frame[row + MOD_RIGHT_POS.0][col + MOD_RIGHT_POS.1] = cell.clone();
             }
         }
 
-        for (row, line_contents) in self
-            .central_module
-            .get_renderable_and_update(self.render_count, state)
+        // Central module
+        for (row, line_contents) in ModCentral::get_renderable(state, &self.map_data)
             .iter()
             .enumerate()
         {
             for (col, cell) in line_contents.iter().enumerate() {
-                new_frame[row + CENTRAL_MOD_POS.0][col + CENTRAL_MOD_POS.1] = cell.clone();
+                new_frame[row + MOD_CENTRAL_POS.0][col + MOD_CENTRAL_POS.1] = cell.clone();
+            }
+        }
+
+        // Inspect module
+        if let Some(renderable) = ModInspect::get_renderable(state, &self.map_data) {
+            // TODO: Here pos_col should change based on look_coord
+            let pos_row = MOD_CENTRAL_POS.0;
+            let pos_col = MOD_CENTRAL_POS.1 + MOD_CENTRAL_COLS - MOD_INSPECT_COLS;
+
+            for (row, line_contents) in renderable.iter().enumerate() {
+                for (col, cell) in line_contents.iter().enumerate() {
+                    new_frame[row + pos_row][col + pos_col] = cell.clone();
+                }
             }
         }
 
@@ -88,10 +96,10 @@ impl Canvas {
         if let (Some(look_coord), Some(zoom_coord)) = (state.map_look, state.map_zoom) {
             if let Some(term_coord) = TermCoord::from_game_coord(look_coord, zoom_coord) {
                 // Checks if the cursor is inside the central module
-                let is_inside_fov = term_coord.y > CENTRAL_MOD_POS.0
-                    && term_coord.x > CENTRAL_MOD_POS.1
-                    && term_coord.y <= (CENTRAL_MOD_POS.0 + CentralModule::FOV_ROWS)
-                    && term_coord.x <= (CENTRAL_MOD_POS.1 + CentralModule::FOV_COLS);
+                let is_inside_fov = term_coord.y > MOD_CENTRAL_POS.0
+                    && term_coord.x > MOD_CENTRAL_POS.1
+                    && term_coord.y <= (MOD_CENTRAL_POS.0 + Self::FOV_ROWS)
+                    && term_coord.x <= (MOD_CENTRAL_POS.1 + Self::FOV_COLS);
 
                 if is_inside_fov {
                     if look_coord.y % 2 == 0 {

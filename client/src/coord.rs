@@ -1,6 +1,6 @@
 use common::GameCoord;
 
-use crate::canvas::r#const::{CANVAS_COLS, CANVAS_ROWS, CENTRAL_MOD_POS};
+use crate::game_renderer::r#const::{CANVAS_COLS, CANVAS_ROWS, MOD_CENTRAL_POS};
 
 // TermCoord are the 1-indexed terminal coordinates with origin at CANVAS_POS
 // A TermCoord y-displacement corresponds to a GameCoord 2y-displacement
@@ -22,8 +22,8 @@ impl TermCoord {
         let mut term_x = rel_game_x;
         // +1 to account for frame
         // +1 o account for 1-indexing of terminal coords
-        term_y += CENTRAL_MOD_POS.0 + 1;
-        term_x += CENTRAL_MOD_POS.1 + 1;
+        term_y += MOD_CENTRAL_POS.0 + 1;
+        term_x += MOD_CENTRAL_POS.1 + 1;
 
         if term_y > CANVAS_ROWS || term_x > CANVAS_COLS {
             return None;

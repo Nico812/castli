@@ -31,10 +31,6 @@ impl<'a> TermCell {
 pub const CURSOR_UP: TermCell = TermCell::new('\u{21B1}', FG_WHITE, BG_BLACK);
 pub const CURSOR_DOWN: TermCell = TermCell::new('\u{21B3}', FG_WHITE, BG_BLACK);
 
-pub const ERR_FG: &str = FG_MAGENTA;
-pub const ERR_BG: &str = BG_MAGENTA_BRIGHT;
-pub const ERR_EL: TermCell = TermCell::new('?', FG_MAGENTA, ERR_BG);
-
 pub const BKG_FG: &str = FG_BLACK;
 pub const BKG_BG: &str = BG_BLACK;
 pub const BKG_EL: TermCell = TermCell::new('.', FG_RED, BG_BLACK);
@@ -56,6 +52,7 @@ impl TileAsset {
             TileE::Woods => WOODS,
             TileE::Mountain => MOUNTAIN,
             TileE::HighMountain => HIGH_MOUNTAIN,
+            TileE::Err => ERR,
         }
     }
 }
@@ -95,6 +92,13 @@ pub const HIGH_MOUNTAIN: TileAsset = TileAsset {
     wind: TermCell::new('^', FG_BLUE_BRIGHT, BG_WHITE),
 };
 
+pub const ERR: TileAsset = TileAsset {
+    fg: FG_MAGENTA,
+    bg: BG_MAGENTA,
+    std: TermCell::new('?', FG_WHITE, BG_MAGENTA),
+    wind: TermCell::new('!', FG_WHITE, BG_MAGENTA),
+};
+
 // Game elements
 
 pub const MY_CASTLE_FG: &str = FG_WHITE;
@@ -117,7 +121,7 @@ pub const DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', FG_RED, BG
 pub const DEPLOYED_UNITS_ART_SIZE: (usize, usize) =
     (DEPLOYED_UNITS_ART.len(), DEPLOYED_UNITS_ART[0].len());
 
-pub const ERR_ART: &[&[TermCell]] = &[&[ERR_EL]];
+pub const ERR_ART: &[&[TermCell]] = &[&[ERR.std]];
 pub const ERR_ART_SIZE: (usize, usize) = (ERR_ART.len(), ERR_ART[0].len());
 
 // Old assets

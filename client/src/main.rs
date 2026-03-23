@@ -1,9 +1,9 @@
 mod ansi;
 mod assets;
-mod canvas;
 mod client;
 mod r#const;
 mod coord;
+mod game_renderer;
 mod input_handler;
 mod tui;
 

@@ -7,46 +7,30 @@ use common::exports::units::UnitE;
 use super::{r#const::*, module_utility};
 use crate::ansi::*;
 use crate::assets::*;
-use crate::canvas::RightModuleTab;
-use crate::canvas::module_utility::draw_text_in_row;
+use crate::game_renderer::ModRightTab;
+use crate::game_renderer::module_utility::draw_text_in_row;
 use crate::tui::SharedState;
 
-pub struct RightModule {
-    current_tab: RightModuleTab,
-}
+pub struct ModRight {}
 
-impl RightModule {
+impl ModRight {
     const PADDING_HORI: usize = 2;
-    const PADDING_VERT: usize = 1;
-    const CONTENT_ROWS: usize = RIGHT_MODULE_ROWS.saturating_sub(2);
-    const CONTENT_COLS: usize = RIGHT_MODULE_COLS.saturating_sub(2);
+    const CONTENT_ROWS: usize = MOD_RIGHT_ROWS.saturating_sub(2);
+    const CONTENT_COLS: usize = MOD_RIGHT_COLS.saturating_sub(2);
 
-    pub fn new() -> Self {
-        let current_tab = RightModuleTab::Castle;
-        Self { current_tab }
-    }
-
-    pub fn get_renderable_and_update(
-        &self,
-        frame_dt: u64,
-        state: &mut SharedState,
-    ) -> Vec<Vec<TermCell>> {
+    pub fn get_renderable(frame_dt: u64, state: &mut SharedState) -> Vec<Vec<TermCell>> {
         let mut content = vec![
             vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
             Self::CONTENT_ROWS
         ];
 
-        match self.current_tab {
-            RightModuleTab::Castle => Self::add_castle_tab(&mut content, &state.player_data),
-            RightModuleTab::Debug => Self::add_debug_tab(&mut content, frame_dt, state.map_look),
-            RightModuleTab::Logs => Self::add_logs_tab(&mut content, &mut state.chat),
+        match state.mod_right_tab {
+            ModRightTab::Castle => Self::add_castle_tab(&mut content, &state.player_data),
+            ModRightTab::Debug => Self::add_debug_tab(&mut content, frame_dt, state.map_look),
+            ModRightTab::Logs => Self::add_logs_tab(&mut content, &mut state.chat),
         };
         module_utility::add_frame("inspect", &mut content);
         content
-    }
-
-    pub fn update_tab(&mut self, new_tab: RightModuleTab) {
-        self.current_tab = new_tab;
     }
 
     fn add_debug_tab(content: &mut Vec<Vec<TermCell>>, frame_dt: u64, look_pos: Option<GameCoord>) {

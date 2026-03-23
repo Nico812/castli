@@ -2,7 +2,7 @@ use std::sync::Arc;
 use tokio::io::{self, AsyncReadExt};
 use tokio::sync::Mutex;
 
-use crate::canvas::central_module::CentralModule;
+use crate::game_renderer::game_renderer::GameRenderer;
 use crate::tui::{SharedState, T2C};
 use common::r#const::{MAP_COLS, MAP_ROWS};
 use common::{GameCoord, exports::units::UnitGroupE};
@@ -43,9 +43,9 @@ impl InputHandler {
             'l' => Self::toggle_look(state).await,
             'a' => Self::handle_attack(tx, state).await,
             'n' => Self::handle_new_castle(tx, state).await,
-            '1' => state.right_mod_tab = crate::canvas::RightModuleTab::Castle,
-            '2' => state.right_mod_tab = crate::canvas::RightModuleTab::Logs,
-            '3' => state.right_mod_tab = crate::canvas::RightModuleTab::Debug,
+            '1' => state.mod_right_tab = crate::game_renderer::ModRightTab::Castle,
+            '2' => state.mod_right_tab = crate::game_renderer::ModRightTab::Logs,
+            '3' => state.mod_right_tab = crate::game_renderer::ModRightTab::Debug,
             _ => {}
         }
     }
@@ -72,11 +72,11 @@ impl InputHandler {
             if let Some(ref mut zoom) = state.map_zoom {
                 zoom.x = (zoom.x as isize + 2 * dx)
                     .max(0)
-                    .min(MAP_COLS as isize - CentralModule::FOV_COLS as isize)
+                    .min(MAP_COLS as isize - GameRenderer::FOV_COLS as isize)
                     as usize;
                 zoom.y = (zoom.y as isize + 2 * dy)
                     .max(0)
-                    .min((MAP_ROWS) as isize - (CentralModule::FOV_ROWS * 2) as isize)
+                    .min((MAP_ROWS) as isize - (GameRenderer::FOV_ROWS * 2) as isize)
                     as usize;
             }
         }

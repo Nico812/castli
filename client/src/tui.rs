@@ -1,5 +1,5 @@
 use crate::{
-    canvas::{RightModuleTab, canvas::Canvas},
+    game_renderer::{ModRightTab, game_renderer::GameRenderer},
     input_handler::InputHandler,
 };
 use common::{
@@ -31,7 +31,7 @@ pub struct SharedState {
     pub map_zoom: Option<GameCoord>,
     pub map_look: Option<GameCoord>,
     pub chat: VecDeque<String>,
-    pub right_mod_tab: RightModuleTab,
+    pub mod_right_tab: ModRightTab,
 }
 
 impl SharedState {
@@ -69,10 +69,10 @@ impl Tui {
             shared_state: Arc::new(Mutex::new(SharedState {
                 game_objs: initial_game_objs,
                 player_data: initial_player_data.unwrap_or(PlayerE::undef()),
-                map_zoom: None,
+                map_zoom: Some(GameCoord { x: 0, y: 0 }),
                 map_look: None,
                 chat: VecDeque::new(),
-                right_mod_tab: RightModuleTab::Castle,
+                mod_right_tab: ModRightTab::Castle,
             })),
         }
     }
@@ -105,8 +105,7 @@ impl Tui {
         let mut render_tick = time::interval(time::Duration::from_millis(16));
         let mut last_frame = time::Instant::now();
         let mut frame_dt: u64 = 0;
-        let mut canvas = Canvas::new();
-        canvas.init(tiles);
+        let mut game_renderer = GameRenderer::new(tiles);
         Self::clear_screen();
 
         loop {
@@ -124,7 +123,7 @@ impl Tui {
             // Self::clear_screen(); // For cool visuals
             {
                 let mut shared_state = shared_state.lock().await;
-                canvas.render(&mut shared_state, frame_dt);
+                game_renderer.render(&mut shared_state, frame_dt);
                 let _ = std::io::stdout().flush();
             }
 
