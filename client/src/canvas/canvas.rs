@@ -90,8 +90,8 @@ impl Canvas {
                 // Checks if the cursor is inside the central module
                 let is_inside_fov = term_coord.y > CENTRAL_MOD_POS.0
                     && term_coord.x > CENTRAL_MOD_POS.1
-                    && term_coord.y <= (CENTRAL_MOD_POS.0 + CentralModule::CONTENT_ROWS)
-                    && term_coord.x <= (CENTRAL_MOD_POS.1 + CentralModule::CONTENT_COLS);
+                    && term_coord.y <= (CENTRAL_MOD_POS.0 + CentralModule::FOV_ROWS)
+                    && term_coord.x <= (CENTRAL_MOD_POS.1 + CentralModule::FOV_COLS);
 
                 if is_inside_fov {
                     if look_coord.y % 2 == 0 {

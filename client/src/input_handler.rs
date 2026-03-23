@@ -72,11 +72,11 @@ impl InputHandler {
             if let Some(ref mut zoom) = state.map_zoom {
                 zoom.x = (zoom.x as isize + 2 * dx)
                     .max(0)
-                    .min(MAP_COLS as isize - CentralModule::CONTENT_COLS as isize)
+                    .min(MAP_COLS as isize - CentralModule::FOV_COLS as isize)
                     as usize;
                 zoom.y = (zoom.y as isize + 2 * dy)
                     .max(0)
-                    .min((MAP_ROWS) as isize - (CentralModule::CONTENT_ROWS * 2) as isize)
+                    .min((MAP_ROWS) as isize - (CentralModule::FOV_ROWS * 2) as isize)
                     as usize;
             }
         }

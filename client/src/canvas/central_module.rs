@@ -23,8 +23,8 @@ pub struct CentralModule {
 }
 
 impl CentralModule {
-    pub const CONTENT_ROWS: usize = CENTRAL_MODULE_ROWS - 2;
-    pub const CONTENT_COLS: usize = CENTRAL_MODULE_COLS - 2;
+    pub const FOV_ROWS: usize = CENTRAL_MODULE_ROWS - 2;
+    pub const FOV_COLS: usize = CENTRAL_MODULE_COLS - 2;
     pub const WIND_ROWS: usize = MAP_ROWS / 2;
     pub const WIND_COLS: usize = MAP_COLS;
     const ZOOM_FACTOR: usize = 8;
@@ -96,9 +96,9 @@ impl CentralModule {
 
         let mut tmp_wind = self.wind_map.clone();
         let row_start = zoom_coord.y / 2;
-        let row_end = (row_start + Self::CONTENT_ROWS - 1).min(Self::WIND_ROWS);
+        let row_end = (row_start + Self::FOV_ROWS - 1).min(Self::WIND_ROWS);
         let col_start = zoom_coord.x;
-        let col_end = (col_start + Self::CONTENT_COLS - 1).min(Self::WIND_COLS);
+        let col_end = (col_start + Self::FOV_COLS - 1).min(Self::WIND_COLS);
 
         for row in row_start..=row_end {
             for col in col_start..=col_end {
@@ -252,27 +252,24 @@ impl CentralModule {
     }
 
     fn get_map_slice(&self, zoom_coord: GameCoord) -> Vec<Vec<TileE>> {
-        self.map_tiles[zoom_coord.y..(zoom_coord.y + Self::CONTENT_ROWS * 2).min(MAP_ROWS)]
+        self.map_tiles[zoom_coord.y..(zoom_coord.y + Self::FOV_ROWS * 2).min(MAP_ROWS)]
             .iter()
-            .map(|row| {
-                row[zoom_coord.x..(zoom_coord.x + Self::CONTENT_COLS).min(MAP_COLS)].to_vec()
-            })
+            .map(|row| row[zoom_coord.x..(zoom_coord.x + Self::FOV_COLS).min(MAP_COLS)].to_vec())
             .collect()
     }
 
     fn get_wind_slice(&self, zoom_coord: GameCoord) -> Vec<Vec<bool>> {
-        self.wind_map
-            [zoom_coord.y / 2..(zoom_coord.y / 2 + Self::CONTENT_ROWS).min(Self::WIND_ROWS)]
+        self.wind_map[zoom_coord.y / 2..(zoom_coord.y / 2 + Self::FOV_ROWS).min(Self::WIND_ROWS)]
             .iter()
             .map(|row| {
-                row[zoom_coord.x..(zoom_coord.x + Self::CONTENT_COLS).min(Self::WIND_COLS)].to_vec()
+                row[zoom_coord.x..(zoom_coord.x + Self::FOV_COLS).min(Self::WIND_COLS)].to_vec()
             })
             .collect()
     }
 
     fn is_in_view(pos: GameCoord, zoom_coord: GameCoord, obj_size: (usize, usize)) -> bool {
-        let y = pos.y + obj_size.0 >= zoom_coord.y && pos.y < zoom_coord.y + Self::CONTENT_ROWS * 2;
-        let x = pos.x + obj_size.1 >= zoom_coord.x && pos.x < zoom_coord.x + Self::CONTENT_COLS;
+        let y = pos.y + obj_size.0 >= zoom_coord.y && pos.y < zoom_coord.y + Self::FOV_ROWS * 2;
+        let x = pos.x + obj_size.1 >= zoom_coord.x && pos.x < zoom_coord.x + Self::FOV_COLS;
         y && x
     }
 }

@@ -7,4 +7,5 @@ pub enum TileE {
     Woods,
     Mountain,
     HighMountain,
+    Err,
 }

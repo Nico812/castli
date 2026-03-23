@@ -66,6 +66,7 @@ pub fn add_frame(title: &str, renderable: &mut Vec<Vec<TermCell>>) {
     }
 }
 
+// TODO: make it steal the string, not borrow.
 pub fn draw_text_in_row(
     content: &mut Vec<Vec<TermCell>>,
     string: &String,
