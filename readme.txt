@@ -13,3 +13,6 @@ cargo run --bin server
 
 Open a second terminal and run the client:
 cargo run --bin client
+
+If the client looks messy you can probably fix by lowering the terminal font size.
+This is because the game is rendered on a canvas of fixed terminal rows/cols.

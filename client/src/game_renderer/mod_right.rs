@@ -29,7 +29,7 @@ impl ModRight {
             ModRightTab::Debug => Self::add_debug_tab(&mut content, frame_dt, state.map_look),
             ModRightTab::Logs => Self::add_logs_tab(&mut content, &mut state.chat),
         };
-        module_utility::add_frame("inspect", &mut content);
+        module_utility::add_frame("(1): me | (2): logs | (3): debug", &mut content);
         content
     }
 
