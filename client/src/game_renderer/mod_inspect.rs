@@ -49,10 +49,7 @@ impl ModInspect {
         let mut tile_comp = Self::create_tile_component(looked_tile);
         renderable.append(&mut tile_comp);
 
-        add_frame(
-            &format!("inspect: ({}, {})", look_coord.y, look_coord.x),
-            &mut renderable,
-        );
+        add_frame(&format!("inspect: {}", look_coord), &mut renderable);
 
         Some(renderable)
     }

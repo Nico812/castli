@@ -8,6 +8,7 @@ use crate::r#const::{
     PERCENT_IS_MOUNTAINS, PERCENT_IS_WATER, PERCENT_IS_WOODS,
 };
 use common::{
+    GameCoord,
     r#const::{MAP_COLS, MAP_ROWS},
     exports::tile::TileE,
 };
@@ -31,6 +32,10 @@ impl Map {
         }
 
         Self { tiles, obstacles }
+    }
+
+    pub fn is_obstacle(&self, coord: GameCoord) -> bool {
+        self.obstacles[coord.y][coord.x]
     }
 
     pub fn export(&self) -> Vec<Vec<TileE>> {

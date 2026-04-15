@@ -14,7 +14,8 @@ use crate::tui::SharedState;
 pub struct ModRight {}
 
 impl ModRight {
-    const PADDING_HORI: usize = 2;
+    const PADDING_HORI: usize = 1;
+    const PADDING_VERT: usize = 2;
     const CONTENT_ROWS: usize = MOD_RIGHT_ROWS.saturating_sub(2);
     const CONTENT_COLS: usize = MOD_RIGHT_COLS.saturating_sub(2);
 
@@ -46,7 +47,7 @@ impl ModRight {
 
         // Show looking coordinates
         if let Some(pos) = look_pos {
-            let look_pos_str = format!("Looking at ({}, {})", pos.y, pos.x);
+            let look_pos_str = format!("Looking at {}", pos);
             module_utility::draw_text_in_row(
                 content,
                 &look_pos_str,
@@ -58,7 +59,7 @@ impl ModRight {
     }
 
     fn add_castle_tab(content: &mut Vec<Vec<TermCell>>, player: &PlayerE) {
-        let pos_str = format!("({}, {})", player.pos.y, player.pos.x);
+        let pos_str = format!("{}", player.pos);
         let peasants_str = format!("Peasants: {}", player.peasants);
         let knights_str = format!(
             "Knights: {}",
@@ -93,24 +94,75 @@ impl ModRight {
     pub fn add_logs_tab(content: &mut Vec<Vec<TermCell>>, logs: &mut VecDeque<String>) {
         let mut chatbox: VecDeque<Vec<TermCell>> = VecDeque::with_capacity(Self::CONTENT_ROWS);
 
-        let recent_logs: Vec<&String> = logs.iter().take(Self::CONTENT_ROWS).collect();
+        let available_width = Self::CONTENT_COLS - (Self::PADDING_HORI * 2);
+        let available_height = Self::CONTENT_ROWS - (Self::PADDING_VERT * 2);
+        let tab_width = 4;
+        let continuation_start = Self::PADDING_HORI + tab_width;
+        let continuation_width = Self::CONTENT_COLS - continuation_start - Self::PADDING_HORI;
 
-        // Aggiungi i log dal più vecchio al più recente (per visualizzazione dall'alto verso il basso)
-        for log in recent_logs.iter().rev() {
+        // First, expand all logs into individual lines (oldest first)
+        let mut all_lines: Vec<String> = Vec::new();
+
+        for log in logs.iter() {
+            if log.len() <= available_width {
+                all_lines.push(log.clone());
+            } else {
+                let mut chars: Vec<char> = log.chars().collect();
+                let mut pos = 0;
+                let mut is_first_line = true;
+
+                while pos < chars.len() {
+                    let end = if is_first_line {
+                        (pos + available_width).min(chars.len())
+                    } else {
+                        (pos + continuation_width).min(chars.len())
+                    };
+
+                    let mut line = String::with_capacity(Self::CONTENT_COLS);
+                    if !is_first_line {
+                        line.push_str(&" ".repeat(tab_width));
+                    }
+                    line.extend(&chars[pos..end]);
+                    all_lines.push(line);
+
+                    pos = end;
+                    is_first_line = false;
+                }
+            }
+        }
+
+        // Take only the most recent lines that fit (drop oldest from the beginning)
+        let start_index = if all_lines.len() > available_height {
+            all_lines.len() - available_height
+        } else {
+            0
+        };
+
+        let recent_lines = &all_lines[start_index..];
+
+        // Start with top padding
+        for _ in 0..Self::PADDING_VERT {
+            let empty_row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
+            chatbox.push_back(empty_row);
+        }
+
+        // Add the content rows (oldest to newest from top to bottom)
+        for line in recent_lines {
             let mut row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
 
-            for (i, ch) in log.chars().enumerate() {
-                if i < Self::CONTENT_COLS - Self::PADDING_HORI {
-                    row[Self::PADDING_HORI + i] = TermCell::new(ch, FG_WHITE, BG_BLACK);
+            for (i, ch) in line.chars().enumerate() {
+                let col_pos = Self::PADDING_HORI + i;
+                if col_pos < Self::CONTENT_COLS - Self::PADDING_HORI {
+                    row[col_pos] = TermCell::new(ch, FG_WHITE, BG_BLACK);
                 }
             }
             chatbox.push_back(row);
         }
 
-        // Riempie con righe vuote all'inizio se non ci sono abbastanza log
+        // Fill remaining space with bottom padding
         while chatbox.len() < Self::CONTENT_ROWS {
             let empty_row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
-            chatbox.push_front(empty_row);
+            chatbox.push_back(empty_row);
         }
 
         *content = chatbox.into();

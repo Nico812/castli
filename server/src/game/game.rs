@@ -50,14 +50,20 @@ impl Game {
             .collect();
 
         for units_id in finished_path_tasks {
-            if let Some(task) = self.pathfinding_tasks.remove(&units_id) {
-                if let Ok(Some(path)) = task.await {
-                    if let Some(GameObj::DeployedUnits(mut unit_group)) =
-                        self.incomp_game_objs.remove(&units_id)
-                    {
-                        unit_group.set_path(path);
+            if let Some(GameObj::DeployedUnits(mut depl_units)) =
+                self.incomp_game_objs.remove(&units_id)
+            {
+                if let Some(task) = self.pathfinding_tasks.remove(&units_id) {
+                    if let Ok(Some(path)) = task.await {
+                        depl_units.set_path(path);
                         self.game_objs
-                            .insert(units_id, GameObj::DeployedUnits(unit_group));
+                            .insert(units_id, GameObj::DeployedUnits(depl_units));
+                    } else {
+                        if let Some(GameObj::Castle(owner)) =
+                            self.game_objs.get_mut(&depl_units.owner_id)
+                        {
+                            owner.units.saturating_add(&depl_units.unit_group);
+                        }
                     }
                 }
             }
@@ -86,12 +92,12 @@ impl Game {
         attacker_id: GameID,
         target_id: GameID,
         unit_group_e: UnitGroupE,
-    ) {
+    ) -> bool {
         let target_pos = match self.game_objs.get(&target_id) {
             Some(GameObj::Castle(c)) => c.pos,
-            _ => return,
+            _ => return false,
         };
-        let _ = self.request_send_units(attacker_id, target_pos, unit_group_e, Some(target_id));
+        self.request_send_units(attacker_id, target_pos, unit_group_e, Some(target_id))
     }
 
     pub fn request_send_units(
@@ -110,6 +116,10 @@ impl Game {
         let unit_group = UnitGroup::from_export(unit_group_e);
 
         if unit_group.is_empty() || !unit_group.is_inside(&attacker_castle.units) {
+            return false;
+        }
+
+        if self.map.is_obstacle(target_pos) {
             return false;
         }
 
@@ -177,12 +187,14 @@ impl Game {
         false
     }
 
-    pub fn add_player_castle(&mut self, name: String, pos: GameCoord) -> GameID {
+    pub fn add_player_castle(&mut self, name: String, pos: GameCoord) -> Option<GameID> {
+        if self.map.is_obstacle(pos) {
+            return None;
+        }
         let id = self.new_id();
-
         let castle = Castle::new(name, pos);
         self.game_objs.insert(id, GameObj::Castle(castle));
-        id
+        Some(id)
     }
 
     pub fn export_map(&self) -> Vec<Vec<TileE>> {

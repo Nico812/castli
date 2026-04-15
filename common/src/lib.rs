@@ -3,7 +3,7 @@ pub mod exports;
 pub mod stream;
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 use crate::exports::{game_object::GameObjE, player::PlayerE, tile::TileE, units::UnitGroupE};
 
@@ -14,6 +14,12 @@ pub type GameID = usize;
 pub struct GameCoord {
     pub x: usize,
     pub y: usize,
+}
+
+impl fmt::Display for GameCoord {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({},{})", self.x, self.y)
+    }
 }
 
 /// Represents messages sent from the Server to the Client (S2C).

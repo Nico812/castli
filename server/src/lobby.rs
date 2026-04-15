@@ -59,7 +59,6 @@ impl Lobby {
                 }
                 _ = game_tick.tick() => {
                     self.game.step().await;
-                    self.update_players_status();
                 }
             }
         }
@@ -111,6 +110,7 @@ impl Lobby {
     async fn listen_clients(&mut self) {
         for (client_id, (client_tx, client_rx)) in self.clients.iter_mut() {
             if let Ok(msg) = client_rx.try_recv() {
+                let mut log = None;
                 match msg {
                     C2S4L::NewCastle(pos) => {
                         println!("Player requested to build a new castle, ID: {}", client_id);
@@ -120,35 +120,55 @@ impl Lobby {
                             if player.status != PlayerStatus::Init {
                                 break;
                             }
-                            let castle_id = self.game.add_player_castle(player.name.clone(), pos);
-                            player.set_castle_id(castle_id);
+                            match self.game.add_player_castle(player.name.clone(), pos) {
+                                Some(castle_id) => {
+                                    player.set_castle_id(castle_id);
 
-                            let log = "Castle created successfully".to_string();
-                            let _ = client_tx.send(L2S4C::Log(log));
+                                    log = Some("Castle created successfully".to_string());
+                                }
+                                None => {
+                                    log = Some("Castle could not be created. Probably you are trying to build a castle on water.".to_string());
+                                }
+                            }
                         };
                     }
                     C2S4L::AttackCastle(target_id, unit_group_e) => {
                         if let Some(player) = self.players.get(client_id) {
-                            if player.status != PlayerStatus::Alive {
-                                break;
-                            }
                             if let Some(castle_id) = player.castle_id {
-                                self.game.attack_castle(castle_id, target_id, unit_group_e);
+                                match self.game.attack_castle(castle_id, target_id, unit_group_e) {
+                                    true => {
+                                        log =
+                                            Some(format!("Attacking castle with ID: {}", target_id))
+                                    }
+                                    false => {
+                                        log = Some(format!(
+                                            "Failed attacking castle with ID: {}",
+                                            target_id
+                                        ))
+                                    }
+                                }
                             }
                         }
                     }
                     C2S4L::SendUnits(target_pos, unit_group_e) => {
                         if let Some(player) = self.players.get(client_id) {
-                            if player.status != PlayerStatus::Alive {
-                                break;
-                            }
                             if let Some(castle_id) = player.castle_id {
-                                self.game.request_send_units(
+                                match self.game.request_send_units(
                                     castle_id,
                                     target_pos,
                                     unit_group_e,
                                     None,
-                                );
+                                ) {
+                                    true => {
+                                        log = Some(format!("Sending units to {}", target_pos));
+                                    }
+                                    false => {
+                                        log = Some(format!(
+                                            "Failed sending units to: {}",
+                                            target_pos
+                                        ));
+                                    }
+                                }
                             }
                         }
                     }
@@ -170,21 +190,14 @@ impl Lobby {
                         };
                     }
                 };
+                if let Some(log) = log {
+                    let _ = client_tx.send(L2S4C::Log(log));
+                }
             }
         }
     }
 
     pub fn is_full(&self) -> bool {
         self.num_players >= MAX_LOBBY_PLAYERS
-    }
-
-    fn update_players_status(&mut self) {
-        for player in self.players.values_mut() {
-            if let Some(castle_id) = player.castle_id {
-                if !self.game.is_alive(&castle_id) {
-                    player.status = PlayerStatus::Dead;
-                }
-            }
-        }
     }
 }

@@ -20,7 +20,7 @@ impl ModCentral {
         let (tiles, zoom_coord, frame_title) = match state.map_zoom {
             Some(coord) => {
                 let tiles = Self::get_map_slice(&map_data.tiles, coord);
-                let title = format!("+Castli+   zoom (y:{}, x:{})", coord.y, coord.x);
+                let title = format!("+Castli+   zoom: {}", coord);
                 (tiles, Some(coord), title)
             }
             None => {

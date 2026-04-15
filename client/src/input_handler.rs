@@ -129,10 +129,7 @@ impl InputHandler {
                     quantities: [1, 0, 0],
                 },
             ));
-            state.add_log(format!(
-                "Requesting to send troops to ({}, {})!",
-                target_coord.y, target_coord.x
-            ));
+            state.add_log(format!("Requesting to send troops to {}!", target_coord));
         }
     }
 
@@ -142,10 +139,6 @@ impl InputHandler {
     ) {
         if let Some(coords) = shared_state.map_look {
             let _ = tx.send(T2C::NewCastle(coords));
-            shared_state.add_log(format!(
-                "Castle added | coords: ({:?}, {:?})",
-                coords.y, coords.x
-            ));
         }
     }
 }

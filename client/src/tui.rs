@@ -46,7 +46,7 @@ impl SharedState {
     }
 
     pub fn add_log(&mut self, message: impl Into<String>) {
-        self.chat.push_front(message.into());
+        self.chat.push_back(message.into());
     }
 }
 
@@ -145,7 +145,7 @@ impl Tui {
                     state.player_data = data;
                 }
                 S2C::L2S4C(L2S4C::Log(msg)) => {
-                    state.chat.push_back(msg);
+                    state.add_log(msg);
                 }
                 _ => {}
             }

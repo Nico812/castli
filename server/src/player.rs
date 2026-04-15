@@ -1,9 +1,9 @@
+// Players are managed at the Lobby level. They are linked to a castle. Castles are managed at the Game level.
+
 use common::GameID;
 
 #[derive(PartialEq)]
 pub enum PlayerStatus {
-    Alive,
-    Dead,
     Init,
 }
 pub struct Player {
@@ -26,7 +26,6 @@ impl Player {
 
     pub fn set_castle_id(&mut self, castle_id: common::GameID) {
         self.castle_id = Some(castle_id);
-        self.status = PlayerStatus::Alive;
         println!(
             "Player {} just got a new castle with GameID {}",
             self.name, castle_id
