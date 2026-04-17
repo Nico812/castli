@@ -2,8 +2,11 @@
 
 use common::GameID;
 
+// Player status is used when the user is in weird states, like he has not yet a castle (init).
+// Std is the standars state.
 #[derive(PartialEq)]
 pub enum PlayerStatus {
+    Std,
     Init,
 }
 pub struct Player {

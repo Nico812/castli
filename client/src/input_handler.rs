@@ -3,7 +3,7 @@ use tokio::io::{self, AsyncReadExt};
 use tokio::sync::Mutex;
 
 use crate::game_renderer::game_renderer::GameRenderer;
-use crate::tui::{SharedState, T2C};
+use crate::tui::{InspectSelect, SharedState, T2C};
 use common::r#const::{MAP_COLS, MAP_ROWS};
 use common::{GameCoord, exports::units::UnitGroupE};
 
@@ -46,6 +46,8 @@ impl InputHandler {
             '1' => state.mod_right_tab = crate::game_renderer::ModRightTab::Castle,
             '2' => state.mod_right_tab = crate::game_renderer::ModRightTab::Logs,
             '3' => state.mod_right_tab = crate::game_renderer::ModRightTab::Debug,
+            '\r' => Self::apply_enter(state).await,
+            '\u{1b}' => state.inspect_select = None,
             _ => {}
         }
     }
@@ -65,20 +67,34 @@ impl InputHandler {
     }
 
     async fn apply_move(state: &mut SharedState, dx: isize, dy: isize) {
-        if let Some(ref mut look) = state.map_look {
+        if let Some(ref mut inspect_select) = state.inspect_select {
+            match dy {
+                dy if dy > 0 => inspect_select.next = true,
+                dy if dy < 0 => inspect_select.prev = true,
+                _ => {}
+            }
+        } else if let Some(ref mut look) = state.map_look {
             look.x = (look.x as isize + dx).max(0).min(MAP_COLS as isize - 1) as usize;
             look.y = (look.y as isize + dy).max(0).min(MAP_ROWS as isize - 1) as usize;
-        } else {
-            if let Some(ref mut zoom) = state.map_zoom {
-                zoom.x = (zoom.x as isize + 2 * dx)
-                    .max(0)
-                    .min(MAP_COLS as isize - GameRenderer::FOV_COLS as isize)
-                    as usize;
-                zoom.y = (zoom.y as isize + 2 * dy)
-                    .max(0)
-                    .min((MAP_ROWS) as isize - (GameRenderer::FOV_ROWS * 2) as isize)
-                    as usize;
-            }
+        } else if let Some(ref mut zoom) = state.map_zoom {
+            zoom.x = (zoom.x as isize + 2 * dx)
+                .max(0)
+                .min(MAP_COLS as isize - GameRenderer::FOV_COLS as isize)
+                as usize;
+            zoom.y = (zoom.y as isize + 2 * dy)
+                .max(0)
+                .min((MAP_ROWS) as isize - (GameRenderer::FOV_ROWS * 2) as isize)
+                as usize;
+        }
+    }
+
+    async fn apply_enter(state: &mut SharedState) {
+        if state.inspect_select.is_none() {
+            state.inspect_select = Some(InspectSelect {
+                next: false,
+                prev: false,
+                obj_id: None,
+            })
         }
     }
 

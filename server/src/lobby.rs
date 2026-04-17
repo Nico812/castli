@@ -123,7 +123,7 @@ impl Lobby {
                             match self.game.add_player_castle(player.name.clone(), pos) {
                                 Some(castle_id) => {
                                     player.set_castle_id(castle_id);
-
+                                    player.status = PlayerStatus::Std;
                                     log = Some("Castle created successfully".to_string());
                                 }
                                 None => {

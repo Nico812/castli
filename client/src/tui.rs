@@ -27,11 +27,18 @@ pub enum T2C {
 // Variables shared between input handler, renderer, server comunication handler.
 pub struct SharedState {
     pub game_objs: HashMap<GameID, GameObjE>,
+    pub chat: VecDeque<String>,
     pub player_data: PlayerE,
     pub map_zoom: Option<GameCoord>,
     pub map_look: Option<GameCoord>,
-    pub chat: VecDeque<String>,
     pub mod_right_tab: ModRightTab,
+    pub inspect_select: Option<InspectSelect>,
+}
+
+pub struct InspectSelect {
+    pub next: bool,
+    pub prev: bool,
+    pub obj_id: Option<GameID>,
 }
 
 impl SharedState {
@@ -73,6 +80,7 @@ impl Tui {
                 map_look: None,
                 chat: VecDeque::new(),
                 mod_right_tab: ModRightTab::Castle,
+                inspect_select: None,
             })),
         }
     }
