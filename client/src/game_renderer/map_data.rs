@@ -5,7 +5,7 @@ use common::{
 };
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 
-use crate::{game_renderer::game_renderer::GameRenderer, tui::SharedState};
+use crate::game_renderer::game_renderer::GameRenderer;
 
 pub struct MapData {
     pub tiles: Vec<Vec<TileE>>,

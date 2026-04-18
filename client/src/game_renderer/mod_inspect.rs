@@ -1,7 +1,5 @@
 use crate::{
-    ansi::{
-        BG_BLACK, BG_CYAN, BG_GREEN_BRIGHT, BG_GREY, BG_WHITE, FG_BLACK, FG_GREEN_BRIGHT, FG_GREY,
-    },
+    ansi::{BG_BLACK, BG_WHITE, FG_BLACK},
     assets::{self, TermCell, TileAsset},
     game_renderer::{
         r#const::MOD_INSPECT_COLS,
@@ -23,10 +21,7 @@ impl ModInspect {
     const CONTENT_COLS: usize = MOD_INSPECT_COLS - 2;
     const SELECTION_TERMCELL: TermCell = TermCell::new('<', FG_BLACK, BG_WHITE);
 
-    pub fn get_renderable(
-        state: &mut SharedState,
-        map_data: &MapData,
-    ) -> Option<Vec<Vec<TermCell>>> {
+    pub fn update(state: &mut SharedState, map_data: &MapData) -> Option<Vec<Vec<TermCell>>> {
         let look_coord = state.map_look?;
         let looked_tile = map_data.get_tile(look_coord);
 
@@ -138,7 +133,8 @@ impl ModInspect {
                         assets::CASTLE_ART[0][0];
                     if selected {
                         castles_component.last_mut().unwrap()
-                            [Self::CONTENT_COLS.saturating_sub(2)] = Self::SELECTION_TERMCELL;
+                            [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI - 1)] =
+                            Self::SELECTION_TERMCELL;
                     }
 
                     Self::push_row_with_text(
@@ -153,7 +149,8 @@ impl ModInspect {
                     );
                     if selected {
                         structures_component.last_mut().unwrap()
-                            [Self::CONTENT_COLS.saturating_sub(2)] = Self::SELECTION_TERMCELL;
+                            [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI - 1)] =
+                            Self::SELECTION_TERMCELL;
                     }
                     Self::push_row_with_text(&mut structures_component, &format!("ID: {}", id));
                 }
@@ -165,7 +162,8 @@ impl ModInspect {
                     units_component.last_mut().unwrap()[Self::PADDING_HORI] =
                         assets::DEPLOYED_UNITS_ART[0][0];
                     if selected {
-                        units_component.last_mut().unwrap()[Self::CONTENT_COLS.saturating_sub(2)] =
+                        units_component.last_mut().unwrap()
+                            [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI - 1)] =
                             Self::SELECTION_TERMCELL;
                     }
                     Self::push_row_with_text(&mut structures_component, &format!("ID: {}", id));

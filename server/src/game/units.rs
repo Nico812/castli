@@ -29,12 +29,12 @@ impl Unit {
         }
     }
 
-    pub fn form_index(i: usize) -> Option<Self> {
+    pub fn form_index(i: usize) -> Self {
         match i {
-            0 => Some(Self::Knight),
-            1 => Some(Self::Mage),
-            2 => Some(Self::Dragon),
-            _ => None,
+            0 => Self::Knight,
+            1 => Self::Mage,
+            2 => Self::Dragon,
+            _ => panic!(),
         }
     }
 
@@ -45,13 +45,13 @@ impl Unit {
 
 #[derive(Clone)]
 pub struct UnitGroup {
-    quantities: Box<[u16; Unit::COUNT]>,
+    quantities: [u16; Unit::COUNT],
     present_mask: u8,
 }
 
 impl UnitGroup {
     pub fn new() -> Self {
-        let quantities = Box::new([0; Unit::COUNT]);
+        let quantities = [0; Unit::COUNT];
         let present_mask = 0;
 
         Self {
@@ -89,33 +89,24 @@ impl UnitGroup {
     }
 
     pub fn subtract_if_enough(&mut self, other: &Self) -> bool {
-        if !other.is_inside(self) {
+        if !other.is_subset(self) {
             return false;
         }
         for (i, quantity) in other.quantities.iter().enumerate() {
-            self.subtract_single_type(Unit::form_index(i).unwrap(), *quantity);
+            self.subtract_single_type(Unit::form_index(i), *quantity);
         }
         true
     }
 
     pub fn subtract_unchecked(&mut self, other: &Self) {
         for (i, quantity) in other.quantities.iter().enumerate() {
-            self.subtract_single_type(Unit::form_index(i).unwrap(), *quantity);
+            self.subtract_single_type(Unit::form_index(i), *quantity);
         }
     }
 
     pub fn saturating_add(&mut self, other: &Self) {
         for (i, quantity) in other.quantities.iter().enumerate() {
-            self.add_single_type(Unit::form_index(i).unwrap(), *quantity);
-        }
-    }
-
-    pub fn remove(&mut self, unit: Unit, count: u16) {
-        let idx = unit.as_index();
-        self.quantities[idx] = self.quantities[idx].saturating_sub(count);
-
-        if self.quantities[idx] == 0 {
-            self.present_mask &= unit.as_mask();
+            self.add_single_type(Unit::form_index(i), *quantity);
         }
     }
 
@@ -123,7 +114,7 @@ impl UnitGroup {
         self.present_mask & unit.as_mask() != 0
     }
 
-    pub fn is_inside(&self, other: &Self) -> bool {
+    pub fn is_subset(&self, other: &Self) -> bool {
         for (i, quantity) in other.quantities.iter().enumerate() {
             if self.quantities[i] > *quantity {
                 return false;
@@ -141,7 +132,7 @@ impl UnitGroup {
 
     pub fn export(&self) -> UnitGroupE {
         UnitGroupE {
-            quantities: *self.quantities.clone(),
+            quantities: self.quantities.clone(),
         }
     }
 
@@ -149,10 +140,7 @@ impl UnitGroup {
         let quantities = export.quantities;
         let mut unit_group = Self::new();
         for (i, quantity) in quantities.iter().enumerate() {
-            match Unit::form_index(i) {
-                Some(unit_type) => unit_group.add_single_type(unit_type, *quantity),
-                None => continue,
-            }
+            unit_group.add_single_type(Unit::form_index(i), *quantity)
         }
         unit_group
     }

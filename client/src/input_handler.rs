@@ -1,3 +1,4 @@
+use rand::distr::Map;
 use std::sync::Arc;
 use tokio::io::{self, AsyncReadExt};
 use tokio::sync::Mutex;
@@ -66,7 +67,7 @@ impl InputHandler {
         }
     }
 
-    async fn apply_move(state: &mut SharedState, dx: isize, dy: isize) {
+    async fn apply_move(state: &mut SharedState, mut dx: isize, mut dy: isize) {
         if let Some(ref mut inspect_select) = state.inspect_select {
             match dy {
                 dy if dy > 0 => inspect_select.next = true,
@@ -74,6 +75,10 @@ impl InputHandler {
                 _ => {}
             }
         } else if let Some(ref mut look) = state.map_look {
+            if state.map_zoom.is_none() {
+                dx *= GameRenderer::ZOOM_FACTOR as isize;
+                dy *= GameRenderer::ZOOM_FACTOR as isize;
+            };
             look.x = (look.x as isize + dx).max(0).min(MAP_COLS as isize - 1) as usize;
             look.y = (look.y as isize + dy).max(0).min(MAP_ROWS as isize - 1) as usize;
         } else if let Some(ref mut zoom) = state.map_zoom {
@@ -102,24 +107,20 @@ impl InputHandler {
         let map_look = &mut state.map_look;
         state.map_zoom = match state.map_zoom {
             None => Some(GameCoord { x: 0, y: 0 }),
-            Some(_) => {
-                *map_look = None;
-                None
-            }
+            Some(_) => None,
         };
     }
 
     async fn toggle_look(state: &mut SharedState) {
-        if state.map_zoom == None {
-            return;
-        }
-
-        let map_zoom = state.map_zoom.unwrap();
         state.map_look = match state.map_look {
-            None => Some(GameCoord {
-                x: map_zoom.x,
-                y: map_zoom.y,
-            }),
+            None => {
+                let map_zoom = state.map_zoom.unwrap_or(GameCoord { x: 0, y: 0 });
+
+                Some(GameCoord {
+                    x: map_zoom.x,
+                    y: map_zoom.y,
+                })
+            }
             Some(_) => None,
         };
     }

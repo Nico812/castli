@@ -19,7 +19,7 @@ impl ModRight {
     const CONTENT_ROWS: usize = MOD_RIGHT_ROWS.saturating_sub(2);
     const CONTENT_COLS: usize = MOD_RIGHT_COLS.saturating_sub(2);
 
-    pub fn get_renderable(frame_dt: u64, state: &mut SharedState) -> Vec<Vec<TermCell>> {
+    pub fn update(frame_dt: u64, state: &mut SharedState) -> Vec<Vec<TermCell>> {
         let mut content = vec![
             vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
             Self::CONTENT_ROWS
@@ -107,7 +107,7 @@ impl ModRight {
             if log.len() <= available_width {
                 all_lines.push(log.clone());
             } else {
-                let mut chars: Vec<char> = log.chars().collect();
+                let chars: Vec<char> = log.chars().collect();
                 let mut pos = 0;
                 let mut is_first_line = true;
 

@@ -19,8 +19,11 @@ This is because the game is rendered on a canvas of fixed terminal rows/cols.
 
 **Controls**
 l: look
+n: create your castle
+a: send units
 z: toggle zoom
 q: quit
+enter/esc: toggle on/off selection in inspect panel
 arrowkeys: move camera / cursor
 CTRL+arrowkeys: (move camera / cursor) x8
 1,2,3: right panel tabs

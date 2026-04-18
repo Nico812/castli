@@ -63,24 +63,21 @@ impl GameRenderer {
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
 
-        for (row, line_contents) in ModRight::get_renderable(frame_dt, state).iter().enumerate() {
+        for (row, line_contents) in ModRight::update(frame_dt, state).iter().enumerate() {
             for (col, cell) in line_contents.iter().enumerate() {
                 new_frame[row + MOD_RIGHT_POS.0][col + MOD_RIGHT_POS.1] = cell.clone();
             }
         }
 
         // Central module
-        for (row, line_contents) in ModCentral::get_renderable(state, &self.map_data)
-            .iter()
-            .enumerate()
-        {
+        for (row, line_contents) in ModCentral::update(state, &self.map_data).iter().enumerate() {
             for (col, cell) in line_contents.iter().enumerate() {
                 new_frame[row + MOD_CENTRAL_POS.0][col + MOD_CENTRAL_POS.1] = cell.clone();
             }
         }
 
         // Inspect module
-        if let Some(renderable) = ModInspect::get_renderable(state, &self.map_data) {
+        if let Some(renderable) = ModInspect::update(state, &self.map_data) {
             // TODO: Here pos_col should change based on look_coord
             let pos_row = MOD_CENTRAL_POS.0;
             let pos_col = MOD_CENTRAL_POS.1 + MOD_CENTRAL_COLS - MOD_INSPECT_COLS;
@@ -93,8 +90,8 @@ impl GameRenderer {
         }
 
         // Adding the cursor
-        if let (Some(look_coord), Some(zoom_coord)) = (state.map_look, state.map_zoom) {
-            if let Some(term_coord) = TermCoord::from_game_coord(look_coord, zoom_coord) {
+        if let Some(look_coord) = state.map_look {
+            if let Some(term_coord) = TermCoord::from_game_coord(look_coord, state.map_zoom) {
                 // Checks if the cursor is inside the central module
                 let is_inside_fov = term_coord.y > MOD_CENTRAL_POS.0
                     && term_coord.x > MOD_CENTRAL_POS.1
@@ -102,11 +99,12 @@ impl GameRenderer {
                     && term_coord.x <= (MOD_CENTRAL_POS.1 + Self::FOV_COLS);
 
                 if is_inside_fov {
-                    if look_coord.y % 2 == 0 {
-                        new_frame[term_coord.y][term_coord.x - 1] = CURSOR_UP;
-                    } else {
-                        new_frame[term_coord.y][term_coord.x - 1] = CURSOR_DOWN;
-                    }
+                    let cursor_asset = match (state.map_zoom, look_coord.y) {
+                        (Some(_), y) if y % 2 == 0 => CURSOR_UP,
+                        (None, y) if y % (2 * GameRenderer::ZOOM_FACTOR) < 8 => CURSOR_UP,
+                        _ => CURSOR_DOWN,
+                    };
+                    new_frame[term_coord.y][term_coord.x - 1] = cursor_asset;
                 }
             }
         }

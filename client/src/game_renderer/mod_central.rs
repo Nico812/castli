@@ -16,7 +16,7 @@ use crate::tui::SharedState;
 pub struct ModCentral {}
 
 impl ModCentral {
-    pub fn get_renderable(state: &mut SharedState, map_data: &MapData) -> Vec<Vec<TermCell>> {
+    pub fn update(state: &mut SharedState, map_data: &MapData) -> Vec<Vec<TermCell>> {
         let (tiles, zoom_coord, frame_title) = match state.map_zoom {
             Some(coord) => {
                 let tiles = Self::get_map_slice(&map_data.tiles, coord);
