@@ -1,10 +1,4 @@
-use a* for troops
-
-pathfinding should run on an asynchronous task in the game communicating with it
-trugh channels (all in game)
-pathfinding should run on an asynchronous task in the game communicating with it
-trugh channels (all in game)
-
+CRUCIAL: refactor modules. I dont want to allways write the logic to create the renderable and to set paddings! PUS EMPTY ROW IS DUPLICATED CODE
 
 review error managerment in client.
 
@@ -14,16 +8,6 @@ return slices in center module in the slice functions and not copies
 -> dio can diventa una merda quindi lascio perdere per ora, magari piu in la trovo soluzione migliore.
 -> il problema è che tiles to cells deve accettare sia la mappa intera quando non ce zoom (VecVec) sia una slice (&[[]] o &[Vec]) ma non riesco a fare che l argomento puo essere entrambe.
 
-map_look dovrebbe dipendere dal content row/col del central module.
-
-due aggiungi 2 moduli, uno per i comandi, uno per il debug e il titolo e la meteo ( tipo fps)
-
 add discovery to the map as nathan suggested
 
-let only castles that are built on grass, send back feedback to the client to print in the logs.
-
-make structs: WorldCoord, TermCoord, maybe CompactCoord/MapCoord
-
 Decouple the game tick rate from the network update rate. This is crucial for performance. You can run the game simulation at a fixed rate (e.g., 60 ticks per second) and send network updates at a lower rate (e.g., 20 updates per second).
-
-make a impl of gameobjE to get the art of the corresponding obj.

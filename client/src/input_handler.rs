@@ -3,7 +3,7 @@ use tokio::io::{self, AsyncReadExt};
 use tokio::sync::Mutex;
 
 use crate::game_renderer::game_renderer::GameRenderer;
-use crate::shared_state::{InspectSelect, SharedState};
+use crate::shared_state::{InteractTarget, SharedState};
 use crate::tui::T2C;
 use common::r#const::{MAP_COLS, MAP_ROWS};
 use common::{GameCoord, exports::units::UnitGroupE};
@@ -68,10 +68,30 @@ impl InputHandler {
     }
 
     async fn apply_move(state: &mut SharedState, mut dx: isize, mut dy: isize) {
-        if let Some(ref mut inspect_select) = state.inspect_select {
+        if let Some(inspect_select) = state.inspect_select {
             match dy {
-                dy if dy > 0 => inspect_select.next = true,
-                dy if dy < 0 => inspect_select.prev = true,
+                dy if dy > 0 => {
+                    let looked_objs = state.get_looked_objs();
+                    let current_pos = looked_objs.iter().position(|(id, _)| *id == inspect_select);
+
+                    if let Some(pos) = current_pos {
+                        let new_pos = (pos + 1).min(looked_objs.len() - 1);
+                        if let Some(new_sel_obj) = looked_objs.get(new_pos) {
+                            state.inspect_select = Some(new_sel_obj.0);
+                        }
+                    }
+                }
+                dy if dy < 0 => {
+                    let looked_objs = state.get_looked_objs();
+                    let current_pos = looked_objs.iter().position(|(id, _)| *id == inspect_select);
+
+                    if let Some(pos) = current_pos {
+                        let new_pos = pos.saturating_sub(1);
+                        if let Some(new_sel_obj) = looked_objs.get(new_pos) {
+                            state.inspect_select = Some(new_sel_obj.0);
+                        }
+                    }
+                }
                 _ => {}
             }
         } else if let Some(ref mut look) = state.map_look {
@@ -94,12 +114,32 @@ impl InputHandler {
     }
 
     async fn apply_enter(state: &mut SharedState) {
-        if state.inspect_select.is_none() {
-            state.inspect_select = Some(InspectSelect {
-                next: false,
-                prev: false,
-                obj_id: None,
-            })
+        let Some(look_coord) = state.map_look else {
+            return;
+        };
+
+        match state.get_looked_objs() {
+            ref objs if objs.len() > 1 => match state.inspect_select {
+                None => state.inspect_select = Some(objs[0].0),
+                Some(selected_id) => {
+                    state.interact_target = Some(InteractTarget {
+                        obj_id: Some(selected_id),
+                        pos: look_coord,
+                    })
+                }
+            },
+            ref objs if objs.len() == 1 => {
+                state.interact_target = Some(InteractTarget {
+                    obj_id: Some(objs[0].0),
+                    pos: look_coord,
+                })
+            }
+            _ => {
+                state.interact_target = Some(InteractTarget {
+                    obj_id: None,
+                    pos: look_coord,
+                })
+            }
         }
     }
 
@@ -130,7 +170,7 @@ impl InputHandler {
         }
         let target_coord = state.map_look.unwrap();
 
-        if let Some((id, _)) = state.get_looked_obj() {
+        if let Some((id, _)) = state.get_looked_objs().get(0) {
             let _ = tx.send(T2C::AttackCastle(
                 id.clone(),
                 UnitGroupE {

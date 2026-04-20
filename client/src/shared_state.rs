@@ -5,7 +5,7 @@ use common::{
     exports::{game_object::GameObjE, player::PlayerE},
 };
 
-use crate::game_renderer::ModRightTab;
+use crate::game_renderer::{ModRightTab, game_renderer::GameRenderer};
 
 // Variables shared between input handler, renderer, server comunication handler.
 pub struct SharedState {
@@ -15,18 +15,12 @@ pub struct SharedState {
     pub map_zoom: Option<GameCoord>,
     pub map_look: Option<GameCoord>,
     pub mod_right_tab: ModRightTab,
-    pub inspect_select: Option<InspectSelect>,
+    pub inspect_select: Option<GameID>,
     pub interact_target: Option<InteractTarget>,
 }
 
-pub struct InspectSelect {
-    pub next: bool,
-    pub prev: bool,
-    pub obj_id: Option<GameID>,
-}
-
 pub struct InteractTarget {
-    pub obj: Option<GameObjE>,
+    pub obj_id: Option<GameID>,
     pub pos: GameCoord,
 }
 
@@ -47,14 +41,37 @@ impl SharedState {
         }
     }
 
-    pub fn get_looked_obj(&self) -> Option<(&GameID, &GameObjE)> {
-        match self.map_look {
-            Some(look_pos) => self
-                .game_objs
-                .iter()
-                .find(|(_, obj)| obj.get_pos() == look_pos),
-            None => None,
-        }
+    pub fn get_looked_objs(&self) -> Vec<(GameID, &GameObjE)> {
+        let Some(look_coord) = self.map_look else {
+            return Vec::new();
+        };
+
+        let mut looked_objs: Vec<(GameID, &GameObjE)> = self
+            .game_objs
+            .iter()
+            .filter_map(|(game_id, game_obj)| {
+                if self.map_zoom.is_some() && game_obj.get_pos() == look_coord {
+                    Some((*game_id, game_obj))
+                } else if self.map_zoom.is_none()
+                    && game_obj.get_pos().y >= look_coord.y
+                    && game_obj.get_pos().x >= look_coord.x
+                    && game_obj.get_pos().y < look_coord.y + GameRenderer::ZOOM_FACTOR
+                    && game_obj.get_pos().x < look_coord.x + GameRenderer::ZOOM_FACTOR
+                {
+                    Some((*game_id, game_obj))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        looked_objs.sort_by(|a, b| a.0.cmp(&b.0));
+        looked_objs.sort_by_key(|a| match a.1 {
+            GameObjE::Castle(_) => 0,
+            GameObjE::Structure(_) => 1,
+            GameObjE::DeployedUnits(_) => 2,
+        });
+        looked_objs
     }
 
     pub fn add_log(&mut self, message: impl Into<String>) {

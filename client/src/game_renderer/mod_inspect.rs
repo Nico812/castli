@@ -3,11 +3,10 @@ use crate::{
     assets::{self, TermCell, TileAsset},
     game_renderer::{
         r#const::MOD_INSPECT_COLS,
-        game_renderer::GameRenderer,
         map_data::MapData,
         module_utility::{add_frame, draw_text_in_row},
     },
-    shared_state::{InspectSelect, SharedState},
+    shared_state::SharedState,
 };
 use common::{
     GameID,
@@ -26,39 +25,14 @@ impl ModInspect {
         let look_coord = state.map_look?;
         let looked_tile = map_data.get_tile(look_coord);
 
-        let mut looked_objs: Vec<(GameID, &GameObjE)> = state
-            .game_objs
-            .iter()
-            .filter_map(|(game_id, game_obj)| {
-                if state.map_zoom.is_some() && game_obj.get_pos() == look_coord {
-                    Some((*game_id, game_obj))
-                } else if state.map_zoom.is_none()
-                    && game_obj.get_pos().y >= look_coord.y
-                    && game_obj.get_pos().x >= look_coord.x
-                    && game_obj.get_pos().y < look_coord.y + GameRenderer::ZOOM_FACTOR
-                    && game_obj.get_pos().x < look_coord.x + GameRenderer::ZOOM_FACTOR
-                {
-                    Some((*game_id, game_obj))
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        looked_objs.sort_by(|a, b| a.0.cmp(&b.0));
-        looked_objs.sort_by_key(|a| match a.1 {
-            GameObjE::Castle(_) => 0,
-            GameObjE::Structure(_) => 1,
-            GameObjE::DeployedUnits(_) => 2,
-        });
-
-        let selected_id = Self::update_selection(&mut state.inspect_select, &looked_objs);
-
         let mut renderable = Vec::new();
 
         for _ in 0..Self::PADDING_VERT {
             Self::push_empty_row(&mut renderable);
         }
+
+        let looked_objs = state.get_looked_objs();
+        let selected_id = state.inspect_select;
 
         if !looked_objs.is_empty() {
             let mut objs_comp = Self::create_objs_component(selected_id, looked_objs);
@@ -75,44 +49,6 @@ impl ModInspect {
         add_frame(&format!("inspect: {}", look_coord), &mut renderable);
 
         Some(renderable)
-    }
-
-    fn update_selection(
-        inspect_select: &mut Option<InspectSelect>,
-        objects: &Vec<(GameID, &GameObjE)>,
-    ) -> Option<GameID> {
-        if objects.is_empty() {
-            *inspect_select = None;
-            return None;
-        }
-
-        match inspect_select {
-            None => return None,
-            Some(inspect_select) => {
-                let selected_id = if let Some(prev_obj_id) = inspect_select.obj_id {
-                    let mut sel_pos = objects
-                        .iter()
-                        .position(|(id, _)| *id == prev_obj_id)
-                        .unwrap_or(0);
-
-                    if inspect_select.next {
-                        inspect_select.next = false;
-                        sel_pos = (sel_pos + 1).min(objects.len().saturating_sub(1));
-                    }
-                    if inspect_select.prev {
-                        inspect_select.prev = false;
-                        sel_pos = sel_pos.saturating_sub(1);
-                    }
-
-                    objects.get(sel_pos).map(|(id, _)| *id)
-                } else {
-                    objects.first().map(|(id, _)| *id)
-                };
-
-                inspect_select.obj_id = selected_id;
-                return selected_id;
-            }
-        };
     }
 
     fn create_objs_component(

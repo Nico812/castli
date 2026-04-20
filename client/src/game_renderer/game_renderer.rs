@@ -9,6 +9,7 @@ use crate::coord::TermCoord;
 use crate::game_renderer::r#const::*;
 use crate::game_renderer::map_data::MapData;
 use crate::game_renderer::mod_inspect::ModInspect;
+use crate::game_renderer::mod_interact::ModInteract;
 use crate::game_renderer::{mod_central::ModCentral, mod_right::ModRight};
 use crate::shared_state::SharedState;
 
@@ -81,6 +82,18 @@ impl GameRenderer {
             // TODO: Here pos_col should change based on look_coord
             let pos_row = MOD_CENTRAL_POS.0;
             let pos_col = MOD_CENTRAL_POS.1 + MOD_CENTRAL_COLS - MOD_INSPECT_COLS;
+
+            for (row, line_contents) in renderable.iter().enumerate() {
+                for (col, cell) in line_contents.iter().enumerate() {
+                    new_frame[row + pos_row][col + pos_col] = cell.clone();
+                }
+            }
+        }
+
+        //Interact module
+        if let Some(renderable) = ModInteract::update(state, &self.map_data) {
+            let pos_row = MOD_INTERACT_POS.0;
+            let pos_col = MOD_INTERACT_POS.1;
 
             for (row, line_contents) in renderable.iter().enumerate() {
                 for (col, cell) in line_contents.iter().enumerate() {
