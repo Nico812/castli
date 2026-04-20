@@ -5,6 +5,7 @@ mod r#const;
 mod coord;
 mod game_renderer;
 mod input_handler;
+mod shared_state;
 mod tui;
 
 use client::Client;

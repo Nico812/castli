@@ -10,7 +10,7 @@ use crate::game_renderer::r#const::*;
 use crate::game_renderer::map_data::MapData;
 use crate::game_renderer::mod_inspect::ModInspect;
 use crate::game_renderer::{mod_central::ModCentral, mod_right::ModRight};
-use crate::tui::SharedState;
+use crate::shared_state::SharedState;
 
 pub struct GameRenderer {
     prev_frame: Vec<Vec<assets::TermCell>>,

@@ -1,4 +1,4 @@
-use std::{boxed::Box, collections::VecDeque};
+use std::collections::VecDeque;
 
 use common::{
     GameCoord, GameID,

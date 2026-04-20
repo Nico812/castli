@@ -15,3 +15,9 @@ pub const MOD_RIGHT_ROWS: usize = MOD_CENTRAL_ROWS;
 pub const MOD_RIGHT_COLS: usize = CANVAS_COLS - MOD_CENTRAL_COLS + 1;
 
 pub const MOD_INSPECT_COLS: usize = 30;
+
+pub const MOD_INTERACT_POS: (usize, usize) = (
+    MOD_CENTRAL_POS.0 + MOD_CENTRAL_ROWS / 10,
+    MOD_CENTRAL_POS.1 + MOD_CENTRAL_COLS / 10,
+);
+pub const MOD_INTERACT_COLS: usize = MOD_CENTRAL_COLS * (8 / 10);

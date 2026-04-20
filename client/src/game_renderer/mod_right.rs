@@ -9,13 +9,13 @@ use crate::ansi::*;
 use crate::assets::*;
 use crate::game_renderer::ModRightTab;
 use crate::game_renderer::module_utility::draw_text_in_row;
-use crate::tui::SharedState;
+use crate::shared_state::SharedState;
 
 pub struct ModRight {}
 
 impl ModRight {
-    const PADDING_HORI: usize = 1;
-    const PADDING_VERT: usize = 2;
+    const PADDING_HORI: usize = 2;
+    const PADDING_VERT: usize = 1;
     const CONTENT_ROWS: usize = MOD_RIGHT_ROWS.saturating_sub(2);
     const CONTENT_COLS: usize = MOD_RIGHT_COLS.saturating_sub(2);
 
@@ -28,7 +28,7 @@ impl ModRight {
         match state.mod_right_tab {
             ModRightTab::Castle => Self::add_castle_tab(&mut content, &state.player_data),
             ModRightTab::Debug => Self::add_debug_tab(&mut content, frame_dt, state.map_look),
-            ModRightTab::Logs => Self::add_logs_tab(&mut content, &mut state.chat),
+            ModRightTab::Logs => Self::add_logs_tab(&mut content, &mut state.logs),
         };
         module_utility::add_frame("(1): me | (2): logs | (3): debug", &mut content);
         content
@@ -72,12 +72,12 @@ impl ModRight {
         );
 
         let infos_to_print = [
-            (&player.name, 3),
-            (&pos_str, 5),
-            (&peasants_str, 6),
-            (&knights_str, 8),
-            (&mages_str, 9),
-            (&dragons_str, 10),
+            (&player.name, Self::PADDING_VERT),
+            (&pos_str, Self::PADDING_VERT + 1),
+            (&peasants_str, Self::PADDING_VERT + 4),
+            (&knights_str, Self::PADDING_VERT + 6),
+            (&mages_str, Self::PADDING_VERT + 7),
+            (&dragons_str, Self::PADDING_VERT + 8),
         ];
 
         for info_to_print in infos_to_print {

@@ -3,10 +3,11 @@ use crate::{
     assets::{self, TermCell, TileAsset},
     game_renderer::{
         r#const::MOD_INSPECT_COLS,
+        game_renderer::GameRenderer,
         map_data::MapData,
         module_utility::{add_frame, draw_text_in_row},
     },
-    tui::{InspectSelect, SharedState},
+    shared_state::{InspectSelect, SharedState},
 };
 use common::{
     GameID,
@@ -29,7 +30,14 @@ impl ModInspect {
             .game_objs
             .iter()
             .filter_map(|(game_id, game_obj)| {
-                if game_obj.get_pos() == look_coord {
+                if state.map_zoom.is_some() && game_obj.get_pos() == look_coord {
+                    Some((*game_id, game_obj))
+                } else if state.map_zoom.is_none()
+                    && game_obj.get_pos().y >= look_coord.y
+                    && game_obj.get_pos().x >= look_coord.x
+                    && game_obj.get_pos().y < look_coord.y + GameRenderer::ZOOM_FACTOR
+                    && game_obj.get_pos().x < look_coord.x + GameRenderer::ZOOM_FACTOR
+                {
                     Some((*game_id, game_obj))
                 } else {
                     None
@@ -133,7 +141,7 @@ impl ModInspect {
                         assets::CASTLE_ART[0][0];
                     if selected {
                         castles_component.last_mut().unwrap()
-                            [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI - 1)] =
+                            [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1)] =
                             Self::SELECTION_TERMCELL;
                     }
 
@@ -149,7 +157,7 @@ impl ModInspect {
                     );
                     if selected {
                         structures_component.last_mut().unwrap()
-                            [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI - 1)] =
+                            [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1)] =
                             Self::SELECTION_TERMCELL;
                     }
                     Self::push_row_with_text(&mut structures_component, &format!("ID: {}", id));
@@ -163,10 +171,9 @@ impl ModInspect {
                         assets::DEPLOYED_UNITS_ART[0][0];
                     if selected {
                         units_component.last_mut().unwrap()
-                            [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI - 1)] =
+                            [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1)] =
                             Self::SELECTION_TERMCELL;
                     }
-                    Self::push_row_with_text(&mut structures_component, &format!("ID: {}", id));
                 }
             }
         }

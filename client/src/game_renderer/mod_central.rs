@@ -11,7 +11,7 @@ use crate::assets::*;
 use crate::game_renderer::game_renderer::GameRenderer;
 use crate::game_renderer::map_data::MapData;
 use crate::game_renderer::module_utility::WithArt;
-use crate::tui::SharedState;
+use crate::shared_state::SharedState;
 
 pub struct ModCentral {}
 
@@ -20,12 +20,12 @@ impl ModCentral {
         let (tiles, zoom_coord, frame_title) = match state.map_zoom {
             Some(coord) => {
                 let tiles = Self::get_map_slice(&map_data.tiles, coord);
-                let title = format!("+Castli+   zoom: {}", coord);
+                let title = format!("Castli | zoom: {}", coord);
                 (tiles, Some(coord), title)
             }
             None => {
                 let tiles = map_data.tiles_wor.clone();
-                let title = "+Castli+   world map".to_string();
+                let title = "Castli | world map".to_string();
                 (tiles, None, title)
             }
         };

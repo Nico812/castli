@@ -1,6 +1,7 @@
 use crate::{
     game_renderer::{ModRightTab, game_renderer::GameRenderer},
     input_handler::InputHandler,
+    shared_state::SharedState,
 };
 use common::{
     GameCoord, GameID, L2S4C, S2C,
@@ -24,39 +25,6 @@ pub enum T2C {
     SendUnits(GameCoord, UnitGroupE),
 }
 
-// Variables shared between input handler, renderer, server comunication handler.
-pub struct SharedState {
-    pub game_objs: HashMap<GameID, GameObjE>,
-    pub chat: VecDeque<String>,
-    pub player_data: PlayerE,
-    pub map_zoom: Option<GameCoord>,
-    pub map_look: Option<GameCoord>,
-    pub mod_right_tab: ModRightTab,
-    pub inspect_select: Option<InspectSelect>,
-}
-
-pub struct InspectSelect {
-    pub next: bool,
-    pub prev: bool,
-    pub obj_id: Option<GameID>,
-}
-
-impl SharedState {
-    pub fn get_looked_obj(&self) -> Option<(&GameID, &GameObjE)> {
-        match self.map_look {
-            Some(look_pos) => self
-                .game_objs
-                .iter()
-                .find(|(_, obj)| obj.get_pos() == look_pos),
-            None => None,
-        }
-    }
-
-    pub fn add_log(&mut self, message: impl Into<String>) {
-        self.chat.push_back(message.into());
-    }
-}
-
 pub struct Tui {
     to_server_tx: mpsc::UnboundedSender<T2C>,
     from_server_rx: Arc<Mutex<mpsc::UnboundedReceiver<S2C>>>,
@@ -73,15 +41,10 @@ impl Tui {
         Self {
             to_server_tx: tx,
             from_server_rx: Arc::new(Mutex::new(rx)),
-            shared_state: Arc::new(Mutex::new(SharedState {
-                game_objs: initial_game_objs,
-                player_data: initial_player_data.unwrap_or(PlayerE::undef()),
-                map_zoom: Some(GameCoord { x: 0, y: 0 }),
-                map_look: None,
-                chat: VecDeque::new(),
-                mod_right_tab: ModRightTab::Castle,
-                inspect_select: None,
-            })),
+            shared_state: Arc::new(Mutex::new(SharedState::new(
+                initial_game_objs,
+                initial_player_data,
+            ))),
         }
     }
 

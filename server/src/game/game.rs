@@ -115,7 +115,7 @@ impl Game {
         };
         let unit_group = UnitGroup::from_export(unit_group_e);
 
-        if unit_group.is_empty() || !unit_group.is_inside(&attacker_castle.units) {
+        if unit_group.is_empty() {
             return false;
         }
 
@@ -123,7 +123,9 @@ impl Game {
             return false;
         }
 
-        attacker_castle.units.subtract_unchecked(&unit_group);
+        if !attacker_castle.units.subtract_if_enough(&unit_group) {
+            return false;
+        }
 
         let deployed_units = DeployedUnits::new(attacker_id, target_id, None, unit_group);
         let map_obstacles = self.map.obstacles.clone();

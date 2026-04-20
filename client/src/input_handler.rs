@@ -1,10 +1,10 @@
-use rand::distr::Map;
 use std::sync::Arc;
 use tokio::io::{self, AsyncReadExt};
 use tokio::sync::Mutex;
 
 use crate::game_renderer::game_renderer::GameRenderer;
-use crate::tui::{InspectSelect, SharedState, T2C};
+use crate::shared_state::{InspectSelect, SharedState};
+use crate::tui::T2C;
 use common::r#const::{MAP_COLS, MAP_ROWS};
 use common::{GameCoord, exports::units::UnitGroupE};
 
@@ -104,7 +104,6 @@ impl InputHandler {
     }
 
     async fn toggle_zoom(state: &mut SharedState) {
-        let map_look = &mut state.map_look;
         state.map_zoom = match state.map_zoom {
             None => Some(GameCoord { x: 0, y: 0 }),
             Some(_) => None,
