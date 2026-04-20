@@ -20,4 +20,4 @@ pub const MOD_INTERACT_POS: (usize, usize) = (
     MOD_CENTRAL_POS.0 + MOD_CENTRAL_ROWS / 10,
     MOD_CENTRAL_POS.1 + MOD_CENTRAL_COLS / 10,
 );
-pub const MOD_INTERACT_COLS: usize = MOD_CENTRAL_COLS * (8 / 10);
+pub const MOD_INTERACT_COLS: usize = MOD_CENTRAL_COLS * 8 / 10;

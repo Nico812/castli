@@ -17,7 +17,7 @@ impl ModInteract {
     const CONTENT_COLS: usize = MOD_INTERACT_COLS.saturating_sub(2);
 
     pub fn update(state: &mut SharedState, map_data: &MapData) -> Option<Vec<Vec<TermCell>>> {
-        let interact_target = state.interact_target.as_mut()?;
+        let interact_target = state.interact_target.as_ref()?;
         let coord = interact_target.pos;
         let tile = map_data.get_tile(coord);
         let obj = interact_target
@@ -34,13 +34,13 @@ impl ModInteract {
             Some(GameObjE::Castle(castle)) => {
                 Self::push_row_with_text(&mut renderable, &castle.name);
                 Self::push_row_with_text(&mut renderable, &"a: attack".to_string());
+                Self::push_empty_row(&mut renderable);
             }
             Some(GameObjE::Structure(_)) => {}
             Some(GameObjE::DeployedUnits(_)) => {}
             _ => {}
         }
 
-        Self::push_empty_row(&mut renderable);
         Self::push_row_with_text(&mut renderable, &format!("{:?}", tile));
         Self::push_row_with_text(&mut renderable, &"s: send troops".to_string());
 
