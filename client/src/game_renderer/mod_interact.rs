@@ -4,7 +4,9 @@ use crate::{
     ansi::{BG_BLACK, FG_BLACK},
     assets::TermCell,
     game_renderer::{
-        r#const::MOD_INTERACT_COLS, map_data::MapData, module_utility::draw_text_in_row,
+        r#const::MOD_INTERACT_COLS,
+        map_data::MapData,
+        module_utility::{self, draw_text_in_row},
     },
     shared_state::SharedState,
 };
@@ -43,6 +45,12 @@ impl ModInteract {
 
         Self::push_row_with_text(&mut renderable, &format!("{:?}", tile));
         Self::push_row_with_text(&mut renderable, &"s: send troops".to_string());
+
+        for _ in 0..Self::PADDING_VERT {
+            Self::push_empty_row(&mut renderable);
+        }
+
+        module_utility::add_frame("interact", &mut renderable);
 
         Some(renderable)
     }

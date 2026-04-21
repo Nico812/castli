@@ -1,3 +1,4 @@
+use std::iter::Inspect;
 use std::sync::Arc;
 use tokio::io::{self, AsyncReadExt};
 use tokio::sync::Mutex;
@@ -48,7 +49,7 @@ impl InputHandler {
             '2' => state.mod_right_tab = crate::game_renderer::ModRightTab::Logs,
             '3' => state.mod_right_tab = crate::game_renderer::ModRightTab::Debug,
             '\r' => Self::apply_enter(state).await,
-            '\u{1b}' => state.inspect_select = None,
+            '\u{1b}' => Self::apply_esc(state).await,
             _ => {}
         }
     }
@@ -118,28 +119,43 @@ impl InputHandler {
             return;
         };
 
-        match state.get_looked_objs() {
-            ref objs if objs.len() > 1 => match state.inspect_select {
-                None => state.inspect_select = Some(objs[0].0),
-                Some(selected_id) => {
-                    state.interact_target = Some(InteractTarget {
-                        obj_id: Some(selected_id),
-                        pos: look_coord,
-                    })
+        let looked_objs = state.get_looked_objs();
+
+        if looked_objs.len() > 1 && state.inspect_select.is_none() {
+            state.inspect_select = Some(looked_objs[0].0);
+        } else {
+            let (obj_id, obj_pos) = match looked_objs.len() {
+                0 => (None, look_coord),
+                1 => {
+                    let obj = looked_objs[0];
+                    (Some(obj.0), obj.1.get_pos())
                 }
-            },
-            ref objs if objs.len() == 1 => {
-                state.interact_target = Some(InteractTarget {
-                    obj_id: Some(objs[0].0),
-                    pos: look_coord,
-                })
-            }
-            _ => {
-                state.interact_target = Some(InteractTarget {
-                    obj_id: None,
-                    pos: look_coord,
-                })
-            }
+                _ => {
+                    let selected_id = state.inspect_select.unwrap();
+                    let pos = looked_objs
+                        .iter()
+                        .find(|(id, _)| *id == selected_id)
+                        .map(|(_, obj)| obj.get_pos())
+                        .unwrap();
+                    (Some(selected_id), pos)
+                }
+            };
+
+            let interact_target = InteractTarget {
+                obj_id,
+                pos: obj_pos,
+            };
+            state.interact_target = Some(interact_target);
+            state.inspect_select = None;
+            state.map_look = None;
+        }
+    }
+
+    async fn apply_esc(state: &mut SharedState) {
+        if state.interact_target.is_some() {
+            state.interact_target = None;
+        } else if state.inspect_select.is_some() {
+            state.inspect_select = None;
         }
     }
 
