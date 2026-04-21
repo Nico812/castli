@@ -1,15 +1,13 @@
 use std::collections::VecDeque;
 
-use common::GameCoord;
-use common::exports::player::PlayerE;
-use common::exports::units::UnitE;
-
 use super::{r#const::*, module_utility};
 use crate::ansi::*;
 use crate::assets::*;
 use crate::game_renderer::ModRightTab;
 use crate::game_renderer::module_utility::draw_text_in_row;
 use crate::shared_state::SharedState;
+use common::exports::player::PlayerE;
+use common::exports::units::UnitType;
 
 pub struct ModRight {}
 
@@ -27,14 +25,14 @@ impl ModRight {
 
         match state.mod_right_tab {
             ModRightTab::Castle => Self::add_castle_tab(&mut content, &state.player_data),
-            ModRightTab::Debug => Self::add_debug_tab(&mut content, frame_dt, state.map_look),
+            ModRightTab::Debug => Self::add_debug_tab(&mut content, frame_dt),
             ModRightTab::Logs => Self::add_logs_tab(&mut content, &mut state.logs),
         };
-        module_utility::add_frame("(1): me | (2): logs | (3): debug", &mut content);
+        module_utility::add_frame("(y): me | (x): logs | (c): debug", &mut content);
         content
     }
 
-    fn add_debug_tab(content: &mut Vec<Vec<TermCell>>, frame_dt: u64, look_pos: Option<GameCoord>) {
+    fn add_debug_tab(content: &mut Vec<Vec<TermCell>>, frame_dt: u64) {
         // Show FPS
         let dt_str = format!("Frame dt: {} ms", frame_dt);
         module_utility::draw_text_in_row(
@@ -44,18 +42,6 @@ impl ModRight {
             Self::PADDING_HORI,
             Self::PADDING_HORI,
         );
-
-        // Show looking coordinates
-        if let Some(pos) = look_pos {
-            let look_pos_str = format!("Looking at {}", pos);
-            module_utility::draw_text_in_row(
-                content,
-                &look_pos_str,
-                3,
-                Self::PADDING_HORI,
-                Self::PADDING_HORI,
-            );
-        }
     }
 
     fn add_castle_tab(content: &mut Vec<Vec<TermCell>>, player: &PlayerE) {
@@ -63,12 +49,15 @@ impl ModRight {
         let peasants_str = format!("Peasants: {}", player.peasants);
         let knights_str = format!(
             "Knights: {}",
-            player.units.quantities[UnitE::Knight.as_index()]
+            player.units.quantities[UnitType::Knight.as_index()]
         );
-        let mages_str = format!("Mages: {}", player.units.quantities[UnitE::Mage.as_index()]);
+        let mages_str = format!(
+            "Mages: {}",
+            player.units.quantities[UnitType::Mage.as_index()]
+        );
         let dragons_str = format!(
             "Dragons: {}",
-            player.units.quantities[UnitE::Dragon.as_index()]
+            player.units.quantities[UnitType::Dragon.as_index()]
         );
 
         let infos_to_print = [

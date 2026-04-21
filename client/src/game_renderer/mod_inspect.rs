@@ -6,7 +6,7 @@ use crate::{
         map_data::MapData,
         module_utility::{add_frame, draw_text_in_row},
     },
-    shared_state::SharedState,
+    shared_state::{SharedState, UIState},
 };
 use common::{
     GameID,
@@ -22,33 +22,39 @@ impl ModInspect {
     const SELECTION_TERMCELL: TermCell = TermCell::new('<', FG_BLACK, BG_WHITE);
 
     pub fn update(state: &mut SharedState, map_data: &MapData) -> Option<Vec<Vec<TermCell>>> {
-        let look_coord = state.map_look?;
-        let looked_tile = map_data.get_tile(look_coord);
+        if let UIState::Inspect(ref inspect) = state.ui_state {
+            let looked_tile = map_data.get_tile(inspect.coord);
 
-        let mut renderable = Vec::new();
+            let mut renderable = Vec::new();
 
-        for _ in 0..Self::PADDING_VERT {
-            Self::push_empty_row(&mut renderable);
+            for _ in 0..Self::PADDING_VERT {
+                Self::push_empty_row(&mut renderable);
+            }
+
+            let looked_objs = SharedState::get_looked_objs(
+                inspect.coord,
+                state.map_zoom.is_some(),
+                &state.game_objs,
+            );
+            let selected_id = inspect.selection;
+
+            if !looked_objs.is_empty() {
+                let mut objs_comp = Self::create_objs_component(selected_id, looked_objs);
+                renderable.append(&mut objs_comp);
+            }
+
+            let mut tile_comp = Self::create_tile_component(looked_tile);
+            renderable.append(&mut tile_comp);
+
+            for _ in 0..Self::PADDING_VERT {
+                Self::push_empty_row(&mut renderable);
+            }
+
+            add_frame(&format!("inspect: {}", inspect.coord), &mut renderable);
+            Some(renderable)
+        } else {
+            None
         }
-
-        let looked_objs = state.get_looked_objs();
-        let selected_id = state.inspect_select;
-
-        if !looked_objs.is_empty() {
-            let mut objs_comp = Self::create_objs_component(selected_id, looked_objs);
-            renderable.append(&mut objs_comp);
-        }
-
-        let mut tile_comp = Self::create_tile_component(looked_tile);
-        renderable.append(&mut tile_comp);
-
-        for _ in 0..Self::PADDING_VERT {
-            Self::push_empty_row(&mut renderable);
-        }
-
-        add_frame(&format!("inspect: {}", look_coord), &mut renderable);
-
-        Some(renderable)
     }
 
     fn create_objs_component(

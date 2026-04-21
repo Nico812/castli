@@ -2,7 +2,11 @@ use std::collections::{HashMap, VecDeque};
 
 use common::{
     GameCoord, GameID,
-    exports::{game_object::GameObjE, player::PlayerE},
+    exports::{
+        game_object::GameObjE,
+        player::PlayerE,
+        units::{UnitGroupE, UnitType},
+    },
 };
 
 use crate::game_renderer::{ModRightTab, game_renderer::GameRenderer};
@@ -13,15 +17,44 @@ pub struct SharedState {
     pub logs: VecDeque<String>,
     pub player_data: PlayerE,
     pub map_zoom: Option<GameCoord>,
-    pub map_look: Option<GameCoord>,
     pub mod_right_tab: ModRightTab,
-    pub inspect_select: Option<GameID>,
-    pub interact_target: Option<InteractTarget>,
+    pub ui_state: UIState,
 }
 
-pub struct InteractTarget {
+pub enum UIState {
+    STD,
+    Interact(UIInteract),
+    Inspect(UIInspect),
+    UnitSelection(UIUnitSelection),
+}
+
+pub struct UIInspect {
+    pub coord: GameCoord,
+    pub selection: Option<GameID>,
+}
+
+#[derive(Clone)]
+pub struct UIInteract {
     pub obj_id: Option<GameID>,
-    pub pos: GameCoord,
+    pub coord: GameCoord,
+}
+
+pub struct UIUnitSelection {
+    pub interact: UIInteract,
+    pub active_input: (UnitType, String),
+    pub selected_units: UnitGroupE,
+}
+
+impl UIUnitSelection {
+    pub fn from_interact(interact: UIInteract) -> Self {
+        Self {
+            interact,
+            active_input: (UnitType::form_index(1), String::new()),
+            selected_units: UnitGroupE {
+                quantities: [0, 0, 0],
+            },
+        }
+    }
 }
 
 impl SharedState {
@@ -33,30 +66,27 @@ impl SharedState {
             game_objs: initial_game_objs,
             player_data: initial_player_data.unwrap_or(PlayerE::undef()),
             map_zoom: Some(GameCoord { x: 0, y: 0 }),
-            map_look: None,
             logs: VecDeque::new(),
             mod_right_tab: ModRightTab::Castle,
-            inspect_select: None,
-            interact_target: None,
+            ui_state: UIState::STD,
         }
     }
 
-    pub fn get_looked_objs(&self) -> Vec<(GameID, &GameObjE)> {
-        let Some(look_coord) = self.map_look else {
-            return Vec::new();
-        };
-
-        let mut looked_objs: Vec<(GameID, &GameObjE)> = self
-            .game_objs
+    pub fn get_looked_objs(
+        coord: GameCoord,
+        zoom: bool,
+        game_objs: &HashMap<GameID, GameObjE>,
+    ) -> Vec<(GameID, &GameObjE)> {
+        let mut looked_objs: Vec<(GameID, &GameObjE)> = game_objs
             .iter()
             .filter_map(|(game_id, game_obj)| {
-                if self.map_zoom.is_some() && game_obj.get_pos() == look_coord {
+                if zoom && game_obj.get_pos() == coord {
                     Some((*game_id, game_obj))
-                } else if self.map_zoom.is_none()
-                    && game_obj.get_pos().y >= look_coord.y
-                    && game_obj.get_pos().x >= look_coord.x
-                    && game_obj.get_pos().y < look_coord.y + GameRenderer::ZOOM_FACTOR
-                    && game_obj.get_pos().x < look_coord.x + GameRenderer::ZOOM_FACTOR
+                } else if !zoom
+                    && game_obj.get_pos().y >= coord.y
+                    && game_obj.get_pos().x >= coord.x
+                    && game_obj.get_pos().y < coord.y + GameRenderer::ZOOM_FACTOR
+                    && game_obj.get_pos().x < coord.x + GameRenderer::ZOOM_FACTOR
                 {
                     Some((*game_id, game_obj))
                 } else {

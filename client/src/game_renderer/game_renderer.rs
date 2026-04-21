@@ -12,6 +12,7 @@ use crate::game_renderer::mod_inspect::ModInspect;
 use crate::game_renderer::mod_interact::ModInteract;
 use crate::game_renderer::{mod_central::ModCentral, mod_right::ModRight};
 use crate::shared_state::SharedState;
+use crate::shared_state::UIState;
 
 pub struct GameRenderer {
     prev_frame: Vec<Vec<assets::TermCell>>,
@@ -103,8 +104,8 @@ impl GameRenderer {
         }
 
         // Adding the cursor
-        if let Some(look_coord) = state.map_look {
-            if let Some(term_coord) = TermCoord::from_game_coord(look_coord, state.map_zoom) {
+        if let UIState::Inspect(ref inspect) = state.ui_state {
+            if let Some(term_coord) = TermCoord::from_game_coord(inspect.coord, state.map_zoom) {
                 // Checks if the cursor is inside the central module
                 let is_inside_fov = term_coord.y > MOD_CENTRAL_POS.0
                     && term_coord.x > MOD_CENTRAL_POS.1
@@ -112,7 +113,7 @@ impl GameRenderer {
                     && term_coord.x <= (MOD_CENTRAL_POS.1 + Self::FOV_COLS);
 
                 if is_inside_fov {
-                    let cursor_asset = match (state.map_zoom, look_coord.y) {
+                    let cursor_asset = match (state.map_zoom, inspect.coord.y) {
                         (Some(_), y) if y % 2 == 0 => CURSOR_UP,
                         (None, y) if y % (2 * GameRenderer::ZOOM_FACTOR) < 8 => CURSOR_UP,
                         _ => CURSOR_DOWN,

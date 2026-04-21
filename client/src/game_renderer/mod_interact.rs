@@ -1,4 +1,4 @@
-use common::{GameCoord, exports::game_object::GameObjE};
+use common::exports::game_object::GameObjE;
 
 use crate::{
     ansi::{BG_BLACK, FG_BLACK},
@@ -8,7 +8,7 @@ use crate::{
         map_data::MapData,
         module_utility::{self, draw_text_in_row},
     },
-    shared_state::SharedState,
+    shared_state::{SharedState, UIState},
 };
 
 pub struct ModInteract {}
@@ -19,40 +19,42 @@ impl ModInteract {
     const CONTENT_COLS: usize = MOD_INTERACT_COLS.saturating_sub(2);
 
     pub fn update(state: &mut SharedState, map_data: &MapData) -> Option<Vec<Vec<TermCell>>> {
-        let interact_target = state.interact_target.as_ref()?;
-        let coord = interact_target.pos;
-        let tile = map_data.get_tile(coord);
-        let obj = interact_target
-            .obj_id
-            .and_then(|obj_id| state.game_objs.get(&obj_id));
+        if let UIState::Interact(ref interact) = state.ui_state {
+            let tile = map_data.get_tile(interact.coord);
+            let obj = interact
+                .obj_id
+                .and_then(|obj_id| state.game_objs.get(&obj_id));
 
-        let mut renderable = Vec::new();
+            let mut renderable = Vec::new();
 
-        for _ in 0..Self::PADDING_VERT {
-            Self::push_empty_row(&mut renderable);
-        }
-
-        match obj {
-            Some(GameObjE::Castle(castle)) => {
-                Self::push_row_with_text(&mut renderable, &castle.name);
-                Self::push_row_with_text(&mut renderable, &"a: attack".to_string());
+            for _ in 0..Self::PADDING_VERT {
                 Self::push_empty_row(&mut renderable);
             }
-            Some(GameObjE::Structure(_)) => {}
-            Some(GameObjE::DeployedUnits(_)) => {}
-            _ => {}
+
+            match obj {
+                Some(GameObjE::Castle(castle)) => {
+                    Self::push_row_with_text(&mut renderable, &castle.name);
+                    Self::push_row_with_text(&mut renderable, &"a: attack".to_string());
+                    Self::push_empty_row(&mut renderable);
+                }
+                Some(GameObjE::Structure(_)) => {}
+                Some(GameObjE::DeployedUnits(_)) => {}
+                None => {
+                    Self::push_row_with_text(&mut renderable, &format!("{:?}", tile));
+                    Self::push_row_with_text(&mut renderable, &"a: send troops".to_string());
+                }
+            }
+
+            for _ in 0..Self::PADDING_VERT {
+                Self::push_empty_row(&mut renderable);
+            }
+
+            module_utility::add_frame("interact", &mut renderable);
+
+            Some(renderable)
+        } else {
+            None
         }
-
-        Self::push_row_with_text(&mut renderable, &format!("{:?}", tile));
-        Self::push_row_with_text(&mut renderable, &"s: send troops".to_string());
-
-        for _ in 0..Self::PADDING_VERT {
-            Self::push_empty_row(&mut renderable);
-        }
-
-        module_utility::add_frame("interact", &mut renderable);
-
-        Some(renderable)
     }
 
     fn push_empty_row(renderable: &mut Vec<Vec<TermCell>>) {

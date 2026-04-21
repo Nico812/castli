@@ -1,13 +1,20 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
-pub enum UnitE {
+#[derive(Clone, Copy, Serialize, Deserialize, Debug)]
+pub enum UnitType {
     Knight,
     Mage,
     Dragon,
 }
 
-impl UnitE {
+#[macro_export]
+macro_rules! all_units {
+    () => {
+        [UnitType::Knight, UnitType::Mage, UnitType::Dragon]
+    };
+}
+
+impl UnitType {
     pub const COUNT: usize = 3;
 
     pub fn as_index(&self) -> usize {
@@ -17,17 +24,30 @@ impl UnitE {
             Self::Dragon => 2,
         }
     }
+
+    pub fn form_index(i: usize) -> Self {
+        match i {
+            0 => Self::Knight,
+            1 => Self::Mage,
+            2 => Self::Dragon,
+            _ => panic!(),
+        }
+    }
+
+    pub fn as_mask(&self) -> u8 {
+        1 << self.as_index()
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UnitGroupE {
-    pub quantities: [u16; UnitE::COUNT],
+    pub quantities: [u16; UnitType::COUNT],
 }
 
 impl UnitGroupE {
     pub fn undef() -> Self {
         Self {
-            quantities: [0; UnitE::COUNT],
+            quantities: [0; UnitType::COUNT],
         }
     }
 }

@@ -2,56 +2,21 @@ use std::collections::VecDeque;
 
 use common::{
     GameCoord, GameID,
-    exports::{game_object::DeployedUnitsE, units::UnitGroupE},
+    exports::{
+        game_object::DeployedUnitsE,
+        units::{UnitGroupE, UnitType},
+    },
 };
-
-#[derive(Clone, Copy)]
-pub enum Unit {
-    Knight,
-    Mage,
-    Dragon,
-}
-
-macro_rules! all_units {
-    () => {
-        [Unit::Knight, Unit::Mage, Unit::Dragon]
-    };
-}
-
-impl Unit {
-    pub const COUNT: usize = 3;
-
-    pub fn as_index(&self) -> usize {
-        match self {
-            Self::Knight => 0,
-            Self::Mage => 1,
-            Self::Dragon => 2,
-        }
-    }
-
-    pub fn form_index(i: usize) -> Self {
-        match i {
-            0 => Self::Knight,
-            1 => Self::Mage,
-            2 => Self::Dragon,
-            _ => panic!(),
-        }
-    }
-
-    pub fn as_mask(&self) -> u8 {
-        1 << self.as_index()
-    }
-}
 
 #[derive(Clone)]
 pub struct UnitGroup {
-    quantities: [u16; Unit::COUNT],
+    quantities: [u16; UnitType::COUNT],
     present_mask: u8,
 }
 
 impl UnitGroup {
     pub fn new() -> Self {
-        let quantities = [0; Unit::COUNT];
+        let quantities = [0; UnitType::COUNT];
         let present_mask = 0;
 
         Self {
@@ -70,7 +35,7 @@ impl UnitGroup {
         str
     }
 
-    pub fn add_single_type(&mut self, unit: Unit, count: u16) {
+    pub fn add_single_type(&mut self, unit: UnitType, count: u16) {
         let idx = unit.as_index();
         self.quantities[idx] = self.quantities[idx].saturating_add(count);
 
@@ -79,7 +44,7 @@ impl UnitGroup {
         }
     }
 
-    pub fn subtract_single_type(&mut self, unit: Unit, count: u16) {
+    pub fn subtract_single_type(&mut self, unit: UnitType, count: u16) {
         let idx = unit.as_index();
         self.quantities[idx] = self.quantities[idx].saturating_sub(count);
 
@@ -93,24 +58,24 @@ impl UnitGroup {
             return false;
         }
         for (i, quantity) in other.quantities.iter().enumerate() {
-            self.subtract_single_type(Unit::form_index(i), *quantity);
+            self.subtract_single_type(UnitType::form_index(i), *quantity);
         }
         true
     }
 
     pub fn subtract_unchecked(&mut self, other: &Self) {
         for (i, quantity) in other.quantities.iter().enumerate() {
-            self.subtract_single_type(Unit::form_index(i), *quantity);
+            self.subtract_single_type(UnitType::form_index(i), *quantity);
         }
     }
 
     pub fn saturating_add(&mut self, other: &Self) {
         for (i, quantity) in other.quantities.iter().enumerate() {
-            self.add_single_type(Unit::form_index(i), *quantity);
+            self.add_single_type(UnitType::form_index(i), *quantity);
         }
     }
 
-    pub fn contains(&self, unit: Unit) -> bool {
+    pub fn contains(&self, unit: UnitType) -> bool {
         self.present_mask & unit.as_mask() != 0
     }
 
@@ -123,11 +88,11 @@ impl UnitGroup {
         true
     }
 
-    pub fn iter_present(&self) -> impl Iterator<Item = (Unit, u16)> + '_ {
-        all_units!()
+    pub fn iter_present(&self) -> impl Iterator<Item = (UnitType, u16)> + '_ {
+        common::all_units!()
             .into_iter()
             .filter(move |u| self.contains(*u))
-            .map(move |u| (u, self.quantities[u.as_index()]))
+            .map(move |u: UnitType| (u, self.quantities[u.as_index()]))
     }
 
     pub fn export(&self) -> UnitGroupE {
@@ -140,7 +105,7 @@ impl UnitGroup {
         let quantities = export.quantities;
         let mut unit_group = Self::new();
         for (i, quantity) in quantities.iter().enumerate() {
-            unit_group.add_single_type(Unit::form_index(i), *quantity)
+            unit_group.add_single_type(UnitType::form_index(i), *quantity)
         }
         unit_group
     }

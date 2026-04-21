@@ -1,18 +1,12 @@
 use crate::{
-    game_renderer::{ModRightTab, game_renderer::GameRenderer},
-    input_handler::InputHandler,
+    game_renderer::game_renderer::GameRenderer, input_handler::InputHandler,
     shared_state::SharedState,
 };
 use common::{
     GameCoord, GameID, L2S4C, S2C,
     exports::{game_object::GameObjE, player::PlayerE, tile::TileE, units::UnitGroupE},
 };
-use std::{
-    collections::{HashMap, VecDeque},
-    io::Write,
-    process::Command,
-    sync::Arc,
-};
+use std::{collections::HashMap, io::Write, process::Command, sync::Arc};
 use tokio::{
     sync::{Mutex, mpsc},
     time,

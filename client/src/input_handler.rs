@@ -1,10 +1,11 @@
-use std::iter::Inspect;
+use common::exports::units::UnitType;
+use std::ops::Add;
 use std::sync::Arc;
 use tokio::io::{self, AsyncReadExt};
 use tokio::sync::Mutex;
 
 use crate::game_renderer::game_renderer::GameRenderer;
-use crate::shared_state::{InteractTarget, SharedState};
+use crate::shared_state::{SharedState, UIInspect, UIInteract, UIState, UIUnitSelection};
 use crate::tui::T2C;
 use common::r#const::{MAP_COLS, MAP_ROWS};
 use common::{GameCoord, exports::units::UnitGroupE};
@@ -42,14 +43,24 @@ impl InputHandler {
         match *byte as char {
             'q' => *running = false,
             'z' => Self::toggle_zoom(state).await,
-            'l' => Self::toggle_look(state).await,
-            'a' => Self::handle_attack(tx, state).await,
+            'l' => Self::toggle_inspect(state).await,
+            'a' => {
+                if let UIState::Interact(ref interact) = state.ui_state {
+                    state.ui_state =
+                        UIState::UnitSelection(UIUnitSelection::from_interact(interact.clone()));
+                }
+            }
             'n' => Self::handle_new_castle(tx, state).await,
-            '1' => state.mod_right_tab = crate::game_renderer::ModRightTab::Castle,
-            '2' => state.mod_right_tab = crate::game_renderer::ModRightTab::Logs,
-            '3' => state.mod_right_tab = crate::game_renderer::ModRightTab::Debug,
+            'y' => state.mod_right_tab = crate::game_renderer::ModRightTab::Castle,
+            'x' => state.mod_right_tab = crate::game_renderer::ModRightTab::Logs,
+            'c' => state.mod_right_tab = crate::game_renderer::ModRightTab::Debug,
             '\r' => Self::apply_enter(state).await,
             '\u{1b}' => Self::apply_esc(state).await,
+            '0'..='9' => {
+                if let UIState::UnitSelection(ref mut unit_selection) = state.ui_state {
+                    unit_selection.active_input.1.push(*byte as char);
+                }
+            }
             _ => {}
         }
     }
@@ -69,94 +80,117 @@ impl InputHandler {
     }
 
     async fn apply_move(state: &mut SharedState, mut dx: isize, mut dy: isize) {
-        if let Some(inspect_select) = state.inspect_select {
-            match dy {
-                dy if dy > 0 => {
-                    let looked_objs = state.get_looked_objs();
-                    let current_pos = looked_objs.iter().position(|(id, _)| *id == inspect_select);
-
-                    if let Some(pos) = current_pos {
-                        let new_pos = (pos + 1).min(looked_objs.len() - 1);
-                        if let Some(new_sel_obj) = looked_objs.get(new_pos) {
-                            state.inspect_select = Some(new_sel_obj.0);
+        match state.ui_state {
+            UIState::STD => {
+                if let Some(ref mut zoom) = state.map_zoom {
+                    zoom.x = (zoom.x as isize + 2 * dx)
+                        .max(0)
+                        .min(MAP_COLS as isize - GameRenderer::FOV_COLS as isize)
+                        as usize;
+                    zoom.y = (zoom.y as isize + 2 * dy)
+                        .max(0)
+                        .min((MAP_ROWS) as isize - (GameRenderer::FOV_ROWS * 2) as isize)
+                        as usize;
+                }
+            }
+            UIState::Inspect(ref mut inspect) => {
+                if let Some(ref mut selection) = inspect.selection {
+                    let looked_objs = SharedState::get_looked_objs(
+                        inspect.coord,
+                        state.map_zoom.is_some(),
+                        &state.game_objs,
+                    );
+                    let new_selection = {
+                        let current_pos = looked_objs.iter().position(|(id, _)| *id == *selection);
+                        match dy {
+                            dy if dy > 0 => current_pos.and_then(|pos| {
+                                let new_pos = (pos + 1).min(looked_objs.len() - 1);
+                                looked_objs.get(new_pos).map(|(id, _)| *id)
+                            }),
+                            dy if dy < 0 => current_pos.and_then(|pos| {
+                                let new_pos = pos.saturating_sub(1);
+                                looked_objs.get(new_pos).map(|(id, _)| *id)
+                            }),
+                            _ => None,
                         }
+                    };
+
+                    if let Some(new_id) = new_selection {
+                        *selection = new_id;
                     }
+                } else {
+                    if state.map_zoom.is_none() {
+                        dx *= GameRenderer::ZOOM_FACTOR as isize;
+                        dy *= GameRenderer::ZOOM_FACTOR as isize;
+                    };
+                    inspect.coord.x = (inspect.coord.x as isize + dx)
+                        .max(0)
+                        .min(MAP_COLS as isize - 1) as usize;
+                    inspect.coord.y = (inspect.coord.y as isize + dy)
+                        .max(0)
+                        .min(MAP_ROWS as isize - 1) as usize;
+                }
+            }
+            UIState::UnitSelection(ref mut selection) => match dy {
+                dy if dy > 0 => {
+                    let new_unit_index =
+                        (selection.active_input.0.as_index() + 1).min(UnitType::COUNT - 1);
+                    selection.active_input.0 = UnitType::form_index(new_unit_index);
+                    selection.active_input.1 =
+                        selection.selected_units.quantities[new_unit_index].to_string();
                 }
                 dy if dy < 0 => {
-                    let looked_objs = state.get_looked_objs();
-                    let current_pos = looked_objs.iter().position(|(id, _)| *id == inspect_select);
-
-                    if let Some(pos) = current_pos {
-                        let new_pos = pos.saturating_sub(1);
-                        if let Some(new_sel_obj) = looked_objs.get(new_pos) {
-                            state.inspect_select = Some(new_sel_obj.0);
-                        }
-                    }
+                    let new_unit_index = selection.active_input.0.as_index().saturating_sub(1);
+                    selection.active_input.0 = UnitType::form_index(new_unit_index);
+                    selection.active_input.1 =
+                        selection.selected_units.quantities[new_unit_index].to_string();
                 }
                 _ => {}
-            }
-        } else if let Some(ref mut look) = state.map_look {
-            if state.map_zoom.is_none() {
-                dx *= GameRenderer::ZOOM_FACTOR as isize;
-                dy *= GameRenderer::ZOOM_FACTOR as isize;
-            };
-            look.x = (look.x as isize + dx).max(0).min(MAP_COLS as isize - 1) as usize;
-            look.y = (look.y as isize + dy).max(0).min(MAP_ROWS as isize - 1) as usize;
-        } else if let Some(ref mut zoom) = state.map_zoom {
-            zoom.x = (zoom.x as isize + 2 * dx)
-                .max(0)
-                .min(MAP_COLS as isize - GameRenderer::FOV_COLS as isize)
-                as usize;
-            zoom.y = (zoom.y as isize + 2 * dy)
-                .max(0)
-                .min((MAP_ROWS) as isize - (GameRenderer::FOV_ROWS * 2) as isize)
-                as usize;
+            },
         }
     }
 
     async fn apply_enter(state: &mut SharedState) {
-        let Some(look_coord) = state.map_look else {
-            return;
-        };
+        match state.ui_state {
+            UIState::Inspect(ref mut inspect) => {
+                let looked_objs = SharedState::get_looked_objs(
+                    inspect.coord,
+                    state.map_zoom.is_some(),
+                    &state.game_objs,
+                );
 
-        let looked_objs = state.get_looked_objs();
+                if looked_objs.len() > 1 && inspect.selection.is_none() {
+                    inspect.selection = Some(looked_objs[0].0);
+                } else {
+                    let (obj_id, obj_pos) = match looked_objs.len() {
+                        0 => (None, inspect.coord),
+                        1 => {
+                            let obj = looked_objs[0];
+                            (Some(obj.0), obj.1.get_pos())
+                        }
+                        _ => {
+                            let selected_id = inspect.selection.unwrap();
+                            let pos = looked_objs
+                                .iter()
+                                .find(|(id, _)| *id == selected_id)
+                                .map(|(_, obj)| obj.get_pos())
+                                .unwrap();
+                            (Some(selected_id), pos)
+                        }
+                    };
 
-        if looked_objs.len() > 1 && state.inspect_select.is_none() {
-            state.inspect_select = Some(looked_objs[0].0);
-        } else {
-            let (obj_id, obj_pos) = match looked_objs.len() {
-                0 => (None, look_coord),
-                1 => {
-                    let obj = looked_objs[0];
-                    (Some(obj.0), obj.1.get_pos())
+                    state.ui_state = UIState::Interact(UIInteract {
+                        obj_id: obj_id,
+                        coord: obj_pos,
+                    });
                 }
-                _ => {
-                    let selected_id = state.inspect_select.unwrap();
-                    let pos = looked_objs
-                        .iter()
-                        .find(|(id, _)| *id == selected_id)
-                        .map(|(_, obj)| obj.get_pos())
-                        .unwrap();
-                    (Some(selected_id), pos)
-                }
-            };
-
-            let interact_target = InteractTarget {
-                obj_id,
-                pos: obj_pos,
-            };
-            state.interact_target = Some(interact_target);
-            state.inspect_select = None;
-            state.map_look = None;
+            }
+            _ => {}
         }
     }
 
     async fn apply_esc(state: &mut SharedState) {
-        if state.interact_target.is_some() {
-            state.interact_target = None;
-        } else if state.inspect_select.is_some() {
-            state.inspect_select = None;
-        }
+        state.ui_state = UIState::STD;
     }
 
     async fn toggle_zoom(state: &mut SharedState) {
@@ -166,51 +200,55 @@ impl InputHandler {
         };
     }
 
-    async fn toggle_look(state: &mut SharedState) {
-        state.map_look = match state.map_look {
-            None => {
-                let map_zoom = state.map_zoom.unwrap_or(GameCoord { x: 0, y: 0 });
-
-                Some(GameCoord {
-                    x: map_zoom.x,
-                    y: map_zoom.y,
-                })
-            }
-            Some(_) => None,
-        };
+    async fn toggle_inspect(state: &mut SharedState) {
+        if let UIState::STD = state.ui_state {
+            let coord = match state.map_zoom {
+                None => GameCoord { x: 0, y: 0 },
+                Some(zoom_coord) => zoom_coord,
+            };
+            state.ui_state = UIState::Inspect(UIInspect {
+                coord,
+                selection: None,
+            });
+        } else if let UIState::Inspect(_) = state.ui_state {
+            state.ui_state = UIState::STD;
+        }
     }
 
-    async fn handle_attack(tx: &tokio::sync::mpsc::UnboundedSender<T2C>, state: &mut SharedState) {
-        if state.map_look == None {
-            return;
-        }
-        let target_coord = state.map_look.unwrap();
-
-        if let Some((id, _)) = state.get_looked_objs().get(0) {
-            let _ = tx.send(T2C::AttackCastle(
-                id.clone(),
-                UnitGroupE {
-                    quantities: [1, 0, 0],
-                },
-            ));
-            state.add_log(format!("Requesting to attack object {}!", id));
-        } else {
-            let _ = tx.send(T2C::SendUnits(
-                target_coord,
-                UnitGroupE {
-                    quantities: [1, 0, 0],
-                },
-            ));
-            state.add_log(format!("Requesting to send troops to {}!", target_coord));
+    async fn handle_unit_deploy(
+        tx: &tokio::sync::mpsc::UnboundedSender<T2C>,
+        state: &mut SharedState,
+    ) {
+        if let UIState::Interact(ref interact) = state.ui_state {
+            match interact.obj_id {
+                Some(obj_id) => {
+                    let _ = tx.send(T2C::AttackCastle(
+                        obj_id,
+                        UnitGroupE {
+                            quantities: [1, 0, 0],
+                        },
+                    ));
+                    state.add_log(format!("Requesting to attack object {}!", obj_id));
+                }
+                None => {
+                    let _ = tx.send(T2C::SendUnits(
+                        interact.coord,
+                        UnitGroupE {
+                            quantities: [1, 0, 0],
+                        },
+                    ));
+                    state.add_log(format!("Requesting to send troops to {}!", interact.coord));
+                }
+            };
         }
     }
 
     async fn handle_new_castle(
         tx: &tokio::sync::mpsc::UnboundedSender<T2C>,
-        shared_state: &mut SharedState,
+        state: &mut SharedState,
     ) {
-        if let Some(coords) = shared_state.map_look {
-            let _ = tx.send(T2C::NewCastle(coords));
+        if let UIState::Inspect(ref inspect) = state.ui_state {
+            let _ = tx.send(T2C::NewCastle(inspect.coord));
         }
     }
 }
