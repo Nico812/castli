@@ -52,8 +52,7 @@ impl Game {
         for units_id in finished_path_tasks {
             if let Some(GameObj::DeployedUnits(mut depl_units)) =
                 self.incomp_game_objs.remove(&units_id)
-            {
-                if let Some(task) = self.pathfinding_tasks.remove(&units_id) {
+                && let Some(task) = self.pathfinding_tasks.remove(&units_id) {
                     if let Ok(Some(path)) = task.await {
                         depl_units.set_path(path);
                         self.game_objs
@@ -66,23 +65,19 @@ impl Game {
                         }
                     }
                 }
-            }
         }
 
         // Solves units arrived at destination
         for (id, obj) in self.game_objs.iter_mut() {
-            match obj {
-                GameObj::DeployedUnits(deployed_units) => {
-                    if deployed_units.pending() {
-                        pending_units_ids.push(id.clone());
-                    } else {
-                        deployed_units.move_along_path();
-                    }
+            if let GameObj::DeployedUnits(deployed_units) = obj {
+                if deployed_units.pending() {
+                    pending_units_ids.push(*id);
+                } else {
+                    deployed_units.move_along_path();
                 }
-                _ => {}
             }
         }
-        if pending_units_ids.len() >= 1 {
+        if !pending_units_ids.is_empty() {
             self.resolve_pending_units(&pending_units_ids);
         }
     }
@@ -129,7 +124,7 @@ impl Game {
 
         let deployed_units = DeployedUnits::new(attacker_id, target_id, None, unit_group);
         let map_obstacles = self.map.obstacles.clone();
-        let attacker_pos = attacker_castle.pos.clone();
+        let attacker_pos = attacker_castle.pos;
         let id = self.new_id();
 
         self.incomp_game_objs
@@ -149,7 +144,7 @@ impl Game {
 
         for units_id in pending_units_ids {
             println!("SOME UNITS ARRIVED AT DEST, id:{}", units_id);
-            if let Some(GameObj::DeployedUnits(units)) = self.game_objs.get_mut(&units_id) {
+            if let Some(GameObj::DeployedUnits(units)) = self.game_objs.get_mut(units_id) {
                 if units.arrived_home() {
                     to_home.push((units_id, units.owner_id, units.unit_group.clone()));
                 } else if units.arrived_target() {
@@ -170,7 +165,7 @@ impl Game {
             if let Some(GameObj::Castle(owner)) = self.game_objs.get_mut(&owner_id) {
                 owner.units.saturating_add(&units);
             }
-            self.game_objs.remove(&units_id);
+            self.game_objs.remove(units_id);
         }
         for (target_id, strength) in to_attack {
             if let Some(GameObj::Castle(target)) = self.game_objs.get_mut(&target_id) {

@@ -97,7 +97,7 @@ impl UnitGroup {
 
     pub fn export(&self) -> UnitGroupE {
         UnitGroupE {
-            quantities: self.quantities.clone(),
+            quantities: self.quantities,
         }
     }
 
@@ -153,10 +153,7 @@ impl DeployedUnits {
     }
 
     pub fn get_pos(&self) -> Option<GameCoord> {
-        match self.path {
-            Some(ref path) => Some(path[self.path_index]),
-            None => None,
-        }
+        self.path.as_ref().map(|path| path[self.path_index])
     }
 
     pub fn move_along_path(&mut self) {
@@ -166,17 +163,17 @@ impl DeployedUnits {
                 false => (self.path_index + 1).min(self.path_size - 1),
             };
 
-            if let Some(_) = path.get(next_index) {
+            if path.get(next_index).is_some() {
                 self.path_index = next_index;
             }
         }
     }
 
     pub fn pending(&self) -> bool {
-        if self.path_index == 0 && self.returning == true {
+        if self.path_index == 0 && self.returning {
             return true;
         }
-        if self.path_index >= self.path_size.saturating_sub(1) && self.returning == false {
+        if self.path_index >= self.path_size.saturating_sub(1) && !self.returning {
             return true;
         }
         false

@@ -1,7 +1,6 @@
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use std::collections::{HashMap, VecDeque};
-use std::usize;
 
 use common::GameCoord;
 use common::r#const::{MAP_COLS, MAP_ROWS};
@@ -38,7 +37,7 @@ impl Eq for Node {}
 pub fn a_star(
     start: GameCoord,
     end: GameCoord,
-    obstacles: &Vec<Vec<bool>>,
+    obstacles: &[Vec<bool>],
 ) -> Option<VecDeque<GameCoord>> {
     fn chebyshev(p1: GameCoord, p2: GameCoord) -> u16 {
         p1.x.abs_diff(p2.x).max(p1.y.abs_diff(p2.y)) as u16
@@ -74,7 +73,7 @@ pub fn a_star(
     open_ord_list.push(Reverse(start_node.clone()));
     open_list.insert(start, start_node);
 
-    while open_ord_list.len() != 0 {
+    while !open_ord_list.is_empty() {
         let Reverse(current) = open_ord_list.pop().unwrap();
         let current_coord = current.coord;
         let _ = open_list.remove(&current_coord);
@@ -103,15 +102,15 @@ pub fn a_star(
                 if new_coord == end {
                     return Some(trace_path(new_node, &mut closed_list));
                 }
-                if let Some(node) = open_list.get(&new_coord) {
-                    if *node <= new_node {
-                        continue;
-                    }
+                if let Some(node) = open_list.get(&new_coord)
+                    && *node <= new_node
+                {
+                    continue;
                 }
-                if let Some(node) = closed_list.get(&new_coord) {
-                    if *node <= new_node {
-                        continue;
-                    }
+                if let Some(node) = closed_list.get(&new_coord)
+                    && *node <= new_node
+                {
+                    continue;
                 }
                 open_ord_list.push(Reverse(new_node.clone()));
                 open_list.insert(new_coord, new_node);
@@ -125,7 +124,7 @@ pub fn a_star(
 pub fn bds<const M: usize, const N: usize>(
     start: GameCoord,
     end: GameCoord,
-    obstacles: &Vec<Vec<bool>>,
+    obstacles: &[Vec<bool>],
 ) -> Option<VecDeque<GameCoord>> {
     let mut forw_visited: Vec<Vec<bool>> = vec![vec![false; N]; M];
     let mut back_visited: Vec<Vec<bool>> = vec![vec![false; N]; M];
@@ -145,9 +144,9 @@ pub fn bds<const M: usize, const N: usize>(
     // Returns false if there's ODOO magic.
     fn process_neightbours<const M: usize, const N: usize>(
         queue: &mut VecDeque<GameCoord>,
-        visited: &mut Vec<Vec<bool>>,
-        parents: &mut Vec<Vec<Option<GameCoord>>>,
-        obstacles: &Vec<Vec<bool>>,
+        visited: &mut [Vec<bool>],
+        parents: &mut [Vec<Option<GameCoord>>],
+        obstacles: &[Vec<bool>],
     ) -> bool {
         let current = match queue.pop_back() {
             Some(value) => value,
@@ -169,8 +168,8 @@ pub fn bds<const M: usize, const N: usize>(
     }
 
     fn is_intersecting<const M: usize, const N: usize>(
-        visited1: &Vec<Vec<bool>>,
-        visited2: &Vec<Vec<bool>>,
+        visited1: &[Vec<bool>],
+        visited2: &[Vec<bool>],
     ) -> Option<GameCoord> {
         for row in 0..M {
             for col in 0..N {

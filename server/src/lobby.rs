@@ -133,8 +133,8 @@ impl Lobby {
                         };
                     }
                     C2S4L::AttackCastle(target_id, unit_group_e) => {
-                        if let Some(player) = self.players.get(client_id) {
-                            if let Some(castle_id) = player.castle_id {
+                        if let Some(player) = self.players.get(client_id)
+                            && let Some(castle_id) = player.castle_id {
                                 match self.game.attack_castle(castle_id, target_id, unit_group_e) {
                                     true => {
                                         log =
@@ -148,11 +148,10 @@ impl Lobby {
                                     }
                                 }
                             }
-                        }
                     }
                     C2S4L::SendUnits(target_pos, unit_group_e) => {
-                        if let Some(player) = self.players.get(client_id) {
-                            if let Some(castle_id) = player.castle_id {
+                        if let Some(player) = self.players.get(client_id)
+                            && let Some(castle_id) = player.castle_id {
                                 match self.game.request_send_units(
                                     castle_id,
                                     target_pos,
@@ -170,7 +169,6 @@ impl Lobby {
                                     }
                                 }
                             }
-                        }
                     }
                     C2S4L::GiveMap => {
                         let _ = client_tx.send(L2S4C::Map(self.game.export_map()));
