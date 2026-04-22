@@ -28,6 +28,7 @@ pub enum S2C {
     LobbyFound,
     ServerFull,
     ConnectionFailed,
+    ServerShutdown,
     L2S4C(L2S4C),
 }
 

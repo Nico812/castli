@@ -1,6 +1,7 @@
 mod ansi;
 mod assets;
 mod client;
+mod connection;
 mod r#const;
 mod coord;
 mod game_state;

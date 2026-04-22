@@ -4,10 +4,12 @@ use common::exports::units::UnitType;
 use std::collections::HashMap;
 use std::ops::DerefMut;
 use std::sync::Arc;
-use tokio::io::{self, AsyncReadExt};
+use std::time::Duration;
+use tokio::io::{self, AsyncReadExt, stdin};
 use tokio::sync::Mutex;
+use tokio::time::{interval, timeout};
 
-use crate::client::ShutdownChannel;
+use crate::client::{ShutdownChannel, ShutdownReason};
 use crate::game_state::GameState;
 use crate::renderer::renderer::Renderer;
 use crate::tui::{T2C, Tui};
@@ -24,9 +26,24 @@ impl InputHandler {
         ui_state: Arc<Mutex<UiState>>,
         shutdown: ShutdownChannel,
     ) {
-        while !shutdown.is_shutdown() {
-            let mut buf = [0u8; 8];
-            let n = io::stdin().read(&mut buf).await.unwrap_or(0);
+        let mut reloop_tick = interval(Duration::from_secs(1));
+
+        let mut stdin = stdin();
+        let mut buf = [0u8; 8];
+
+        loop {
+            if shutdown.is_shutdown() {
+                return;
+            }
+
+            let n = tokio::select! {
+                n = stdin.read(&mut buf) => n.unwrap_or(0),
+                _ = reloop_tick.tick() => 0,
+            };
+
+            if n == 0 {
+                continue;
+            }
 
             // Convert the MutexGuard into &mut SharedState.
             // This helps the borrow checker perform field-level borrowing more precisely
@@ -39,7 +56,7 @@ impl InputHandler {
             // Keys that work for any UI mode
             match &buf[..n] {
                 [b'q'] => {
-                    shutdown.shutdown();
+                    shutdown.shutdown(ShutdownReason::Key);
                 }
                 [b'y'] => ui_state.tab = crate::renderer::ModRightTab::Castle,
                 [b'x'] => ui_state.tab = crate::renderer::ModRightTab::Logs,

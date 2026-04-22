@@ -15,7 +15,7 @@ use crate::{
     ui_state::{UiMode, UiState},
 };
 
-pub struct ModInteract {}
+pub struct ModInteract;
 
 impl ModInteract {
     const PADDING_HORI: usize = 2;

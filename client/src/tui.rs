@@ -1,6 +1,9 @@
 use crate::{
-    client::ShutdownChannel, game_state::GameState, input_handler::InputHandler,
-    renderer::renderer::Renderer, ui_state::UiState,
+    client::{ShutdownChannel, ShutdownReason},
+    game_state::GameState,
+    input_handler::InputHandler,
+    renderer::renderer::Renderer,
+    ui_state::UiState,
 };
 use common::{
     GameCoord, GameID,
@@ -19,7 +22,7 @@ pub enum T2C {
     SendUnits(GameCoord, UnitGroupE),
 }
 
-pub struct Tui {}
+pub struct Tui;
 
 impl Tui {
     pub async fn run(
@@ -62,7 +65,7 @@ impl Tui {
         let mut renderer = match Renderer::new(map) {
             Ok(renderer) => renderer,
             Err(_) => {
-                shutdown.shutdown();
+                shutdown.shutdown(ShutdownReason::TermSize);
                 return;
             }
         };

@@ -1,14 +1,8 @@
 CRUCIAL: refactor modules. I dont want to allways write the logic to create the renderable and to set paddings! PUS EMPTY ROW IS DUPLICATED CODE
 
-rename map_data to map in client
+implementa che il client rileva quando la connessione col server è interrotta.
 
 tiles are cloned a tthe beginning of the tui, but are left in GameState. Should them remain there?.
-
-add UIState enum in SharedState where one sets if the ui is in interact state or whatever. Also InteractTarget should be inside the enum. Like UIState::Interact(interact_state);
-
-review error managerment in client.
-
-make the logs finite
 
 return slices in center module in the slice functions and not copies
 -> dio can diventa una merda quindi lascio perdere per ora, magari piu in la trovo soluzione migliore.

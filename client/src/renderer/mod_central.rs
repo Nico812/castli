@@ -14,7 +14,7 @@ use crate::renderer::module_utility::WithArt;
 use crate::renderer::renderer::Renderer;
 use crate::ui_state::UiState;
 
-pub struct ModCentral {}
+pub struct ModCentral;
 
 impl ModCentral {
     pub fn update(
