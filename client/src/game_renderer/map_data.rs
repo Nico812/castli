@@ -35,9 +35,9 @@ impl MapData {
                         let mut grass_count = 0;
                         let mut water_count = 0;
 
-                        for row in top_left_row..=bottom_right_row {
-                            for col in top_left_col..=bottom_right_col {
-                                match tiles[row][col] {
+                        for row in tiles.iter().take(bottom_right_row + 1).skip(top_left_row) {
+                            for tile in row.iter().take(bottom_right_col + 1).skip(top_left_col) {
+                                match tile {
                                     TileE::Grass => grass_count += 1,
                                     TileE::Water => water_count += 1,
                                     _ => {}
@@ -68,7 +68,7 @@ impl MapData {
     }
 
     pub fn update_wind(&mut self, render_count: u32, zoom_coord: Option<GameCoord>) {
-        if render_count % 10 != 0 {
+        if !render_count.is_multiple_of(10) {
             return;
         }
 

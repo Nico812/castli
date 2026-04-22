@@ -17,7 +17,6 @@ pub struct Player {
 
 impl Player {
     pub fn new(name: String) -> Self {
-        let name = name;
         let status = PlayerStatus::Init;
         println!("New player joined with the name: {}", name);
         Self {

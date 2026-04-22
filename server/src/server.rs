@@ -76,13 +76,13 @@ impl LobbyManager {
                 let (resp_tx, mut resp_rx) = mpsc::channel(1);
                 let _ = tx.send(S2L::IsFull(resp_tx));
 
-                if let Some(is_full) = resp_rx.recv().await {
-                    if !is_full {
-                        let (c2s_tx, c2s_rx) = mpsc::unbounded_channel();
-                        let (s2c_tx, s2c_rx) = mpsc::unbounded_channel();
-                        let _ = tx.send(S2L::NewClient(client_id, player_name, s2c_tx, c2s_rx));
-                        return Ok((c2s_tx, s2c_rx));
-                    }
+                if let Some(is_full) = resp_rx.recv().await
+                    && !is_full
+                {
+                    let (c2s_tx, c2s_rx) = mpsc::unbounded_channel();
+                    let (s2c_tx, s2c_rx) = mpsc::unbounded_channel();
+                    let _ = tx.send(S2L::NewClient(client_id, player_name, s2c_tx, c2s_rx));
+                    return Ok((c2s_tx, s2c_rx));
                 }
             }
         }

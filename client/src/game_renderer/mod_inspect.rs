@@ -149,7 +149,7 @@ impl ModInspect {
         ]);
     }
 
-    fn push_row_with_text(renderable: &mut Vec<Vec<TermCell>>, text: &String) {
+    fn push_row_with_text(renderable: &mut Vec<Vec<TermCell>>, text: &str) {
         renderable.push(vec![
             TermCell::new(' ', FG_BLACK, BG_BLACK);
             Self::CONTENT_COLS

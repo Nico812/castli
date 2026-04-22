@@ -32,7 +32,7 @@ impl ModRight {
         content
     }
 
-    fn add_debug_tab(content: &mut Vec<Vec<TermCell>>, frame_dt: u64) {
+    fn add_debug_tab(content: &mut [Vec<TermCell>], frame_dt: u64) {
         // Show FPS
         let dt_str = format!("Frame dt: {} ms", frame_dt);
         module_utility::draw_text_in_row(
@@ -44,7 +44,7 @@ impl ModRight {
         );
     }
 
-    fn add_castle_tab(content: &mut Vec<Vec<TermCell>>, player: &PlayerE) {
+    fn add_castle_tab(content: &mut [Vec<TermCell>], player: &PlayerE) {
         let pos_str = format!("{}", player.pos);
         let peasants_str = format!("Peasants: {}", player.peasants);
         let knights_str = format!(

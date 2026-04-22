@@ -16,7 +16,7 @@ pub struct TermCell {
     pub bg: &'static str,
 }
 
-impl<'a> TermCell {
+impl TermCell {
     pub const fn new(ch: char, fg: &'static str, bg: &'static str) -> Self {
         Self { ch, fg, bg }
     }

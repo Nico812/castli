@@ -22,7 +22,7 @@ pub struct SharedState {
 }
 
 pub enum UIState {
-    STD,
+    Std,
     Interact(UIInteract),
     Inspect(UIInspect),
     UnitSelection(UIUnitSelection),
@@ -68,7 +68,7 @@ impl SharedState {
             map_zoom: Some(GameCoord { x: 0, y: 0 }),
             logs: VecDeque::new(),
             mod_right_tab: ModRightTab::Castle,
-            ui_state: UIState::STD,
+            ui_state: UIState::Std,
         }
     }
 
@@ -80,13 +80,12 @@ impl SharedState {
         let mut looked_objs: Vec<(GameID, &GameObjE)> = game_objs
             .iter()
             .filter_map(|(game_id, game_obj)| {
-                if zoom && game_obj.get_pos() == coord {
-                    Some((*game_id, game_obj))
-                } else if !zoom
-                    && game_obj.get_pos().y >= coord.y
-                    && game_obj.get_pos().x >= coord.x
-                    && game_obj.get_pos().y < coord.y + GameRenderer::ZOOM_FACTOR
-                    && game_obj.get_pos().x < coord.x + GameRenderer::ZOOM_FACTOR
+                if (zoom && game_obj.get_pos() == coord)
+                    || (!zoom
+                        && game_obj.get_pos().y >= coord.y
+                        && game_obj.get_pos().x >= coord.x
+                        && game_obj.get_pos().y < coord.y + GameRenderer::ZOOM_FACTOR
+                        && game_obj.get_pos().x < coord.x + GameRenderer::ZOOM_FACTOR)
                 {
                     Some((*game_id, game_obj))
                 } else {

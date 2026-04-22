@@ -1,5 +1,4 @@
 use common::exports::units::UnitType;
-use std::ops::Add;
 use std::sync::Arc;
 use tokio::io::{self, AsyncReadExt};
 use tokio::sync::Mutex;
@@ -81,7 +80,7 @@ impl InputHandler {
 
     async fn apply_move(state: &mut SharedState, mut dx: isize, mut dy: isize) {
         match state.ui_state {
-            UIState::STD => {
+            UIState::Std => {
                 if let Some(ref mut zoom) = state.map_zoom {
                     zoom.x = (zoom.x as isize + 2 * dx)
                         .max(0)
@@ -147,50 +146,45 @@ impl InputHandler {
                 }
                 _ => {}
             },
-        }
-    }
-
-    async fn apply_enter(state: &mut SharedState) {
-        match state.ui_state {
-            UIState::Inspect(ref mut inspect) => {
-                let looked_objs = SharedState::get_looked_objs(
-                    inspect.coord,
-                    state.map_zoom.is_some(),
-                    &state.game_objs,
-                );
-
-                if looked_objs.len() > 1 && inspect.selection.is_none() {
-                    inspect.selection = Some(looked_objs[0].0);
-                } else {
-                    let (obj_id, obj_pos) = match looked_objs.len() {
-                        0 => (None, inspect.coord),
-                        1 => {
-                            let obj = looked_objs[0];
-                            (Some(obj.0), obj.1.get_pos())
-                        }
-                        _ => {
-                            let selected_id = inspect.selection.unwrap();
-                            let pos = looked_objs
-                                .iter()
-                                .find(|(id, _)| *id == selected_id)
-                                .map(|(_, obj)| obj.get_pos())
-                                .unwrap();
-                            (Some(selected_id), pos)
-                        }
-                    };
-
-                    state.ui_state = UIState::Interact(UIInteract {
-                        obj_id: obj_id,
-                        coord: obj_pos,
-                    });
-                }
-            }
             _ => {}
         }
     }
 
+    async fn apply_enter(state: &mut SharedState) {
+        if let UIState::Inspect(ref mut inspect) = state.ui_state {
+            let looked_objs = SharedState::get_looked_objs(
+                inspect.coord,
+                state.map_zoom.is_some(),
+                &state.game_objs,
+            );
+
+            if looked_objs.len() > 1 && inspect.selection.is_none() {
+                inspect.selection = Some(looked_objs[0].0);
+            } else {
+                let (obj_id, coord) = match looked_objs.len() {
+                    0 => (None, inspect.coord),
+                    1 => {
+                        let obj = looked_objs[0];
+                        (Some(obj.0), obj.1.get_pos())
+                    }
+                    _ => {
+                        let selected_id = inspect.selection.unwrap();
+                        let pos = looked_objs
+                            .iter()
+                            .find(|(id, _)| *id == selected_id)
+                            .map(|(_, obj)| obj.get_pos())
+                            .unwrap();
+                        (Some(selected_id), pos)
+                    }
+                };
+
+                state.ui_state = UIState::Interact(UIInteract { obj_id, coord });
+            }
+        }
+    }
+
     async fn apply_esc(state: &mut SharedState) {
-        state.ui_state = UIState::STD;
+        state.ui_state = UIState::Std;
     }
 
     async fn toggle_zoom(state: &mut SharedState) {
@@ -201,7 +195,7 @@ impl InputHandler {
     }
 
     async fn toggle_inspect(state: &mut SharedState) {
-        if let UIState::STD = state.ui_state {
+        if let UIState::Std = state.ui_state {
             let coord = match state.map_zoom {
                 None => GameCoord { x: 0, y: 0 },
                 Some(zoom_coord) => zoom_coord,
@@ -211,7 +205,7 @@ impl InputHandler {
                 selection: None,
             });
         } else if let UIState::Inspect(_) = state.ui_state {
-            state.ui_state = UIState::STD;
+            state.ui_state = UIState::Std;
         }
     }
 

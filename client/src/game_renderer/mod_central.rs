@@ -45,7 +45,7 @@ impl ModCentral {
         cells
     }
 
-    fn tiles_to_cells<'a>(tiles: &Vec<Vec<TileE>>, wind: &Vec<Vec<bool>>) -> Vec<Vec<TermCell>> {
+    fn tiles_to_cells(tiles: &[Vec<TileE>], wind: &[Vec<bool>]) -> Vec<Vec<TermCell>> {
         tiles
             .iter()
             .step_by(2)
@@ -114,7 +114,7 @@ impl ModCentral {
 
     // This can take negative positions to account for the objects that have origin outsize of view but
     // with art that enters the view
-    fn add_art_to_cells(cells: &mut Vec<Vec<TermCell>>, art: &[&[TermCell]], pos: (isize, isize)) {
+    fn add_art_to_cells(cells: &mut [Vec<TermCell>], art: &[&[TermCell]], pos: (isize, isize)) {
         for (art_row, art_row_iter) in art.iter().enumerate() {
             for (art_col, art_cell) in art_row_iter.iter().enumerate() {
                 let cell_pos_y = pos.0 + art_row as isize;
@@ -130,7 +130,7 @@ impl ModCentral {
         }
     }
 
-    fn get_map_slice(tiles: &Vec<Vec<TileE>>, zoom_coord: GameCoord) -> Vec<Vec<TileE>> {
+    fn get_map_slice(tiles: &[Vec<TileE>], zoom_coord: GameCoord) -> Vec<Vec<TileE>> {
         tiles[zoom_coord.y..(zoom_coord.y + GameRenderer::FOV_ROWS * 2).min(MAP_ROWS)]
             .iter()
             .map(|row| {
@@ -139,7 +139,7 @@ impl ModCentral {
             .collect()
     }
 
-    fn get_wind_slice(wind: &Vec<Vec<bool>>, zoom_coord: GameCoord) -> Vec<Vec<bool>> {
+    fn get_wind_slice(wind: &[Vec<bool>], zoom_coord: GameCoord) -> Vec<Vec<bool>> {
         wind[zoom_coord.y / 2..(zoom_coord.y / 2 + GameRenderer::FOV_ROWS).min(MapData::WIND_ROWS)]
             .iter()
             .map(|row| {
