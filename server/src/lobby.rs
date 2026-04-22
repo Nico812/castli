@@ -40,7 +40,7 @@ impl Lobby {
 
     /// Lobby listens for messages from the server, listens and responds to messages from clients,
     /// and periodically updates the game state.
-    pub async fn run(&mut self, mut main_rx: mpsc::UnboundedReceiver<S2L>) {
+    pub async fn run(mut self, mut main_rx: mpsc::UnboundedReceiver<S2L>) {
         let mut client_comunication_tick =
             time::interval(time::Duration::from_millis(CLIENT_COM_TICK));
         let mut server_comunication_tick =
@@ -134,41 +134,39 @@ impl Lobby {
                     }
                     C2S4L::AttackCastle(target_id, unit_group_e) => {
                         if let Some(player) = self.players.get(client_id)
-                            && let Some(castle_id) = player.castle_id {
-                                match self.game.attack_castle(castle_id, target_id, unit_group_e) {
-                                    true => {
-                                        log =
-                                            Some(format!("Attacking castle with ID: {}", target_id))
-                                    }
-                                    false => {
-                                        log = Some(format!(
-                                            "Failed attacking castle with ID: {}",
-                                            target_id
-                                        ))
-                                    }
+                            && let Some(castle_id) = player.castle_id
+                        {
+                            match self.game.attack_castle(castle_id, target_id, unit_group_e) {
+                                true => {
+                                    log = Some(format!("Attacking castle with ID: {}", target_id))
+                                }
+                                false => {
+                                    log = Some(format!(
+                                        "Failed attacking castle with ID: {}",
+                                        target_id
+                                    ))
                                 }
                             }
+                        }
                     }
                     C2S4L::SendUnits(target_pos, unit_group_e) => {
                         if let Some(player) = self.players.get(client_id)
-                            && let Some(castle_id) = player.castle_id {
-                                match self.game.request_send_units(
-                                    castle_id,
-                                    target_pos,
-                                    unit_group_e,
-                                    None,
-                                ) {
-                                    true => {
-                                        log = Some(format!("Sending units to {}", target_pos));
-                                    }
-                                    false => {
-                                        log = Some(format!(
-                                            "Failed sending units to: {}",
-                                            target_pos
-                                        ));
-                                    }
+                            && let Some(castle_id) = player.castle_id
+                        {
+                            match self.game.request_send_units(
+                                castle_id,
+                                target_pos,
+                                unit_group_e,
+                                None,
+                            ) {
+                                true => {
+                                    log = Some(format!("Sending units to {}", target_pos));
+                                }
+                                false => {
+                                    log = Some(format!("Failed sending units to: {}", target_pos));
                                 }
                             }
+                        }
                     }
                     C2S4L::GiveMap => {
                         let _ = client_tx.send(L2S4C::Map(self.game.export_map()));

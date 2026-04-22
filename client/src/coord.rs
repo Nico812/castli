@@ -1,8 +1,8 @@
 use common::GameCoord;
 
-use crate::game_renderer::{
+use crate::renderer::{
     r#const::{CANVAS_COLS, CANVAS_ROWS, MOD_CENTRAL_POS},
-    game_renderer::GameRenderer,
+    renderer::Renderer,
 };
 
 // TermCoord are the 1-indexed terminal coordinates with origin at CANVAS_POS
@@ -26,8 +26,8 @@ impl TermCoord {
                 (rel_game_y / 2, rel_game_x)
             }
             None => {
-                let term_y = game_coord.y / 2 / GameRenderer::ZOOM_FACTOR;
-                let term_x = game_coord.x / GameRenderer::ZOOM_FACTOR;
+                let term_y = game_coord.y / 2 / Renderer::ZOOM_FACTOR;
+                let term_x = game_coord.x / Renderer::ZOOM_FACTOR;
 
                 (term_y, term_x)
             }

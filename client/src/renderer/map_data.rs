@@ -5,7 +5,7 @@ use common::{
 };
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 
-use crate::game_renderer::game_renderer::GameRenderer;
+use crate::renderer::renderer::Renderer;
 
 pub struct MapData {
     pub tiles: Vec<Vec<TileE>>,
@@ -21,16 +21,16 @@ impl MapData {
     pub fn new(tiles: Vec<Vec<TileE>>) -> Self {
         let mut rng = SmallRng::seed_from_u64(1);
 
-        let tiles_wor = (0..MAP_ROWS / GameRenderer::ZOOM_FACTOR)
+        let tiles_wor = (0..MAP_ROWS / Renderer::ZOOM_FACTOR)
             .map(|world_map_row| {
-                (0..MAP_COLS / GameRenderer::ZOOM_FACTOR)
+                (0..MAP_COLS / Renderer::ZOOM_FACTOR)
                     .map(|world_map_col| {
-                        let top_left_row = world_map_row * GameRenderer::ZOOM_FACTOR;
-                        let top_left_col = world_map_col * GameRenderer::ZOOM_FACTOR;
+                        let top_left_row = world_map_row * Renderer::ZOOM_FACTOR;
+                        let top_left_col = world_map_col * Renderer::ZOOM_FACTOR;
                         let bottom_right_row =
-                            ((world_map_row + 1) * GameRenderer::ZOOM_FACTOR).min(MAP_ROWS) - 1;
+                            ((world_map_row + 1) * Renderer::ZOOM_FACTOR).min(MAP_ROWS) - 1;
                         let bottom_right_col =
-                            ((world_map_col + 1) * GameRenderer::ZOOM_FACTOR).min(MAP_COLS) - 1;
+                            ((world_map_col + 1) * Renderer::ZOOM_FACTOR).min(MAP_COLS) - 1;
 
                         let mut grass_count = 0;
                         let mut water_count = 0;
@@ -77,8 +77,8 @@ impl MapData {
         let (row_start, col_start) = zoom_coord
             .map(|coord| (coord.y / 2, coord.x))
             .unwrap_or((0, 0));
-        let row_end = (row_start + GameRenderer::FOV_ROWS - 1).min(Self::WIND_ROWS);
-        let col_end = (col_start + GameRenderer::FOV_COLS - 1).min(Self::WIND_COLS);
+        let row_end = (row_start + Renderer::FOV_ROWS - 1).min(Self::WIND_ROWS);
+        let col_end = (col_start + Renderer::FOV_COLS - 1).min(Self::WIND_COLS);
 
         for row in row_start..=row_end {
             for col in col_start..=col_end {

@@ -7,83 +7,84 @@ use std::sync::Arc;
 use tokio::io::{self, AsyncReadExt};
 use tokio::sync::Mutex;
 
-use crate::game_renderer::game_renderer::GameRenderer;
-use crate::shared_state::{SharedState, UIInspect, UIInteract, UIState, UIUnitSelection};
-use crate::tui::T2C;
+use crate::client::{GameState, ShutdownChannel};
+use crate::renderer::renderer::Renderer;
+use crate::shared_state::{Inspect, Interact, UiMode, UiState, UnitSelection};
+use crate::tui::{T2C, Tui};
+use common::GameCoord;
 use common::r#const::{MAP_COLS, MAP_ROWS};
-use common::{GameCoord, exports::units::UnitGroupE};
 
 pub struct InputHandler;
 
 impl InputHandler {
     pub async fn run(
-        tx: &tokio::sync::mpsc::UnboundedSender<T2C>,
-        shared_state: Arc<Mutex<SharedState>>,
+        tx: tokio::sync::mpsc::UnboundedSender<T2C>,
+        game_state: Arc<Mutex<GameState>>,
+        ui_state: Arc<Mutex<UiState>>,
+        shutdown: ShutdownChannel,
     ) {
-        let mut running = true;
-        while running {
+        while !shutdown.is_shutdown() {
             let mut buf = [0u8; 8];
             let n = io::stdin().read(&mut buf).await.unwrap_or(0);
 
             // Convert the MutexGuard into &mut SharedState.
             // This helps the borrow checker perform field-level borrowing more precisely
             // (borrow splitting works better on &mut T than on MutexGuard<T> in complex flows).
-            let mut guard = shared_state.lock().await;
-            let mut state = guard.deref_mut();
+            let mut ui_guard = ui_state.lock().await;
+            let mut ui_state = ui_guard.deref_mut();
+            let mut game_guard = game_state.lock().await;
+            let game_state = game_guard.deref_mut();
 
-            // Keys that work for any UI state
+            // Keys that work for any UI mode
             match &buf[..n] {
                 [b'q'] => {
-                    running = false;
+                    shutdown.shutdown();
                 }
-                [b'y'] => state.mod_right_tab = crate::game_renderer::ModRightTab::Castle,
-                [b'x'] => state.mod_right_tab = crate::game_renderer::ModRightTab::Logs,
-                [b'c'] => state.mod_right_tab = crate::game_renderer::ModRightTab::Debug,
+                [b'y'] => ui_state.tab = crate::renderer::ModRightTab::Castle,
+                [b'x'] => ui_state.tab = crate::renderer::ModRightTab::Logs,
+                [b'c'] => ui_state.tab = crate::renderer::ModRightTab::Debug,
                 _ => {}
             }
 
-            // Custom keybinds for each UI state
-            match state.ui_state {
-                UIState::Std => match &buf[..n] {
+            // Custom keybinds for each UI mode
+            match ui_state.mode {
+                UiMode::Std => match &buf[..n] {
                     [b'z'] => {
-                        Self::toggle_zoom(&mut state.map_zoom);
+                        Self::toggle_zoom(&mut ui_state.zoom);
                     }
                     [b'l'] => {
-                        Self::toggle_inspect(&mut state);
+                        Self::toggle_inspect(&mut ui_state);
                     }
-                    [0x1b, b'[', b'A'] => Self::move_zoom(0, -1, &mut state.map_zoom),
-                    [0x1b, b'[', b'B'] => Self::move_zoom(0, 1, &mut state.map_zoom),
-                    [0x1b, b'[', b'C'] => Self::move_zoom(1, 0, &mut state.map_zoom),
-                    [0x1b, b'[', b'D'] => Self::move_zoom(-1, 0, &mut state.map_zoom),
+                    [0x1b, b'[', b'A'] => Self::move_zoom(0, -1, &mut ui_state.zoom),
+                    [0x1b, b'[', b'B'] => Self::move_zoom(0, 1, &mut ui_state.zoom),
+                    [0x1b, b'[', b'C'] => Self::move_zoom(1, 0, &mut ui_state.zoom),
+                    [0x1b, b'[', b'D'] => Self::move_zoom(-1, 0, &mut ui_state.zoom),
                     [0x1b, b'[', b'1', b';', b'5', b'A'] => {
-                        Self::move_zoom(0, -8, &mut state.map_zoom)
+                        Self::move_zoom(0, -8, &mut ui_state.zoom)
                     }
                     [0x1b, b'[', b'1', b';', b'5', b'B'] => {
-                        Self::move_zoom(0, 8, &mut state.map_zoom)
+                        Self::move_zoom(0, 8, &mut ui_state.zoom)
                     }
                     [0x1b, b'[', b'1', b';', b'5', b'C'] => {
-                        Self::move_zoom(8, 0, &mut state.map_zoom)
+                        Self::move_zoom(8, 0, &mut ui_state.zoom)
                     }
                     [0x1b, b'[', b'1', b';', b'5', b'D'] => {
-                        Self::move_zoom(-8, 0, &mut state.map_zoom)
+                        Self::move_zoom(-8, 0, &mut ui_state.zoom)
                     }
                     _ => {}
                 },
-                UIState::Inspect(ref mut inspect) => match &buf[..n] {
-                    [b'\x1b'] => state.ui_state = UIState::Std,
-                    [b'n'] => Self::handle_new_castle(tx, inspect),
+                UiMode::Inspect(ref mut inspect) => match &buf[..n] {
+                    [b'\x1b'] => ui_state.mode = UiMode::Std,
+                    [b'n'] => Self::handle_new_castle(&tx, inspect),
                     [b'z'] => {
-                        Self::toggle_zoom(&mut state.map_zoom);
+                        Self::toggle_zoom(&mut ui_state.zoom);
                     }
                     [b'i'] => {
-                        Self::toggle_inspect(&mut state);
+                        Self::toggle_inspect(&mut ui_state);
                     }
                     [b'\r'] => {
-                        let looked_objs = SharedState::get_looked_objs(
-                            inspect.coord,
-                            &state.map_zoom,
-                            &state.game_objs,
-                        );
+                        let looked_objs =
+                            Tui::get_looked_objs(inspect.coord, &ui_state.zoom, &game_state.objs);
 
                         if looked_objs.len() > 1 && inspect.selection.is_none() {
                             inspect.selection = Some(looked_objs[0].0);
@@ -105,48 +106,48 @@ impl InputHandler {
                                 }
                             };
 
-                            state.ui_state = UIState::Interact(UIInteract { obj_id, coord });
+                            ui_state.mode = UiMode::Interact(Interact { obj_id, coord });
                         }
                     }
                     [0x1b, b'[', b'A'] => {
-                        Self::move_inspect(0, -1, inspect, &state.map_zoom, &state.game_objs)
+                        Self::move_inspect(0, -1, inspect, &ui_state.zoom, &game_state.objs)
                     }
                     [0x1b, b'[', b'B'] => {
-                        Self::move_inspect(0, 1, inspect, &state.map_zoom, &state.game_objs)
+                        Self::move_inspect(0, 1, inspect, &ui_state.zoom, &game_state.objs)
                     }
                     [0x1b, b'[', b'C'] => {
-                        Self::move_inspect(1, 0, inspect, &state.map_zoom, &state.game_objs)
+                        Self::move_inspect(1, 0, inspect, &ui_state.zoom, &game_state.objs)
                     }
                     [0x1b, b'[', b'D'] => {
-                        Self::move_inspect(-1, 0, inspect, &state.map_zoom, &state.game_objs)
+                        Self::move_inspect(-1, 0, inspect, &ui_state.zoom, &game_state.objs)
                     }
                     [0x1b, b'[', b'1', b';', b'5', b'A'] => {
-                        Self::move_inspect(0, -8, inspect, &state.map_zoom, &state.game_objs)
+                        Self::move_inspect(0, -8, inspect, &ui_state.zoom, &game_state.objs)
                     }
                     [0x1b, b'[', b'1', b';', b'5', b'B'] => {
-                        Self::move_inspect(0, 8, inspect, &state.map_zoom, &state.game_objs)
+                        Self::move_inspect(0, 8, inspect, &ui_state.zoom, &game_state.objs)
                     }
                     [0x1b, b'[', b'1', b';', b'5', b'C'] => {
-                        Self::move_inspect(8, 0, inspect, &state.map_zoom, &state.game_objs)
+                        Self::move_inspect(8, 0, inspect, &ui_state.zoom, &game_state.objs)
                     }
                     [0x1b, b'[', b'1', b';', b'5', b'D'] => {
-                        Self::move_inspect(-8, 0, inspect, &state.map_zoom, &state.game_objs)
+                        Self::move_inspect(-8, 0, inspect, &ui_state.zoom, &game_state.objs)
                     }
                     _ => {}
                 },
-                UIState::Interact(ref mut interact) => match &buf[..n] {
-                    [b'\x1b'] => state.ui_state = UIState::Std,
+                UiMode::Interact(ref mut interact) => match &buf[..n] {
+                    [b'\x1b'] => ui_state.mode = UiMode::Std,
                     [b'a'] => {
-                        state.ui_state =
-                            UIState::UnitSelection(UIUnitSelection::from_interact(interact.clone()))
+                        ui_state.mode =
+                            UiMode::UnitSelection(UnitSelection::from_interact(interact.clone()))
                     }
                     _ => {}
                 },
-                UIState::UnitSelection(ref mut selection) => match &buf[..n] {
-                    [b'\x1b'] => state.ui_state = UIState::Std,
+                UiMode::UnitSelection(ref mut selection) => match &buf[..n] {
+                    [b'\x1b'] => ui_state.mode = UiMode::Std,
                     [b'a'] => {
-                        Self::handle_unit_deploy(tx, selection);
-                        state.ui_state = UIState::Std;
+                        Self::handle_unit_deploy(&tx, selection);
+                        ui_state.mode = UiMode::Std;
                     }
                     [b'\r'] => {
                         selection.selected_units.quantities[selection.active_input.0.as_index()] =
@@ -177,7 +178,7 @@ impl InputHandler {
         }
     }
 
-    fn handle_new_castle(tx: &tokio::sync::mpsc::UnboundedSender<T2C>, inspect: &UIInspect) {
+    fn handle_new_castle(tx: &tokio::sync::mpsc::UnboundedSender<T2C>, inspect: &Inspect) {
         let _ = tx.send(T2C::NewCastle(inspect.coord));
     }
 
@@ -188,25 +189,22 @@ impl InputHandler {
         };
     }
 
-    fn toggle_inspect(state: &mut SharedState) {
-        if let UIState::Std = state.ui_state {
-            let coord = match state.map_zoom {
+    fn toggle_inspect(ui_state: &mut UiState) {
+        if let UiMode::Std = ui_state.mode {
+            let coord = match ui_state.zoom {
                 None => GameCoord { x: 0, y: 0 },
                 Some(zoom_coord) => zoom_coord,
             };
-            state.ui_state = UIState::Inspect(UIInspect {
+            ui_state.mode = UiMode::Inspect(Inspect {
                 coord,
                 selection: None,
             });
-        } else if let UIState::Inspect(_) = state.ui_state {
-            state.ui_state = UIState::Std;
+        } else if let UiMode::Inspect(_) = ui_state.mode {
+            ui_state.mode = UiMode::Std;
         }
     }
 
-    fn handle_unit_deploy(
-        tx: &tokio::sync::mpsc::UnboundedSender<T2C>,
-        selection: &UIUnitSelection,
-    ) {
+    fn handle_unit_deploy(tx: &tokio::sync::mpsc::UnboundedSender<T2C>, selection: &UnitSelection) {
         match selection.interact.obj_id {
             Some(obj_id) => {
                 let _ = tx.send(T2C::AttackCastle(obj_id, selection.selected_units.clone()));
@@ -224,11 +222,10 @@ impl InputHandler {
         if let Some(zoom) = zoom {
             zoom.x = (zoom.x as isize + 2 * dx)
                 .max(0)
-                .min(MAP_COLS as isize - GameRenderer::FOV_COLS as isize)
-                as usize;
+                .min(MAP_COLS as isize - Renderer::FOV_COLS as isize) as usize;
             zoom.y = (zoom.y as isize + 2 * dy)
                 .max(0)
-                .min((MAP_ROWS) as isize - (GameRenderer::FOV_ROWS * 2) as isize)
+                .min((MAP_ROWS) as isize - (Renderer::FOV_ROWS * 2) as isize)
                 as usize;
         }
     }
@@ -236,12 +233,12 @@ impl InputHandler {
     fn move_inspect(
         mut dx: isize,
         mut dy: isize,
-        inspect: &mut UIInspect,
+        inspect: &mut Inspect,
         zoom: &Option<GameCoord>,
         objs: &HashMap<GameID, GameObjE>,
     ) {
         if let Some(ref mut selection) = inspect.selection {
-            let looked_objs = SharedState::get_looked_objs(inspect.coord, zoom, &objs);
+            let looked_objs = Tui::get_looked_objs(inspect.coord, zoom, &objs);
             let new_selection = {
                 let current_pos = looked_objs.iter().position(|(id, _)| *id == *selection);
                 match dy {
@@ -262,8 +259,8 @@ impl InputHandler {
             }
         } else {
             if zoom.is_none() {
-                dx *= GameRenderer::ZOOM_FACTOR as isize;
-                dy *= GameRenderer::ZOOM_FACTOR as isize;
+                dx *= Renderer::ZOOM_FACTOR as isize;
+                dy *= Renderer::ZOOM_FACTOR as isize;
             };
             inspect.coord.x = (inspect.coord.x as isize + dx)
                 .max(0)
@@ -274,7 +271,7 @@ impl InputHandler {
         }
     }
 
-    fn move_unit_selection(dx: isize, dy: isize, selection: &mut UIUnitSelection) {
+    fn move_unit_selection(dx: isize, dy: isize, selection: &mut UnitSelection) {
         match dy {
             dy if dy > 0 => {
                 let new_unit_index =

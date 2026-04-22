@@ -3,8 +3,8 @@ mod assets;
 mod client;
 mod r#const;
 mod coord;
-mod game_renderer;
 mod input_handler;
+mod renderer;
 mod shared_state;
 mod tui;
 

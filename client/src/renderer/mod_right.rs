@@ -3,9 +3,11 @@ use std::collections::VecDeque;
 use super::{r#const::*, module_utility};
 use crate::ansi::*;
 use crate::assets::*;
-use crate::game_renderer::ModRightTab;
-use crate::game_renderer::module_utility::draw_text_in_row;
-use crate::shared_state::SharedState;
+use crate::client::GameState;
+use crate::client::Logs;
+use crate::renderer::ModRightTab;
+use crate::renderer::module_utility::draw_text_in_row;
+use crate::shared_state::UiState;
 use common::exports::player::PlayerE;
 use common::exports::units::UnitType;
 
@@ -17,16 +19,16 @@ impl ModRight {
     const CONTENT_ROWS: usize = MOD_RIGHT_ROWS.saturating_sub(2);
     const CONTENT_COLS: usize = MOD_RIGHT_COLS.saturating_sub(2);
 
-    pub fn update(frame_dt: u64, state: &mut SharedState) -> Vec<Vec<TermCell>> {
+    pub fn update(frame_dt: u64, game_state: &GameState, ui_state: &UiState) -> Vec<Vec<TermCell>> {
         let mut content = vec![
             vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
             Self::CONTENT_ROWS
         ];
 
-        match state.mod_right_tab {
-            ModRightTab::Castle => Self::add_castle_tab(&mut content, &state.player_data),
+        match ui_state.tab {
+            ModRightTab::Castle => Self::add_castle_tab(&mut content, &game_state.player),
             ModRightTab::Debug => Self::add_debug_tab(&mut content, frame_dt),
-            ModRightTab::Logs => Self::add_logs_tab(&mut content, &mut state.logs),
+            ModRightTab::Logs => Self::add_logs_tab(&mut content, &game_state.logs),
         };
         module_utility::add_frame("(y): me | (x): logs | (c): debug", &mut content);
         content
@@ -80,7 +82,7 @@ impl ModRight {
         }
     }
 
-    pub fn add_logs_tab(content: &mut Vec<Vec<TermCell>>, logs: &mut VecDeque<String>) {
+    pub fn add_logs_tab(content: &mut Vec<Vec<TermCell>>, logs: &Logs) {
         let mut chatbox: VecDeque<Vec<TermCell>> = VecDeque::with_capacity(Self::CONTENT_ROWS);
 
         let available_width = Self::CONTENT_COLS - (Self::PADDING_HORI * 2);
@@ -92,7 +94,7 @@ impl ModRight {
         // First, expand all logs into individual lines (oldest first)
         let mut all_lines: Vec<String> = Vec::new();
 
-        for log in logs.iter() {
+        for log in logs.content.iter() {
             if log.len() <= available_width {
                 all_lines.push(log.clone());
             } else {

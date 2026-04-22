@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::Arc,
+};
 use tokio::{
     io::BufReader,
     net::{
@@ -12,18 +15,88 @@ use tokio::{
     time,
 };
 
-use crate::tui::{self, Tui};
+use crate::{
+    r#const::LOGS_CAPACITY,
+    tui::{self, Tui},
+};
 use common::{
-    C2S, C2S4L, L2S4C, S2C,
+    C2S, C2S4L, GameID, L2S4C, S2C,
     r#const::{IP_LOCAL, ONLINE},
     exports::{game_object::GameObjE, player::PlayerE, tile::TileE},
     stream,
 };
 
-#[derive(Debug)]
-pub enum ClientErr {
-    TermSize,
-    DataNotReceived,
+pub struct Logs {
+    pub content: VecDeque<String>,
+    max_len: usize,
+}
+
+impl Logs {
+    fn new(max_len: usize) -> Self {
+        Self {
+            content: VecDeque::with_capacity(max_len),
+            max_len,
+        }
+    }
+
+    fn add(&mut self, item: String) {
+        if self.content.len() >= self.max_len {
+            let _ = self.content.pop_front();
+        }
+        self.content.push_back(item);
+    }
+}
+
+pub struct GameState {
+    pub map: Vec<Vec<TileE>>,
+    pub player: PlayerE,
+    pub objs: HashMap<GameID, GameObjE>,
+    pub logs: Logs,
+}
+
+impl GameState {
+    pub fn new(
+        objs: HashMap<usize, GameObjE>,
+        player: Option<PlayerE>,
+        map: Vec<Vec<TileE>>,
+    ) -> Self {
+        Self {
+            map,
+            player: player.unwrap_or(PlayerE::undef()),
+            objs,
+            logs: Logs::new(LOGS_CAPACITY),
+        }
+    }
+
+    pub fn add_log(&mut self, message: impl Into<String>) {
+        self.logs.add(message.into());
+    }
+}
+
+pub struct ShutdownChannel {
+    sender: Sender<bool>,
+    receiver: Receiver<bool>,
+}
+
+impl ShutdownChannel {
+    pub fn new() -> Self {
+        let (sender, receiver) = tokio::sync::watch::channel(false);
+        Self { sender, receiver }
+    }
+    pub fn clone(other: &Self) -> Self {
+        Self {
+            sender: other.sender.clone(),
+            receiver: other.receiver.clone(),
+        }
+    }
+
+    pub fn shutdown(&self) {
+        let _ = self.sender.send(true);
+    }
+
+    pub fn is_shutdown(&self) -> bool {
+        return *self.receiver.borrow();
+    }
 }
 
 struct ClientConnection {
@@ -33,15 +106,15 @@ struct ClientConnection {
 
 impl ClientConnection {
     async fn communicate_with_server(
-        &mut self,
-        s2c_tx: &mpsc::UnboundedSender<S2C>,
-        t2c_rx: &mut mpsc::UnboundedReceiver<tui::T2C>,
-        shutdown: (Sender<bool>, Receiver<bool>),
+        mut self,
+        mut t2c_rx: mpsc::UnboundedReceiver<tui::T2C>,
+        shutdown: ShutdownChannel,
+        game_state: Arc<Mutex<GameState>>,
     ) {
         let mut request_tick = time::interval(time::Duration::from_millis(1000));
 
         loop {
-            if *shutdown.1.borrow() {
+            if shutdown.is_shutdown() {
                 return;
             }
 
@@ -62,7 +135,20 @@ impl ClientConnection {
                 // Check for messages from the server and redirects them to the TUI
                 // TODO: the tokio select here can cause data loss, should i address this?
                 Ok(msg) = stream::get_msg_from_server(&mut self.reader) =>  {
-                    let _ = s2c_tx.send(msg);
+            let mut game_state = game_state.lock().await;
+
+            match msg {
+                S2C::L2S4C(L2S4C::GameObjs(objs)) => {
+                    game_state.objs = objs;
+                }
+                S2C::L2S4C(L2S4C::Player(player)) => {
+                    game_state.player = player;
+                }
+                S2C::L2S4C(L2S4C::Log(msg)) => {
+                    game_state.add_log(msg);
+                }
+                _ => {}
+            }
                 }
                 // Otherwise, run the periodic update requests
                 _ = request_tick.tick() => {
@@ -80,36 +166,31 @@ impl ClientConnection {
         }
     }
 
-    // Makes the initial request to get the game map from the server.
-    async fn ask_for_map(&mut self) -> Result<Vec<Vec<TileE>>, ClientErr> {
-        let _ = stream::send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GiveMap)).await;
-
-        match stream::get_msg_from_server(&mut self.reader).await {
-            Ok(S2C::L2S4C(L2S4C::Map(map))) => Ok(map),
-            _ => Err(ClientErr::DataNotReceived),
-        }
-    }
-
     // Fetches the initial game objects and player data required to start the TUI.
-    async fn fetch_initial_state(
-        &mut self,
-    ) -> Result<(HashMap<usize, GameObjE>, Option<PlayerE>), ClientErr> {
+    async fn fetch_initial_state(&mut self) -> Result<GameState, ()> {
+        // Request map
+        let _ = stream::send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GiveMap)).await;
+        let map = match stream::get_msg_from_server(&mut self.reader).await {
+            Ok(S2C::L2S4C(L2S4C::Map(map))) => map,
+            _ => return Err(()),
+        };
+
         // Request game objects
         let _ = stream::send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GiveObjs)).await;
-        let game_objs = match stream::get_msg_from_server(&mut self.reader).await {
+        let objs = match stream::get_msg_from_server(&mut self.reader).await {
             Ok(S2C::L2S4C(L2S4C::GameObjs(objs))) => objs,
-            _ => return Err(ClientErr::DataNotReceived),
+            _ => return Err(()),
         };
 
         // Request player data (this is a placeholder until the castle is built)
         let _ = stream::send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GivePlayer)).await;
-        let player_data = match stream::get_msg_from_server(&mut self.reader).await {
-            Ok(S2C::L2S4C(L2S4C::Player(data))) => Some(data),
+        let player = match stream::get_msg_from_server(&mut self.reader).await {
+            Ok(S2C::L2S4C(L2S4C::Player(player))) => Some(player),
             Ok(S2C::L2S4C(L2S4C::CreateCastle)) => None,
-            _ => return Err(ClientErr::DataNotReceived),
+            _ => return Err(()),
         };
 
-        Ok((game_objs, player_data))
+        Ok(GameState::new(objs, player, map))
     }
 }
 
@@ -123,7 +204,7 @@ impl Client {
     /// Runs the main client application.
     pub async fn run(&mut self) {
         // Connect to the Server
-        let shutdown = tokio::sync::watch::channel(false);
+        let shutdown = ShutdownChannel::new();
         let addr = if ONLINE { IP_LOCAL } else { IP_LOCAL };
         let stream = match TcpStream::connect(addr).await {
             Ok(s) => s,
@@ -147,30 +228,25 @@ impl Client {
         };
 
         println!("Fetching initial game state...");
-        let map = connection
-            .ask_for_map()
-            .await
-            .expect("Failed to receive map.");
-        let (initial_objs, initial_data) = connection
-            .fetch_initial_state()
-            .await
-            .expect("Failed to receive initial state.");
-        println!("Game state received.");
+        let game_state = Arc::new(Mutex::new(
+            connection
+                .fetch_initial_state()
+                .await
+                .expect("Failed to receive initial state."),
+        ));
 
         // Set up communication channels
-        let (s2c_tx, s2c_rx) = mpsc::unbounded_channel(); // Server -> TUI
-        let (t2c_tx, mut t2c_rx) = mpsc::unbounded_channel(); // TUI -> Server
+        let (t2c_tx, t2c_rx) = mpsc::unbounded_channel(); // TUI -> Server
 
         // Spawn the dedicated network task
-        let communication_handle = tokio::spawn(async move {
-            connection
-                .communicate_with_server(&s2c_tx, &mut t2c_rx, shutdown.clone())
-                .await;
-        });
+        let communication_handle = tokio::spawn(connection.communicate_with_server(
+            t2c_rx,
+            ShutdownChannel::clone(&shutdown),
+            Arc::clone(&game_state),
+        ));
 
         // Create and run the TUI. The main thread will now be dedicated to the UI.
-        let mut tui = Tui::new(t2c_tx, s2c_rx, initial_objs, initial_data);
-        tui.run(map).await; // This blocks until the user quits the TUI.
+        Tui::run(t2c_tx, game_state, shutdown).await; // This blocks until the user quits the TUI.
 
         // Cleanup
         communication_handle.abort();

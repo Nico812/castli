@@ -6,12 +6,13 @@ use common::{
 use crate::{
     ansi::{BG_BLACK, FG_BLACK},
     assets::{SELECTION_TERMCELL, TermCell},
-    game_renderer::{
+    client::GameState,
+    renderer::{
         r#const::MOD_INTERACT_COLS,
         map_data::MapData,
         module_utility::{self, draw_text_in_row},
     },
-    shared_state::{SharedState, UIState},
+    shared_state::{UiMode, UiState},
 };
 
 pub struct ModInteract {}
@@ -21,13 +22,17 @@ impl ModInteract {
     const PADDING_VERT: usize = 1;
     const CONTENT_COLS: usize = MOD_INTERACT_COLS.saturating_sub(2);
 
-    pub fn update(state: &mut SharedState, map_data: &MapData) -> Option<Vec<Vec<TermCell>>> {
-        match state.ui_state {
-            UIState::Interact(ref interact) => {
+    pub fn update(
+        game_state: &GameState,
+        ui_state: &UiState,
+        map_data: &MapData,
+    ) -> Option<Vec<Vec<TermCell>>> {
+        match ui_state.mode {
+            UiMode::Interact(ref interact) => {
                 let tile = map_data.get_tile(interact.coord);
                 let obj = interact
                     .obj_id
-                    .and_then(|obj_id| state.game_objs.get(&obj_id));
+                    .and_then(|obj_id| game_state.objs.get(&obj_id));
                 let mut renderable = Vec::new();
 
                 for _ in 0..Self::PADDING_VERT {
@@ -56,7 +61,7 @@ impl ModInteract {
 
                 Some(renderable)
             }
-            UIState::UnitSelection(ref mut selection) => {
+            UiMode::UnitSelection(ref selection) => {
                 let all_units = all_units!();
                 let mut renderable = Vec::new();
 
@@ -72,7 +77,7 @@ impl ModInteract {
                                 "{:?}: {}/{}",
                                 unit,
                                 selection.active_input.1,
-                                state.player_data.units.quantities[i]
+                                game_state.player.units.quantities[i]
                             ),
                         );
 
@@ -86,7 +91,7 @@ impl ModInteract {
                                 "{:?}: {}/{}",
                                 unit,
                                 selection.selected_units.quantities[i],
-                                state.player_data.units.quantities[i]
+                                game_state.player.units.quantities[i]
                             ),
                         );
                     }

@@ -52,8 +52,8 @@ impl LobbyManager {
             if lobby_txs[i].is_none() {
                 let (new_lobby_tx, new_lobby_rx) = mpsc::unbounded_channel();
 
-                let mut lobby = Lobby::new();
-                tokio::spawn(async move { lobby.run(new_lobby_rx).await });
+                let lobby = Lobby::new();
+                tokio::spawn(lobby.run(new_lobby_rx));
 
                 lobby_txs[i] = Some(new_lobby_tx.clone());
                 return Some(new_lobby_tx);
@@ -236,7 +236,7 @@ impl Server {
                     Err(ServerErr::AuthFailed)
                 }
             },
-            _ = time::sleep(time::Duration::from_secs(10)) => {
+            _ = time::sleep(time::Duration::from_secs(100)) => {
                 Err(ServerErr::AuthFailed)
             }
         }

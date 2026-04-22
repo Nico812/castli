@@ -1,13 +1,16 @@
 use crate::{
-    game_renderer::game_renderer::GameRenderer, input_handler::InputHandler,
-    shared_state::SharedState,
+    client::{GameState, ShutdownChannel},
+    input_handler::InputHandler,
+    renderer::renderer::Renderer,
+    shared_state::UiState,
 };
 use common::{
     GameCoord, GameID, L2S4C, S2C,
     exports::{game_object::GameObjE, player::PlayerE, tile::TileE, units::UnitGroupE},
 };
-use std::{collections::HashMap, io::Write, process::Command, sync::Arc};
+use std::{collections::HashMap, io::Write, net::Shutdown, process::Command, sync::Arc};
 use tokio::{
+    net::unix::pipe::Sender,
     sync::{Mutex, mpsc},
     time,
 };
@@ -19,60 +22,55 @@ pub enum T2C {
     SendUnits(GameCoord, UnitGroupE),
 }
 
-pub struct Tui {
-    to_server_tx: mpsc::UnboundedSender<T2C>,
-    from_server_rx: Arc<Mutex<mpsc::UnboundedReceiver<S2C>>>,
-    shared_state: Arc<Mutex<SharedState>>,
-}
+pub struct Tui {}
 
 impl Tui {
-    pub fn new(
+    pub async fn run(
         tx: mpsc::UnboundedSender<T2C>,
-        rx: mpsc::UnboundedReceiver<S2C>,
-        initial_game_objs: HashMap<GameID, GameObjE>,
-        initial_player_data: Option<PlayerE>,
-    ) -> Self {
-        Self {
-            to_server_tx: tx,
-            from_server_rx: Arc::new(Mutex::new(rx)),
-            shared_state: Arc::new(Mutex::new(SharedState::new(
-                initial_game_objs,
-                initial_player_data,
-            ))),
-        }
-    }
-
-    pub async fn run(&mut self, tiles: Vec<Vec<TileE>>) {
+        game_state: Arc<Mutex<GameState>>,
+        shutdown: ShutdownChannel,
+    ) {
         Self::set_raw_mode();
         Self::hide_cursor();
 
-        // Spawn a task to listen for updates from the server
-        let com_handle = tokio::spawn(Self::listen_for_server_updates(
-            Arc::clone(&self.from_server_rx),
-            Arc::clone(&self.shared_state),
+        let ui_state = Arc::new(Mutex::new(UiState::new()));
+
+        // Spawn a task to listen to user inputs
+        let input_handle = tokio::spawn(InputHandler::run(
+            tx,
+            Arc::clone(&game_state),
+            Arc::clone(&ui_state),
+            ShutdownChannel::clone(&shutdown),
         ));
 
-        // Spawn a task to render the UI
-        let ui_handle = tokio::spawn(Self::render_loop(Arc::clone(&self.shared_state), tiles));
-
-        // Listen to user inputs
-        InputHandler::run(&self.to_server_tx, Arc::clone(&self.shared_state)).await;
-
+        // Render loop
+        Self::render_loop(game_state, ui_state, shutdown).await;
         // When input handling ends, abort other tasks and clean up.
-        com_handle.abort();
-        ui_handle.abort();
+        input_handle.abort();
         Self::clear_screen();
         Self::show_cursor();
         Self::reset_mode();
     }
 
-    async fn render_loop(shared_state: Arc<Mutex<SharedState>>, tiles: Vec<Vec<TileE>>) {
+    async fn render_loop(
+        game_state: Arc<Mutex<GameState>>,
+        ui_state: Arc<Mutex<UiState>>,
+        shutdown: ShutdownChannel,
+    ) {
         let mut render_tick = time::interval(time::Duration::from_millis(16));
         let mut last_frame = time::Instant::now();
         let mut frame_dt: u64 = 0;
-        let mut game_renderer = GameRenderer::new(tiles);
-        Self::clear_screen();
 
+        let map = game_state.lock().await.map.clone();
+        let mut renderer = match Renderer::new(map) {
+            Ok(renderer) => renderer,
+            Err(_) => {
+                shutdown.shutdown();
+                return;
+            }
+        };
+
+        Self::clear_screen();
         loop {
             // Rendering fps
             // There's a problem that the frames can go really fast when there is delay
@@ -87,8 +85,9 @@ impl Tui {
             // Rendering
             // Self::clear_screen(); // For cool visuals
             {
-                let mut shared_state = shared_state.lock().await;
-                game_renderer.render(&mut shared_state, frame_dt);
+                let game_state = game_state.lock().await;
+                let mut ui_state = ui_state.lock().await;
+                renderer.render(&game_state, &mut ui_state, frame_dt);
                 let _ = std::io::stdout().flush();
             }
 
@@ -96,25 +95,35 @@ impl Tui {
         }
     }
 
-    async fn listen_for_server_updates(
-        from_server_rx: Arc<Mutex<mpsc::UnboundedReceiver<S2C>>>,
-        shared_state: Arc<Mutex<SharedState>>,
-    ) {
-        while let Some(msg) = from_server_rx.lock().await.recv().await {
-            let mut state = shared_state.lock().await;
-            match msg {
-                S2C::L2S4C(L2S4C::GameObjs(objs)) => {
-                    state.game_objs = objs;
+    pub fn get_looked_objs<'a>(
+        coord: GameCoord,
+        zoom: &Option<GameCoord>,
+        game_objs: &'a HashMap<GameID, GameObjE>,
+    ) -> Vec<(GameID, &'a GameObjE)> {
+        let mut looked_objs: Vec<(GameID, &GameObjE)> = game_objs
+            .iter()
+            .filter_map(|(game_id, game_obj)| {
+                if (zoom.is_some() && game_obj.get_pos() == coord)
+                    || (zoom.is_none()
+                        && game_obj.get_pos().y >= coord.y
+                        && game_obj.get_pos().x >= coord.x
+                        && game_obj.get_pos().y < coord.y + Renderer::ZOOM_FACTOR
+                        && game_obj.get_pos().x < coord.x + Renderer::ZOOM_FACTOR)
+                {
+                    Some((*game_id, game_obj))
+                } else {
+                    None
                 }
-                S2C::L2S4C(L2S4C::Player(data)) => {
-                    state.player_data = data;
-                }
-                S2C::L2S4C(L2S4C::Log(msg)) => {
-                    state.add_log(msg);
-                }
-                _ => {}
-            }
-        }
+            })
+            .collect();
+
+        looked_objs.sort_by(|a, b| a.0.cmp(&b.0));
+        looked_objs.sort_by_key(|a| match a.1 {
+            GameObjE::Castle(_) => 0,
+            GameObjE::Structure(_) => 1,
+            GameObjE::DeployedUnits(_) => 2,
+        });
+        looked_objs
     }
 
     pub fn login() -> String {

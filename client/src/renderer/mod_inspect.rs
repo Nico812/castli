@@ -1,12 +1,14 @@
 use crate::{
     ansi::{BG_BLACK, BG_WHITE, FG_BLACK},
     assets::{self, SELECTION_TERMCELL, TermCell, TileAsset},
-    game_renderer::{
+    client::GameState,
+    renderer::{
         r#const::MOD_INSPECT_COLS,
         map_data::MapData,
         module_utility::{add_frame, draw_text_in_row},
     },
-    shared_state::{SharedState, UIState},
+    shared_state::{UiMode, UiState},
+    tui::Tui,
 };
 use common::{
     GameID,
@@ -20,8 +22,12 @@ impl ModInspect {
     const PADDING_VERT: usize = 1;
     const CONTENT_COLS: usize = MOD_INSPECT_COLS - 2;
 
-    pub fn update(state: &mut SharedState, map_data: &MapData) -> Option<Vec<Vec<TermCell>>> {
-        if let UIState::Inspect(ref inspect) = state.ui_state {
+    pub fn update(
+        game_state: &GameState,
+        ui_state: &UiState,
+        map_data: &MapData,
+    ) -> Option<Vec<Vec<TermCell>>> {
+        if let UiMode::Inspect(ref inspect) = ui_state.mode {
             let looked_tile = map_data.get_tile(inspect.coord);
 
             let mut renderable = Vec::new();
@@ -30,8 +36,7 @@ impl ModInspect {
                 Self::push_empty_row(&mut renderable);
             }
 
-            let looked_objs =
-                SharedState::get_looked_objs(inspect.coord, &state.map_zoom, &state.game_objs);
+            let looked_objs = Tui::get_looked_objs(inspect.coord, &ui_state.zoom, &game_state.objs);
             let selected_id = inspect.selection;
 
             if !looked_objs.is_empty() {

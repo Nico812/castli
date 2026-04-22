@@ -8,16 +8,21 @@ use common::{GameCoord, GameID};
 use super::module_utility;
 use crate::ansi::*;
 use crate::assets::*;
-use crate::game_renderer::game_renderer::GameRenderer;
-use crate::game_renderer::map_data::MapData;
-use crate::game_renderer::module_utility::WithArt;
-use crate::shared_state::SharedState;
+use crate::client::GameState;
+use crate::renderer::map_data::MapData;
+use crate::renderer::module_utility::WithArt;
+use crate::renderer::renderer::Renderer;
+use crate::shared_state::UiState;
 
 pub struct ModCentral {}
 
 impl ModCentral {
-    pub fn update(state: &mut SharedState, map_data: &MapData) -> Vec<Vec<TermCell>> {
-        let (tiles, zoom_coord, frame_title) = match state.map_zoom {
+    pub fn update(
+        game_state: &GameState,
+        ui_state: &UiState,
+        map_data: &MapData,
+    ) -> Vec<Vec<TermCell>> {
+        let (tiles, zoom_coord, frame_title) = match ui_state.zoom {
             Some(coord) => {
                 let tiles = Self::get_map_slice(&map_data.tiles, coord);
                 let title = format!("Castli | zoom: {}", coord);
@@ -36,8 +41,8 @@ impl ModCentral {
         let mut cells = Self::tiles_to_cells(&tiles, &cut_wind);
 
         match zoom_coord {
-            Some(coord) => Self::add_objs_to_cells(&mut cells, &state.game_objs, coord),
-            None => Self::add_world_objs_to_cells(&mut cells, &state.game_objs),
+            Some(coord) => Self::add_objs_to_cells(&mut cells, &game_state.objs, coord),
+            None => Self::add_world_objs_to_cells(&mut cells, &game_state.objs),
         }
 
         module_utility::add_frame(&frame_title, &mut cells);
@@ -104,8 +109,8 @@ impl ModCentral {
         for obj in world_objs.values() {
             let pos = obj.get_pos();
             let rel_pos_in_quad: (isize, isize) = (
-                (pos.y / (GameRenderer::ZOOM_FACTOR * 2)) as isize,
-                (pos.x / GameRenderer::ZOOM_FACTOR) as isize,
+                (pos.y / (Renderer::ZOOM_FACTOR * 2)) as isize,
+                (pos.x / Renderer::ZOOM_FACTOR) as isize,
             );
             let art = obj.get_art(true);
             Self::add_art_to_cells(cells, art, rel_pos_in_quad);
@@ -130,29 +135,23 @@ impl ModCentral {
         }
     }
 
-    fn get_map_slice(tiles: &[Vec<TileE>], zoom_coord: GameCoord) -> Vec<Vec<TileE>> {
-        tiles[zoom_coord.y..(zoom_coord.y + GameRenderer::FOV_ROWS * 2).min(MAP_ROWS)]
+    fn get_map_slice(tiles: &[Vec<TileE>], zoom: GameCoord) -> Vec<Vec<TileE>> {
+        tiles[zoom.y..(zoom.y + Renderer::FOV_ROWS * 2).min(MAP_ROWS)]
             .iter()
-            .map(|row| {
-                row[zoom_coord.x..(zoom_coord.x + GameRenderer::FOV_COLS).min(MAP_COLS)].to_vec()
-            })
+            .map(|row| row[zoom.x..(zoom.x + Renderer::FOV_COLS).min(MAP_COLS)].to_vec())
             .collect()
     }
 
-    fn get_wind_slice(wind: &[Vec<bool>], zoom_coord: GameCoord) -> Vec<Vec<bool>> {
-        wind[zoom_coord.y / 2..(zoom_coord.y / 2 + GameRenderer::FOV_ROWS).min(MapData::WIND_ROWS)]
+    fn get_wind_slice(wind: &[Vec<bool>], zoom: GameCoord) -> Vec<Vec<bool>> {
+        wind[zoom.y / 2..(zoom.y / 2 + Renderer::FOV_ROWS).min(MapData::WIND_ROWS)]
             .iter()
-            .map(|row| {
-                row[zoom_coord.x..(zoom_coord.x + GameRenderer::FOV_COLS).min(MapData::WIND_COLS)]
-                    .to_vec()
-            })
+            .map(|row| row[zoom.x..(zoom.x + Renderer::FOV_COLS).min(MapData::WIND_COLS)].to_vec())
             .collect()
     }
 
-    fn is_in_view(pos: GameCoord, zoom_coord: GameCoord, obj_size: (usize, usize)) -> bool {
-        let y =
-            pos.y + obj_size.0 >= zoom_coord.y && pos.y < zoom_coord.y + GameRenderer::FOV_ROWS * 2;
-        let x = pos.x + obj_size.1 >= zoom_coord.x && pos.x < zoom_coord.x + GameRenderer::FOV_COLS;
+    fn is_in_view(pos: GameCoord, zoom: GameCoord, obj_size: (usize, usize)) -> bool {
+        let y = pos.y + obj_size.0 >= zoom.y && pos.y < zoom.y + Renderer::FOV_ROWS * 2;
+        let x = pos.x + obj_size.1 >= zoom.x && pos.x < zoom.x + Renderer::FOV_COLS;
         y && x
     }
 }
