@@ -49,7 +49,7 @@ impl UIUnitSelection {
     pub fn from_interact(interact: UIInteract) -> Self {
         Self {
             interact,
-            active_input: (UnitType::form_index(1), String::new()),
+            active_input: (UnitType::form_index(0), "0".to_string()),
             selected_units: UnitGroupE {
                 quantities: [0, 0, 0],
             },

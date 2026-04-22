@@ -1,11 +1,14 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 use tokio::{
     io::BufReader,
     net::{
         TcpStream,
         tcp::{OwnedReadHalf, OwnedWriteHalf},
     },
-    sync::mpsc,
+    sync::{
+        Mutex, mpsc,
+        watch::{Receiver, Sender},
+    },
     time,
 };
 
@@ -19,6 +22,7 @@ use common::{
 
 #[derive(Debug)]
 pub enum ClientErr {
+    TermSize,
     DataNotReceived,
 }
 
@@ -32,46 +36,45 @@ impl ClientConnection {
         &mut self,
         s2c_tx: &mpsc::UnboundedSender<S2C>,
         t2c_rx: &mut mpsc::UnboundedReceiver<tui::T2C>,
+        shutdown: (Sender<bool>, Receiver<bool>),
     ) {
         let mut request_tick = time::interval(time::Duration::from_millis(1000));
 
-        tokio::select! {
-            // Check for messages from the TUI to send to the server
-            Some(msg_from_tui) = t2c_rx.recv() => {
-                let msg = match msg_from_tui {
-                    tui::T2C::NewCastle(pos) => C2S::C2S4L(C2S4L::NewCastle(pos)),
-                    tui::T2C::AttackCastle(target_id, unit_group_e) => {
-                        C2S::C2S4L(C2S4L::AttackCastle(target_id, unit_group_e))
-                    }
-                    tui::T2C::SendUnits(target_pos, unit_group_e) => {
-                        C2S::C2S4L(C2S4L::SendUnits(target_pos, unit_group_e))
-                    }
-                };
-                let _ = stream::send_msg_to_server(&mut self.writer, &msg).await;
-            },
-            // Check for messages from the server and redirects them to the TUI
-            // TODO: the tokio select here can cause data loss, should i address this?
-            Ok(msg) = stream::get_msg_from_server(&mut self.reader) =>  {
-                let _ = s2c_tx.send(msg);
+        loop {
+            if *shutdown.1.borrow() {
+                return;
             }
-            // Otherwise, run the periodic update requests
-            _ = request_tick.tick() => {
-                // Request game objects
-                let _ = stream::send_msg_to_server(
-                    &mut self.writer,
-                    &C2S::C2S4L(C2S4L::GiveObjs),
-                ).await;
-                if let Ok(msg) = stream::get_msg_from_server(&mut self.reader).await {
+
+            tokio::select! {
+                // Check for messages from the TUI to send to the server
+                Some(msg_from_tui) = t2c_rx.recv() => {
+                    let msg = match msg_from_tui {
+                        tui::T2C::NewCastle(pos) => C2S::C2S4L(C2S4L::NewCastle(pos)),
+                        tui::T2C::AttackCastle(target_id, unit_group_e) => {
+                            C2S::C2S4L(C2S4L::AttackCastle(target_id, unit_group_e))
+                        }
+                        tui::T2C::SendUnits(target_pos, unit_group_e) => {
+                            C2S::C2S4L(C2S4L::SendUnits(target_pos, unit_group_e))
+                        }
+                    };
+                    let _ = stream::send_msg_to_server(&mut self.writer, &msg).await;
+                },
+                // Check for messages from the server and redirects them to the TUI
+                // TODO: the tokio select here can cause data loss, should i address this?
+                Ok(msg) = stream::get_msg_from_server(&mut self.reader) =>  {
                     let _ = s2c_tx.send(msg);
                 }
+                // Otherwise, run the periodic update requests
+                _ = request_tick.tick() => {
+                    let _ = stream::send_msg_to_server(
+                        &mut self.writer,
+                        &C2S::C2S4L(C2S4L::GiveObjs),
+                    ).await;
 
-                // Request player data
-                let _ = stream::send_msg_to_server(
-                    &mut self.writer,
-                    &C2S::C2S4L(C2S4L::GivePlayer),
-                ).await;
-                if let Ok(msg) = stream::get_msg_from_server(&mut self.reader).await {
-                    let _ = s2c_tx.send(msg);
+                    let _ = stream::send_msg_to_server(
+                        &mut self.writer,
+                        &C2S::C2S4L(C2S4L::GivePlayer),
+                    ).await;
                 }
             }
         }
@@ -120,6 +123,7 @@ impl Client {
     /// Runs the main client application.
     pub async fn run(&mut self) {
         // Connect to the Server
+        let shutdown = tokio::sync::watch::channel(false);
         let addr = if ONLINE { IP_LOCAL } else { IP_LOCAL };
         let stream = match TcpStream::connect(addr).await {
             Ok(s) => s,
@@ -159,11 +163,9 @@ impl Client {
 
         // Spawn the dedicated network task
         let communication_handle = tokio::spawn(async move {
-            loop {
-                connection
-                    .communicate_with_server(&s2c_tx, &mut t2c_rx)
-                    .await;
-            }
+            connection
+                .communicate_with_server(&s2c_tx, &mut t2c_rx, shutdown.clone())
+                .await;
         });
 
         // Create and run the TUI. The main thread will now be dedicated to the UI.

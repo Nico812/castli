@@ -1,10 +1,12 @@
 use common::exports::tile::TileE;
+use rand::distr::uniform::Error;
 use terminal_size::{Height, Width, terminal_size};
 
 use crate::ansi;
 use crate::assets;
 use crate::assets::CURSOR_DOWN;
 use crate::assets::CURSOR_UP;
+use crate::client::ClientErr;
 use crate::coord::TermCoord;
 use crate::game_renderer::r#const::*;
 use crate::game_renderer::map_data::MapData;
@@ -26,36 +28,28 @@ impl GameRenderer {
     pub const FOV_COLS: usize = MOD_CENTRAL_COLS - 2;
     pub const ZOOM_FACTOR: usize = 8;
 
-    pub fn new(map_tiles: Vec<Vec<TileE>>) -> Self {
-        let canvas_pos;
-        match terminal_size() {
-            Some((Width(w), Height(h))) => {
-                if (h as usize) < CANVAS_ROWS || (w as usize) < CANVAS_COLS {
-                    println!(
-                        "Terminal size is too small, consider changing your terminal text size.."
-                    );
-                    canvas_pos = (0, 0);
-                } else {
-                    canvas_pos = (
-                        ((h as usize) - CANVAS_ROWS) / 2,
-                        ((w as usize) - CANVAS_COLS) / 2,
-                    );
-                }
-            }
-            None => {
-                println!("Could not detect the terminal size.");
-                canvas_pos = (0, 0);
-            }
-        }
+    pub fn new(map_tiles: Vec<Vec<TileE>>) -> Result<Self, ClientErr> {
+        let canvas_pos = if let Some((Width(w), Height(h))) = terminal_size()
+            && (h as usize) >= CANVAS_ROWS
+            && (w as usize) >= CANVAS_COLS
+        {
+            (
+                ((h as usize) - CANVAS_ROWS) / 2,
+                ((w as usize) - CANVAS_COLS) / 2,
+            )
+        } else {
+            return Err(ClientErr::TermSize);
+        };
+
         let prev_frame = vec![vec![assets::ERR.std; CANVAS_COLS]; CANVAS_ROWS];
         let map_data = MapData::new(map_tiles);
 
-        Self {
+        Ok(Self {
             prev_frame,
             canvas_pos,
             render_count: 0,
             map_data,
-        }
+        })
     }
 
     pub fn render(&mut self, state: &mut SharedState, frame_dt: u64) {

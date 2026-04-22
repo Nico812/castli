@@ -146,6 +146,7 @@ impl InputHandler {
                     [b'\x1b'] => state.ui_state = UIState::Std,
                     [b'a'] => {
                         Self::handle_unit_deploy(tx, selection);
+                        state.ui_state = UIState::Std;
                     }
                     [b'\r'] => {
                         selection.selected_units.quantities[selection.active_input.0.as_index()] =
