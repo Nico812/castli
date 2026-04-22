@@ -31,6 +31,8 @@ impl TermCell {
 pub const CURSOR_UP: TermCell = TermCell::new('\u{21B1}', FG_WHITE, BG_BLACK);
 pub const CURSOR_DOWN: TermCell = TermCell::new('\u{21B3}', FG_WHITE, BG_BLACK);
 
+pub const SELECTION_TERMCELL: TermCell = TermCell::new('<', FG_BLACK, BG_WHITE);
+
 pub const BKG_FG: &str = FG_BLACK;
 pub const BKG_BG: &str = BG_BLACK;
 pub const BKG_EL: TermCell = TermCell::new('.', FG_RED, BG_BLACK);

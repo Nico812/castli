@@ -1,7 +1,7 @@
 use crate::{GameCoord, GameID};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum GameObjE {
     Castle(CastleE),
     Structure(StructureE),

@@ -72,16 +72,16 @@ impl SharedState {
         }
     }
 
-    pub fn get_looked_objs(
+    pub fn get_looked_objs<'a>(
         coord: GameCoord,
-        zoom: bool,
-        game_objs: &HashMap<GameID, GameObjE>,
-    ) -> Vec<(GameID, &GameObjE)> {
+        zoom: &Option<GameCoord>,
+        game_objs: &'a HashMap<GameID, GameObjE>,
+    ) -> Vec<(GameID, &'a GameObjE)> {
         let mut looked_objs: Vec<(GameID, &GameObjE)> = game_objs
             .iter()
             .filter_map(|(game_id, game_obj)| {
-                if (zoom && game_obj.get_pos() == coord)
-                    || (!zoom
+                if (zoom.is_some() && game_obj.get_pos() == coord)
+                    || (zoom.is_none()
                         && game_obj.get_pos().y >= coord.y
                         && game_obj.get_pos().x >= coord.x
                         && game_obj.get_pos().y < coord.y + GameRenderer::ZOOM_FACTOR

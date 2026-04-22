@@ -1,6 +1,6 @@
 use crate::{
     ansi::{BG_BLACK, BG_WHITE, FG_BLACK},
-    assets::{self, TermCell, TileAsset},
+    assets::{self, SELECTION_TERMCELL, TermCell, TileAsset},
     game_renderer::{
         r#const::MOD_INSPECT_COLS,
         map_data::MapData,
@@ -19,7 +19,6 @@ impl ModInspect {
     const PADDING_HORI: usize = 2;
     const PADDING_VERT: usize = 1;
     const CONTENT_COLS: usize = MOD_INSPECT_COLS - 2;
-    const SELECTION_TERMCELL: TermCell = TermCell::new('<', FG_BLACK, BG_WHITE);
 
     pub fn update(state: &mut SharedState, map_data: &MapData) -> Option<Vec<Vec<TermCell>>> {
         if let UIState::Inspect(ref inspect) = state.ui_state {
@@ -31,11 +30,8 @@ impl ModInspect {
                 Self::push_empty_row(&mut renderable);
             }
 
-            let looked_objs = SharedState::get_looked_objs(
-                inspect.coord,
-                state.map_zoom.is_some(),
-                &state.game_objs,
-            );
+            let looked_objs =
+                SharedState::get_looked_objs(inspect.coord, &state.map_zoom, &state.game_objs);
             let selected_id = inspect.selection;
 
             if !looked_objs.is_empty() {
@@ -84,7 +80,7 @@ impl ModInspect {
                     if selected {
                         castles_component.last_mut().unwrap()
                             [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1)] =
-                            Self::SELECTION_TERMCELL;
+                            SELECTION_TERMCELL;
                     }
 
                     Self::push_row_with_text(
@@ -100,7 +96,7 @@ impl ModInspect {
                     if selected {
                         structures_component.last_mut().unwrap()
                             [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1)] =
-                            Self::SELECTION_TERMCELL;
+                            SELECTION_TERMCELL;
                     }
                     Self::push_row_with_text(&mut structures_component, &format!("ID: {}", id));
                 }
@@ -114,7 +110,7 @@ impl ModInspect {
                     if selected {
                         units_component.last_mut().unwrap()
                             [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1)] =
-                            Self::SELECTION_TERMCELL;
+                            SELECTION_TERMCELL;
                     }
                 }
             }
