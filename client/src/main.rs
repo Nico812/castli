@@ -3,10 +3,11 @@ mod assets;
 mod client;
 mod r#const;
 mod coord;
+mod game_state;
 mod input_handler;
 mod renderer;
-mod shared_state;
 mod tui;
+mod ui_state;
 
 use client::Client;
 

@@ -3,11 +3,11 @@ use std::collections::VecDeque;
 use super::{r#const::*, module_utility};
 use crate::ansi::*;
 use crate::assets::*;
-use crate::client::GameState;
-use crate::client::Logs;
+use crate::game_state::GameState;
+use crate::game_state::Logs;
 use crate::renderer::ModRightTab;
 use crate::renderer::module_utility::draw_text_in_row;
-use crate::shared_state::UiState;
+use crate::ui_state::UiState;
 use common::exports::player::PlayerE;
 use common::exports::units::UnitType;
 

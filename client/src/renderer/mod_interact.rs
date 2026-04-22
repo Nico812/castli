@@ -6,13 +6,13 @@ use common::{
 use crate::{
     ansi::{BG_BLACK, FG_BLACK},
     assets::{SELECTION_TERMCELL, TermCell},
-    client::GameState,
+    game_state::GameState,
     renderer::{
         r#const::MOD_INTERACT_COLS,
         map_data::MapData,
         module_utility::{self, draw_text_in_row},
     },
-    shared_state::{UiMode, UiState},
+    ui_state::{UiMode, UiState},
 };
 
 pub struct ModInteract {}

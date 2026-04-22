@@ -1,15 +1,9 @@
-use std::collections::{HashMap, VecDeque};
-
 use common::{
     GameCoord, GameID,
-    exports::{
-        game_object::GameObjE,
-        player::PlayerE,
-        units::{UnitGroupE, UnitType},
-    },
+    exports::units::{UnitGroupE, UnitType},
 };
 
-use crate::renderer::{ModRightTab, renderer::Renderer};
+use crate::renderer::ModRightTab;
 
 // State shared between input handler and renderer
 pub struct UiState {

@@ -7,10 +7,11 @@ use std::sync::Arc;
 use tokio::io::{self, AsyncReadExt};
 use tokio::sync::Mutex;
 
-use crate::client::{GameState, ShutdownChannel};
+use crate::client::ShutdownChannel;
+use crate::game_state::GameState;
 use crate::renderer::renderer::Renderer;
-use crate::shared_state::{Inspect, Interact, UiMode, UiState, UnitSelection};
 use crate::tui::{T2C, Tui};
+use crate::ui_state::{Inspect, Interact, UiMode, UiState, UnitSelection};
 use common::GameCoord;
 use common::r#const::{MAP_COLS, MAP_ROWS};
 
@@ -156,22 +157,12 @@ impl InputHandler {
                     [b] if matches!(b, b'0'..=b'9') => {
                         selection.active_input.1.push(*b as char);
                     }
-                    [0x1b, b'[', b'A'] => Self::move_unit_selection(0, -1, selection),
-                    [0x1b, b'[', b'B'] => Self::move_unit_selection(0, 1, selection),
-                    [0x1b, b'[', b'C'] => Self::move_unit_selection(1, 0, selection),
-                    [0x1b, b'[', b'D'] => Self::move_unit_selection(-1, 0, selection),
+                    [0x1b, b'[', b'A'] => Self::move_unit_selection(-1, selection),
+                    [0x1b, b'[', b'B'] => Self::move_unit_selection(1, selection),
                     [0x1b, b'[', b'1', b';', b'5', b'A'] => {
-                        Self::move_unit_selection(0, -8, selection)
+                        Self::move_unit_selection(-8, selection)
                     }
-                    [0x1b, b'[', b'1', b';', b'5', b'B'] => {
-                        Self::move_unit_selection(0, 8, selection)
-                    }
-                    [0x1b, b'[', b'1', b';', b'5', b'C'] => {
-                        Self::move_unit_selection(8, 0, selection)
-                    }
-                    [0x1b, b'[', b'1', b';', b'5', b'D'] => {
-                        Self::move_unit_selection(-8, 0, selection)
-                    }
+                    [0x1b, b'[', b'1', b';', b'5', b'B'] => Self::move_unit_selection(8, selection),
                     _ => {}
                 },
             }
@@ -271,7 +262,7 @@ impl InputHandler {
         }
     }
 
-    fn move_unit_selection(dx: isize, dy: isize, selection: &mut UnitSelection) {
+    fn move_unit_selection(dy: isize, selection: &mut UnitSelection) {
         match dy {
             dy if dy > 0 => {
                 let new_unit_index =

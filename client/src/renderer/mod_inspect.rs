@@ -1,14 +1,14 @@
 use crate::{
-    ansi::{BG_BLACK, BG_WHITE, FG_BLACK},
+    ansi::{BG_BLACK, FG_BLACK},
     assets::{self, SELECTION_TERMCELL, TermCell, TileAsset},
-    client::GameState,
+    game_state::GameState,
     renderer::{
         r#const::MOD_INSPECT_COLS,
         map_data::MapData,
         module_utility::{add_frame, draw_text_in_row},
     },
-    shared_state::{UiMode, UiState},
     tui::Tui,
+    ui_state::{UiMode, UiState},
 };
 use common::{
     GameID,

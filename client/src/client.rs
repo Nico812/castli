@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    sync::Arc,
-};
+use std::sync::Arc;
 use tokio::{
     io::BufReader,
     net::{
@@ -16,62 +13,14 @@ use tokio::{
 };
 
 use crate::{
-    r#const::LOGS_CAPACITY,
+    game_state::GameState,
     tui::{self, Tui},
 };
 use common::{
-    C2S, C2S4L, GameID, L2S4C, S2C,
+    C2S, C2S4L, L2S4C, S2C,
     r#const::{IP_LOCAL, ONLINE},
-    exports::{game_object::GameObjE, player::PlayerE, tile::TileE},
     stream,
 };
-
-pub struct Logs {
-    pub content: VecDeque<String>,
-    max_len: usize,
-}
-
-impl Logs {
-    fn new(max_len: usize) -> Self {
-        Self {
-            content: VecDeque::with_capacity(max_len),
-            max_len,
-        }
-    }
-
-    fn add(&mut self, item: String) {
-        if self.content.len() >= self.max_len {
-            let _ = self.content.pop_front();
-        }
-        self.content.push_back(item);
-    }
-}
-
-pub struct GameState {
-    pub map: Vec<Vec<TileE>>,
-    pub player: PlayerE,
-    pub objs: HashMap<GameID, GameObjE>,
-    pub logs: Logs,
-}
-
-impl GameState {
-    pub fn new(
-        objs: HashMap<usize, GameObjE>,
-        player: Option<PlayerE>,
-        map: Vec<Vec<TileE>>,
-    ) -> Self {
-        Self {
-            map,
-            player: player.unwrap_or(PlayerE::undef()),
-            objs,
-            logs: Logs::new(LOGS_CAPACITY),
-        }
-    }
-
-    pub fn add_log(&mut self, message: impl Into<String>) {
-        self.logs.add(message.into());
-    }
-}
 
 pub struct ShutdownChannel {
     sender: Sender<bool>,
@@ -249,7 +198,7 @@ impl Client {
         Tui::run(t2c_tx, game_state, shutdown).await; // This blocks until the user quits the TUI.
 
         // Cleanup
-        communication_handle.abort();
+        let _ = communication_handle.await;
         println!("\nClient shutting down. Goodbye!");
     }
 }

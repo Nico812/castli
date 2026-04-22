@@ -1,16 +1,13 @@
 use crate::{
-    client::{GameState, ShutdownChannel},
-    input_handler::InputHandler,
-    renderer::renderer::Renderer,
-    shared_state::UiState,
+    client::ShutdownChannel, game_state::GameState, input_handler::InputHandler,
+    renderer::renderer::Renderer, ui_state::UiState,
 };
 use common::{
-    GameCoord, GameID, L2S4C, S2C,
-    exports::{game_object::GameObjE, player::PlayerE, tile::TileE, units::UnitGroupE},
+    GameCoord, GameID,
+    exports::{game_object::GameObjE, units::UnitGroupE},
 };
-use std::{collections::HashMap, io::Write, net::Shutdown, process::Command, sync::Arc};
+use std::{collections::HashMap, io::Write, process::Command, sync::Arc};
 use tokio::{
-    net::unix::pipe::Sender,
     sync::{Mutex, mpsc},
     time,
 };
@@ -45,8 +42,8 @@ impl Tui {
 
         // Render loop
         Self::render_loop(game_state, ui_state, shutdown).await;
-        // When input handling ends, abort other tasks and clean up.
-        input_handle.abort();
+        // When input handling ends, abort other tasks and clean uplet _ = .
+        let _ = input_handle.await;
         Self::clear_screen();
         Self::show_cursor();
         Self::reset_mode();
@@ -72,6 +69,9 @@ impl Tui {
 
         Self::clear_screen();
         loop {
+            if shutdown.is_shutdown() {
+                return;
+            }
             // Rendering fps
             // There's a problem that the frames can go really fast when there is delay
             // so i take only the frames with a reasonable high dt.

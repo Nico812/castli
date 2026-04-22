@@ -5,15 +5,15 @@ use crate::ansi;
 use crate::assets;
 use crate::assets::CURSOR_DOWN;
 use crate::assets::CURSOR_UP;
-use crate::client::GameState;
 use crate::coord::TermCoord;
+use crate::game_state::GameState;
 use crate::renderer::r#const::*;
 use crate::renderer::map_data::MapData;
 use crate::renderer::mod_inspect::ModInspect;
 use crate::renderer::mod_interact::ModInteract;
 use crate::renderer::{mod_central::ModCentral, mod_right::ModRight};
-use crate::shared_state::UiMode;
-use crate::shared_state::UiState;
+use crate::ui_state::UiMode;
+use crate::ui_state::UiState;
 
 pub struct Renderer {
     prev_frame: Vec<Vec<assets::TermCell>>,

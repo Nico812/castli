@@ -8,11 +8,11 @@ use common::{GameCoord, GameID};
 use super::module_utility;
 use crate::ansi::*;
 use crate::assets::*;
-use crate::client::GameState;
+use crate::game_state::GameState;
 use crate::renderer::map_data::MapData;
 use crate::renderer::module_utility::WithArt;
 use crate::renderer::renderer::Renderer;
-use crate::shared_state::UiState;
+use crate::ui_state::UiState;
 
 pub struct ModCentral {}
 
