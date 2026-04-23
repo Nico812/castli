@@ -1,12 +1,12 @@
 use common::GameID;
 use common::exports::game_object::GameObjE;
 use common::exports::units::UnitType;
-use crossterm::event::{self, Event, KeyCode, KeyModifiers};
+use crossterm::event::{Event, EventStream, KeyCode, KeyModifiers};
 use std::collections::HashMap;
 use std::ops::DerefMut;
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::Mutex;
+use tokio::time::{Duration, timeout};
 
 use crate::client::{ShutdownChannel, ShutdownReason};
 use crate::game_state::GameState;
@@ -15,6 +15,8 @@ use crate::tui::{T2C, Tui};
 use crate::ui_state::{Inspect, Interact, UiMode, UiState, UnitSelection};
 use common::GameCoord;
 use common::r#const::{MAP_COLS, MAP_ROWS};
+
+use futures::{StreamExt, future::FutureExt, select};
 
 pub struct InputHandler;
 
@@ -25,16 +27,15 @@ impl InputHandler {
         ui_state: Arc<Mutex<UiState>>,
         shutdown: ShutdownChannel,
     ) {
+        let mut reader = EventStream::new();
+
         loop {
             if shutdown.is_shutdown() {
                 return;
             }
 
-            let key = match event::poll(Duration::from_secs(1)) {
-                Ok(true) => match event::read() {
-                    Ok(Event::Key(key_event)) => key_event,
-                    _ => continue, // o gestisci come vuoi
-                },
+            let key = match timeout(Duration::from_secs(1), reader.next()).await {
+                Ok(Some(Ok(Event::Key(key_event)))) => key_event,
                 _ => continue,
             };
 
@@ -101,7 +102,7 @@ impl InputHandler {
                     }
                     (KeyCode::Enter, _) => {
                         if game_state.client.castle_id.is_none() {
-                            return;
+                            continue;
                         }
                         let looked_objs =
                             Tui::get_looked_objs(inspect.coord, &ui_state.zoom, &game_state.objs);
@@ -165,7 +166,7 @@ impl InputHandler {
                 },
                 UiMode::UnitSelection(ref mut selection) => {
                     let Some(ref castle) = game_state.castle else {
-                        return;
+                        continue;
                     };
 
                     match (key.code, key.modifiers) {
