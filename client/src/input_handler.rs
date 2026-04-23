@@ -2,7 +2,7 @@ use common::GameID;
 use common::exports::game_object::GameObjE;
 use common::exports::units::UnitType;
 use std::collections::HashMap;
-use std::ops::{DerefMut, RemAssign};
+use std::ops::{DerefMut, RangeToInclusive, RemAssign};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::io::{self, AsyncReadExt, stdin};
@@ -101,6 +101,9 @@ impl InputHandler {
                         Self::toggle_inspect(&mut ui_state);
                     }
                     [b'\r'] => {
+                        if game_state.client.castle_id.is_none() {
+                            continue;
+                        }
                         let looked_objs =
                             Tui::get_looked_objs(inspect.coord, &ui_state.zoom, &game_state.objs);
 
@@ -161,27 +164,51 @@ impl InputHandler {
                     }
                     _ => {}
                 },
-                UiMode::UnitSelection(ref mut selection) => match &buf[..n] {
-                    [b'\x1b'] => ui_state.mode = UiMode::Std,
-                    [b'a'] => {
-                        Self::handle_unit_deploy(&tx, selection);
-                        ui_state.mode = UiMode::Std;
+                UiMode::UnitSelection(ref mut selection) => {
+                    let Some(ref castle) = game_state.castle else {
+                        continue;
+                    };
+
+                    match &buf[..n] {
+                        [b'\x1b'] => ui_state.mode = UiMode::Std,
+                        [b'a'] => {
+                            Self::handle_unit_deploy(&tx, selection);
+                            ui_state.mode = UiMode::Std;
+                        }
+                        [b'\r'] => {
+                            if let Some(ref string) = selection.active_input.1 {
+                                let unit_index = selection.active_input.0.as_index();
+
+                                selection.selected_units.quantities[unit_index] = string
+                                    .parse()
+                                    .unwrap_or(0)
+                                    .min(castle.units.quantities[unit_index]);
+                                selection.active_input.1 = None;
+                            } else {
+                                selection.active_input.1 = Some(String::new());
+                            }
+                        }
+                        [b] if matches!(b, b'0'..=b'9') => {
+                            if let Some(ref mut string) = selection.active_input.1 {
+                                string.push(*b as char);
+                            }
+                        }
+                        [b'\x7f'] => {
+                            if let Some(ref mut string) = selection.active_input.1 {
+                                let _ = string.pop();
+                            }
+                        }
+                        [0x1b, b'[', b'A'] => Self::move_unit_selection(-1, selection),
+                        [0x1b, b'[', b'B'] => Self::move_unit_selection(1, selection),
+                        [0x1b, b'[', b'1', b';', b'5', b'A'] => {
+                            Self::move_unit_selection(-8, selection)
+                        }
+                        [0x1b, b'[', b'1', b';', b'5', b'B'] => {
+                            Self::move_unit_selection(8, selection)
+                        }
+                        _ => {}
                     }
-                    [b'\r'] => {
-                        selection.selected_units.quantities[selection.active_input.0.as_index()] =
-                            selection.active_input.1.parse().unwrap_or(0);
-                    }
-                    [b] if matches!(b, b'0'..=b'9') => {
-                        selection.active_input.1.push(*b as char);
-                    }
-                    [0x1b, b'[', b'A'] => Self::move_unit_selection(-1, selection),
-                    [0x1b, b'[', b'B'] => Self::move_unit_selection(1, selection),
-                    [0x1b, b'[', b'1', b';', b'5', b'A'] => {
-                        Self::move_unit_selection(-8, selection)
-                    }
-                    [0x1b, b'[', b'1', b';', b'5', b'B'] => Self::move_unit_selection(8, selection),
-                    _ => {}
-                },
+                }
             }
         }
     }
@@ -219,13 +246,13 @@ impl InputHandler {
     }
 
     fn handle_unit_deploy(tx: &tokio::sync::mpsc::UnboundedSender<T2C>, selection: &UnitSelection) {
-        match selection.interact.obj_id {
+        match selection.obj_id {
             Some(obj_id) => {
                 let _ = tx.send(T2C::AttackCastle(obj_id, selection.selected_units.clone()));
             }
             None => {
                 let _ = tx.send(T2C::SendUnits(
-                    selection.interact.coord,
+                    selection.coord,
                     selection.selected_units.clone(),
                 ));
             }
@@ -286,19 +313,19 @@ impl InputHandler {
     }
 
     fn move_unit_selection(dy: isize, selection: &mut UnitSelection) {
+        if selection.active_input.1.is_some() {
+            return;
+        }
+
         match dy {
             dy if dy > 0 => {
                 let new_unit_index =
                     (selection.active_input.0.as_index() + 1).min(UnitType::COUNT - 1);
                 selection.active_input.0 = UnitType::form_index(new_unit_index);
-                selection.active_input.1 =
-                    selection.selected_units.quantities[new_unit_index].to_string();
             }
             dy if dy < 0 => {
                 let new_unit_index = selection.active_input.0.as_index().saturating_sub(1);
                 selection.active_input.0 = UnitType::form_index(new_unit_index);
-                selection.active_input.1 =
-                    selection.selected_units.quantities[new_unit_index].to_string();
             }
             _ => {}
         }

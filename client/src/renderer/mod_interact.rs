@@ -47,7 +47,6 @@ impl ModInteract {
                     Some(GameObjE::Castle(castle)) => {
                         Self::push_row_with_text(&mut renderable, &castle.name);
                         Self::push_row_with_text(&mut renderable, "a: attack");
-                        Self::push_empty_row(&mut renderable);
                     }
                     Some(GameObjE::Structure(_)) => {}
                     Some(GameObjE::DeployedUnits(_)) => {}
@@ -74,31 +73,27 @@ impl ModInteract {
                 }
 
                 for (i, unit) in all_units.iter().enumerate() {
-                    if selection.active_input.0 == *unit {
-                        Self::push_row_with_text(
-                            &mut renderable,
-                            &format!(
-                                "{:?}: {}/{}",
-                                unit, selection.active_input.1, castle.units.quantities[i]
-                            ),
-                        );
+                    let is_active = selection.active_input.0 == *unit;
+                    let total = castle.units.quantities[i];
 
-                        renderable.last_mut().unwrap()
-                            [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1)] =
-                            SELECTION_TERMCELL;
-                    } else {
-                        Self::push_row_with_text(
-                            &mut renderable,
-                            &format!(
-                                "{:?}: {}/{}",
-                                unit,
-                                selection.selected_units.quantities[i],
-                                castle.units.quantities[i]
-                            ),
-                        );
+                    let display_quantities =
+                        if is_active && let Some(ref input_str) = selection.active_input.1 {
+                            format!("{}_/{}", input_str, total)
+                        } else {
+                            let selected = selection.selected_units.quantities[i];
+                            format!("{}/{}", selected, total)
+                        };
+
+                    let text = format!("{:?}: {}", unit, display_quantities);
+                    Self::push_row_with_text(&mut renderable, &text);
+
+                    if is_active {
+                        let marker_pos = Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1);
+                        renderable.last_mut().unwrap()[marker_pos] = SELECTION_TERMCELL;
                     }
                 }
-
+                Self::push_empty_row(&mut renderable);
+                Self::push_row_with_text(&mut renderable, "enter: select/set amount");
                 Self::push_row_with_text(&mut renderable, "a: confirm");
 
                 for _ in 0..Self::PADDING_VERT {

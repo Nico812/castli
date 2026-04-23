@@ -31,16 +31,18 @@ pub struct Interact {
 }
 
 pub struct UnitSelection {
-    pub interact: Interact,
-    pub active_input: (UnitType, String),
+    pub obj_id: Option<GameID>,
+    pub coord: GameCoord,
+    pub active_input: (UnitType, Option<String>),
     pub selected_units: UnitGroupE,
 }
 
 impl UnitSelection {
     pub fn from_interact(interact: Interact) -> Self {
         Self {
-            interact,
-            active_input: (UnitType::form_index(0), "0".to_string()),
+            obj_id: interact.obj_id,
+            coord: interact.coord,
+            active_input: (UnitType::form_index(0), None),
             selected_units: UnitGroupE {
                 quantities: [0, 0, 0],
             },
