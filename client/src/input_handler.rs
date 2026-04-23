@@ -1,7 +1,7 @@
 use common::GameID;
 use common::exports::game_object::GameObjE;
 use common::exports::units::UnitType;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::collections::HashMap;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -23,6 +23,10 @@ impl InputHandler {
         ui_state: &mut UiState,
         shutdown: ShutdownChannel,
     ) {
+        if key.kind != KeyEventKind::Press {
+            return;
+        }
+
         // Keys that work for any UI mode
         match key.code {
             KeyCode::Char('q') => {
