@@ -5,7 +5,7 @@ use crate::{
     renderer::{
         r#const::MOD_INSPECT_COLS,
         map_data::MapData,
-        module_utility::{add_frame, draw_text_in_row},
+        module_utility::{WithArt, add_frame, draw_text_in_row},
     },
     tui::Tui,
     ui_state::{UiMode, UiState},
@@ -40,7 +40,11 @@ impl ModInspect {
             let selected_id = inspect.selection;
 
             if !looked_objs.is_empty() {
-                let mut objs_comp = Self::create_objs_component(selected_id, looked_objs);
+                let mut objs_comp = Self::create_objs_component(
+                    &game_state.client.castle_id,
+                    selected_id,
+                    looked_objs,
+                );
                 renderable.append(&mut objs_comp);
             }
 
@@ -59,6 +63,7 @@ impl ModInspect {
     }
 
     fn create_objs_component(
+        owned_castle: &Option<GameID>,
         selected_id: Option<GameID>,
         objs: Vec<(GameID, &GameObjE)>,
     ) -> Vec<Vec<TermCell>> {
@@ -72,7 +77,7 @@ impl ModInspect {
             match obj {
                 GameObjE::Castle(castle) => {
                     let mut alive_str = "Alive".to_string();
-                    if !castle.is_alive {
+                    if !castle.alive {
                         alive_str = "Dead".to_string();
                     }
 
@@ -80,8 +85,11 @@ impl ModInspect {
                         &mut castles_component,
                         &format!(" : {}", castle.name),
                     );
+
+                    let owned = *owned_castle == Some(*id);
                     castles_component.last_mut().unwrap()[Self::PADDING_HORI] =
-                        assets::CASTLE_ART[0][0];
+                        castle.get_art(false, owned)[0][0];
+
                     if selected {
                         castles_component.last_mut().unwrap()
                             [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1)] =
@@ -110,8 +118,11 @@ impl ModInspect {
                         &mut units_component,
                         &format!(" : OwnerID({}), ID({})", units.owner_id, id),
                     );
+
+                    let owned = *owned_castle == Some(units.owner_id);
                     units_component.last_mut().unwrap()[Self::PADDING_HORI] =
-                        assets::DEPLOYED_UNITS_ART[0][0];
+                        units.get_art(false, owned)[0][0];
+
                     if selected {
                         units_component.last_mut().unwrap()
                             [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1)] =

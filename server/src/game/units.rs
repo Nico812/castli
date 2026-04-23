@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use common::{
-    GameCoord, GameID,
+    GameCoord, GameID, all_units, all_units_enum,
     exports::{
         game_object::DeployedUnitsE,
         units::{UnitGroupE, UnitType},
@@ -28,9 +28,8 @@ impl UnitGroup {
     //TODO: totally hange this when coding the dynamic battles.
     pub fn get_strength(&self) -> u32 {
         let mut str = 0;
-
-        for _ in self.iter_present() {
-            str += 1;
+        for (i, unit) in all_units_enum!().iter() {
+            str += self.quantities[*i] as u32 * unit.get_strength() as u32;
         }
         str
     }

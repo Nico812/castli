@@ -2,7 +2,7 @@ use common::GameID;
 use common::exports::game_object::GameObjE;
 use common::exports::units::UnitType;
 use std::collections::HashMap;
-use std::ops::DerefMut;
+use std::ops::{DerefMut, RemAssign};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::io::{self, AsyncReadExt, stdin};
@@ -68,7 +68,7 @@ impl InputHandler {
             match ui_state.mode {
                 UiMode::Std => match &buf[..n] {
                     [b'z'] => {
-                        Self::toggle_zoom(&mut ui_state.zoom);
+                        Self::toggle_zoom(&mut ui_state.zoom, None);
                     }
                     [b'l'] => {
                         Self::toggle_inspect(&mut ui_state);
@@ -95,9 +95,9 @@ impl InputHandler {
                     [b'\x1b'] => ui_state.mode = UiMode::Std,
                     [b'n'] => Self::handle_new_castle(&tx, inspect),
                     [b'z'] => {
-                        Self::toggle_zoom(&mut ui_state.zoom);
+                        Self::toggle_zoom(&mut ui_state.zoom, Some(inspect));
                     }
-                    [b'i'] => {
+                    [b'l'] => {
                         Self::toggle_inspect(&mut ui_state);
                     }
                     [b'\r'] => {
@@ -190,10 +190,16 @@ impl InputHandler {
         let _ = tx.send(T2C::NewCastle(inspect.coord));
     }
 
-    fn toggle_zoom(zoom: &mut Option<GameCoord>) {
+    fn toggle_zoom(zoom: &mut Option<GameCoord>, inspect: Option<&mut Inspect>) {
         *zoom = match zoom {
             None => Some(GameCoord { x: 0, y: 0 }),
-            Some(_) => None,
+            Some(_) => {
+                if let Some(inspect) = inspect {
+                    inspect.coord.y -= inspect.coord.y % Renderer::ZOOM_FACTOR;
+                    inspect.coord.x -= inspect.coord.x % Renderer::ZOOM_FACTOR;
+                }
+                None
+            }
         };
     }
 

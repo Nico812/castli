@@ -5,7 +5,10 @@ pub mod stream;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt};
 
-use crate::exports::{game_object::GameObjE, player::PlayerE, tile::TileE, units::UnitGroupE};
+use crate::exports::{
+    client::ClientE, game_object::GameObjE, owned_castle::OwnedCastleE, tile::TileE,
+    units::UnitGroupE,
+};
 
 /// Global IDs for game objects
 pub type GameID = usize;
@@ -38,7 +41,8 @@ pub enum S2C {
 pub enum L2S4C {
     Map(Vec<Vec<TileE>>),
     GameObjs(HashMap<GameID, GameObjE>),
-    Player(PlayerE),
+    Client(ClientE),
+    OwnedCastle(OwnedCastleE),
     CreateCastle,
     Log(String),
 }
@@ -58,5 +62,6 @@ pub enum C2S4L {
     SendUnits(GameCoord, UnitGroupE),
     GiveObjs,
     GiveMap,
-    GivePlayer,
+    GiveClient,
+    GiveOwnedCastle,
 }

@@ -52,7 +52,7 @@ impl LobbyManager {
             if lobby_txs[i].is_none() {
                 let (new_lobby_tx, new_lobby_rx) = mpsc::unbounded_channel();
 
-                let lobby = Lobby::new();
+                let lobby = Lobby::new(i);
                 tokio::spawn(lobby.run(new_lobby_rx));
 
                 lobby_txs[i] = Some(new_lobby_tx.clone());

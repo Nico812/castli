@@ -41,8 +41,17 @@ impl ModCentral {
         let mut cells = Self::tiles_to_cells(&tiles, &cut_wind);
 
         match zoom_coord {
-            Some(coord) => Self::add_objs_to_cells(&mut cells, &game_state.objs, coord),
-            None => Self::add_world_objs_to_cells(&mut cells, &game_state.objs),
+            Some(coord) => Self::add_objs_to_cells(
+                &game_state.client.castle_id,
+                &mut cells,
+                &game_state.objs,
+                coord,
+            ),
+            None => Self::add_world_objs_to_cells(
+                &game_state.client.castle_id,
+                &mut cells,
+                &game_state.objs,
+            ),
         }
 
         module_utility::add_frame(&frame_title, &mut cells);
@@ -84,11 +93,12 @@ impl ModCentral {
     }
 
     fn add_objs_to_cells(
+        castle_id: &Option<GameID>,
         cells: &mut Vec<Vec<TermCell>>,
         objs: &HashMap<GameID, GameObjE>,
         zoom_coord: GameCoord,
     ) {
-        for obj in objs.values() {
+        for (id, obj) in objs.iter() {
             if !Self::is_in_view(obj.get_pos(), zoom_coord, obj.get_art_size(false)) {
                 continue;
             };
@@ -97,22 +107,31 @@ impl ModCentral {
                 ((pos.y as isize - zoom_coord.y as isize) / 2),
                 (pos.x as isize - zoom_coord.x as isize),
             );
-            let art = obj.get_art(false);
+
+            let owned = match obj {
+                GameObjE::Castle(_) => *castle_id == Some(*id),
+                GameObjE::DeployedUnits(units) => Some(units.owner_id) == *castle_id,
+                _ => false,
+            };
+            let art = obj.get_art(false, owned);
             Self::add_art_to_cells(cells, art, rel_pos_in_quad);
         }
     }
 
     fn add_world_objs_to_cells(
+        castle_id: &Option<GameID>,
         cells: &mut Vec<Vec<TermCell>>,
         world_objs: &HashMap<GameID, GameObjE>,
     ) {
-        for obj in world_objs.values() {
+        for (id, obj) in world_objs.iter() {
             let pos = obj.get_pos();
             let rel_pos_in_quad: (isize, isize) = (
                 (pos.y / (Renderer::ZOOM_FACTOR * 2)) as isize,
                 (pos.x / Renderer::ZOOM_FACTOR) as isize,
             );
-            let art = obj.get_art(true);
+
+            let owned = *castle_id == Some(*id);
+            let art = obj.get_art(true, owned);
             Self::add_art_to_cells(cells, art, rel_pos_in_quad);
         }
     }

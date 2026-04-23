@@ -8,7 +8,8 @@ use crate::game_state::Logs;
 use crate::renderer::ModRightTab;
 use crate::renderer::module_utility::draw_text_in_row;
 use crate::ui_state::UiState;
-use common::exports::player::PlayerE;
+use common::exports::client::ClientE;
+use common::exports::owned_castle::OwnedCastleE;
 use common::exports::units::UnitType;
 
 pub struct ModRight {}
@@ -26,46 +27,89 @@ impl ModRight {
         ];
 
         match ui_state.tab {
-            ModRightTab::Castle => Self::add_castle_tab(&mut content, &game_state.player),
-            ModRightTab::Debug => Self::add_debug_tab(&mut content, frame_dt),
+            ModRightTab::Castle => Self::add_castle_tab(&mut content, &game_state.castle),
+            ModRightTab::Debug => Self::add_debug_tab(&mut content, frame_dt, &game_state.client),
             ModRightTab::Logs => Self::add_logs_tab(&mut content, &game_state.logs),
         };
         module_utility::add_frame("(y): me | (x): logs | (c): debug", &mut content);
         content
     }
 
-    fn add_debug_tab(content: &mut [Vec<TermCell>], frame_dt: u64) {
+    fn add_debug_tab(content: &mut [Vec<TermCell>], frame_dt: u64, client: &ClientE) {
+        let lobby_str = format!("Lobby {}", client.lobby);
+        module_utility::draw_text_in_row(
+            content,
+            &lobby_str,
+            Self::PADDING_VERT,
+            Self::PADDING_HORI,
+            Self::PADDING_HORI,
+        );
+        let id_str = format!("Castle ID: {:?}", client.castle_id);
+        module_utility::draw_text_in_row(
+            content,
+            &id_str,
+            Self::PADDING_VERT + 1,
+            Self::PADDING_HORI,
+            Self::PADDING_HORI,
+        );
         // Show FPS
         let dt_str = format!("Frame dt: {} ms", frame_dt);
         module_utility::draw_text_in_row(
             content,
             &dt_str,
-            1,
+            Self::PADDING_VERT + 2,
             Self::PADDING_HORI,
             Self::PADDING_HORI,
         );
     }
 
-    fn add_castle_tab(content: &mut [Vec<TermCell>], player: &PlayerE) {
-        let pos_str = format!("{}", player.pos);
-        let peasants_str = format!("Peasants: {}", player.peasants);
+    fn add_castle_tab(content: &mut [Vec<TermCell>], castle: &Option<OwnedCastleE>) {
+        let Some(castle) = castle else {
+            draw_text_in_row(
+                content,
+                "Welcome to Castli!",
+                Self::PADDING_VERT,
+                Self::PADDING_HORI,
+                Self::PADDING_HORI,
+            );
+            draw_text_in_row(
+                content,
+                "Press \"l\" to move",
+                Self::PADDING_VERT + 2,
+                Self::PADDING_HORI,
+                Self::PADDING_HORI,
+            );
+            draw_text_in_row(
+                content,
+                "Press \"a\" to create your castle :)",
+                Self::PADDING_VERT + 3,
+                Self::PADDING_HORI,
+                Self::PADDING_HORI,
+            );
+            return;
+        };
+
+        let alive_str = if castle.alive { "Alive :)" } else { "Dead x|" };
+        let pos_str = format!("{}", castle.pos);
+        let peasants_str = format!("Peasants: {}", castle.peasants);
         let knights_str = format!(
             "Knights: {}",
-            player.units.quantities[UnitType::Knight.as_index()]
+            castle.units.quantities[UnitType::Knight.as_index()]
         );
         let mages_str = format!(
             "Mages: {}",
-            player.units.quantities[UnitType::Mage.as_index()]
+            castle.units.quantities[UnitType::Mage.as_index()]
         );
         let dragons_str = format!(
             "Dragons: {}",
-            player.units.quantities[UnitType::Dragon.as_index()]
+            castle.units.quantities[UnitType::Dragon.as_index()]
         );
 
         let infos_to_print = [
-            (&player.name, Self::PADDING_VERT),
-            (&pos_str, Self::PADDING_VERT + 1),
-            (&peasants_str, Self::PADDING_VERT + 4),
+            (&castle.name, Self::PADDING_VERT),
+            (&alive_str.to_string(), Self::PADDING_VERT + 1),
+            (&pos_str, Self::PADDING_VERT + 2),
+            (&peasants_str, Self::PADDING_VERT + 5),
             (&knights_str, Self::PADDING_VERT + 6),
             (&mages_str, Self::PADDING_VERT + 7),
             (&dragons_str, Self::PADDING_VERT + 8),

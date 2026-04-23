@@ -105,21 +105,17 @@ pub const ERR: TileAsset = TileAsset {
 
 pub const MY_CASTLE_FG: &str = FG_WHITE;
 pub const MY_CASTLE_BG: &str = BG_BLACK;
-pub const MY_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', FG_WHITE, BG_BLACK)]];
-pub const MY_CASTLE_ART_WORLD: &[&[TermCell]] = &[&[TermCell::new('@', FG_WHITE, BG_BLACK)]];
-pub const MY_CASTLE_ART_SIZE: (usize, usize) = (MY_CASTLE_ART.len(), MY_CASTLE_ART[0].len());
-pub const MY_CASTLE_ART_WORLD_SIZE: (usize, usize) =
-    (MY_CASTLE_ART_WORLD.len(), MY_CASTLE_ART_WORLD[0].len());
-
+pub const MY_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', FG_GREEN, BG_BLACK)]];
 pub const CASTLE_FG: &str = FG_BLACK;
 pub const CASTLE_BG: &str = BG_WHITE;
 pub const CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', FG_WHITE, BG_BLACK)]];
-pub const CASTLE_ART_WORLD: &[&[TermCell]] = &[&[TermCell::new('@', FG_WHITE, BG_BLACK)]];
+pub const DEAD_CASTLE_FG: &str = FG_BLACK;
+pub const DEAD_CASTLE_BG: &str = BG_WHITE;
+pub const DEAD_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('X', FG_RED, BG_BLACK)]];
 pub const CASTLE_ART_SIZE: (usize, usize) = (CASTLE_ART.len(), CASTLE_ART[0].len());
-pub const CASTLE_ART_WORLD_SIZE: (usize, usize) =
-    (CASTLE_ART_WORLD.len(), CASTLE_ART_WORLD[0].len());
 
-pub const DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', FG_RED, BG_BLACK)]];
+pub const MY_DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', FG_GREEN, BG_BLACK)]];
+pub const DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', FG_WHITE, BG_BLACK)]];
 pub const DEPLOYED_UNITS_ART_SIZE: (usize, usize) =
     (DEPLOYED_UNITS_ART.len(), DEPLOYED_UNITS_ART[0].len());
 

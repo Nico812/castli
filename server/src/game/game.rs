@@ -9,7 +9,7 @@ use crate::game::{
 };
 use common::{
     GameCoord, GameID,
-    exports::{game_object::GameObjE, player::PlayerE, tile::TileE, units::UnitGroupE},
+    exports::{game_object::GameObjE, owned_castle::OwnedCastleE, tile::TileE, units::UnitGroupE},
 };
 use tokio::task::JoinHandle;
 
@@ -38,7 +38,7 @@ impl Game {
         }
     }
 
-    pub async fn step(&mut self) {
+    pub async fn step(&mut self) -> Vec<GameID> {
         let mut pending_units_ids = vec![];
 
         // Give computed paths to units
@@ -52,19 +52,20 @@ impl Game {
         for units_id in finished_path_tasks {
             if let Some(GameObj::DeployedUnits(mut depl_units)) =
                 self.incomp_game_objs.remove(&units_id)
-                && let Some(task) = self.pathfinding_tasks.remove(&units_id) {
-                    if let Ok(Some(path)) = task.await {
-                        depl_units.set_path(path);
-                        self.game_objs
-                            .insert(units_id, GameObj::DeployedUnits(depl_units));
-                    } else {
-                        if let Some(GameObj::Castle(owner)) =
-                            self.game_objs.get_mut(&depl_units.owner_id)
-                        {
-                            owner.units.saturating_add(&depl_units.unit_group);
-                        }
+                && let Some(task) = self.pathfinding_tasks.remove(&units_id)
+            {
+                if let Ok(Some(path)) = task.await {
+                    depl_units.set_path(path);
+                    self.game_objs
+                        .insert(units_id, GameObj::DeployedUnits(depl_units));
+                } else {
+                    if let Some(GameObj::Castle(owner)) =
+                        self.game_objs.get_mut(&depl_units.owner_id)
+                    {
+                        owner.units.saturating_add(&depl_units.unit_group);
                     }
                 }
+            }
         }
 
         // Solves units arrived at destination
@@ -77,9 +78,14 @@ impl Game {
                 }
             }
         }
-        if !pending_units_ids.is_empty() {
-            self.resolve_pending_units(&pending_units_ids);
-        }
+
+        let dead_castles = if !pending_units_ids.is_empty() {
+            self.resolve_pending_units(&pending_units_ids)
+        } else {
+            Vec::new()
+        };
+
+        dead_castles
     }
 
     pub fn attack_castle(
@@ -138,9 +144,10 @@ impl Game {
         true
     }
 
-    fn resolve_pending_units(&mut self, pending_units_ids: &Vec<GameID>) {
+    fn resolve_pending_units(&mut self, pending_units_ids: &Vec<GameID>) -> Vec<GameID> {
         let mut to_home = vec![];
         let mut to_attack = vec![];
+        let mut dead_castles = vec![];
 
         for units_id in pending_units_ids {
             println!("SOME UNITS ARRIVED AT DEST, id:{}", units_id);
@@ -171,17 +178,14 @@ impl Game {
             if let Some(GameObj::Castle(target)) = self.game_objs.get_mut(&target_id) {
                 let target_strength = target.units.get_strength();
                 if target_strength < strength {
-                    target.is_alive = false;
+                    target.alive = false;
+                    dead_castles.push(target_id);
+                    println!("Someone died :(");
+                    println!("Attack str: {} | Def str: {}", strength, target_strength);
                 }
             }
         }
-    }
-
-    pub fn is_alive(&self, castle_id: &GameID) -> bool {
-        if let Some(GameObj::Castle(castle)) = self.game_objs.get(castle_id) {
-            return castle.is_alive;
-        }
-        false
+        dead_castles
     }
 
     pub fn add_player_castle(&mut self, name: String, pos: GameCoord) -> Option<GameID> {
@@ -208,17 +212,17 @@ impl Game {
             .collect()
     }
 
-    pub fn export_player(&self, castle_id: GameID) -> PlayerE {
-        match self.game_objs.get(&castle_id) {
-            Some(GameObj::Castle(castle)) => PlayerE {
-                id: castle_id,
-                name: castle.name.clone(),
-                pos: castle.pos,
-                units: castle.units.export(),
-                peasants: castle.peasants,
-            },
-            _ => PlayerE::undef(),
-        }
+    pub fn export_owned_castle(&self, castle_id: GameID) -> Option<OwnedCastleE> {
+        self.game_objs
+            .iter()
+            .find(|obj| *obj.0 == castle_id)
+            .and_then(|obj| {
+                if let GameObj::Castle(castle) = obj.1 {
+                    Some(castle.export_owned())
+                } else {
+                    None
+                }
+            })
     }
 
     fn new_id(&mut self) -> GameID {

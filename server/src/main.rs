@@ -1,7 +1,7 @@
+mod client;
 mod r#const;
 mod game;
 mod lobby;
-mod player;
 mod server;
 
 use server::Server;

@@ -1,6 +1,6 @@
 use common::{
     GameCoord,
-    exports::{game_object::CastleE, units::UnitType},
+    exports::{game_object::CastleE, owned_castle::OwnedCastleE, units::UnitType},
 };
 
 use crate::game::units::UnitGroup;
@@ -10,23 +10,31 @@ pub struct Castle {
     pub pos: GameCoord,
     pub units: UnitGroup,
     pub peasants: u32,
-    pub is_alive: bool,
+    pub alive: bool,
 }
 
 impl Castle {
     pub fn new(name: String, pos: GameCoord) -> Self {
         let mut units = UnitGroup::new();
         let peasants = 2;
-        let is_alive = true;
+        let alive = true;
 
-        units.add_single_type(UnitType::Knight, 6);
+        if name == "gabbiano" {
+            units.add_single_type(UnitType::Knight, 1000);
+        } else if name == "pellicano" {
+            units.add_single_type(UnitType::Knight, 1000);
+            units.add_single_type(UnitType::Mage, 1000);
+            units.add_single_type(UnitType::Dragon, 1000);
+        } else {
+            units.add_single_type(UnitType::Knight, 5);
+        }
 
         Self {
             name,
             pos,
             units,
             peasants,
-            is_alive,
+            alive,
         }
     }
 
@@ -34,7 +42,17 @@ impl Castle {
         CastleE {
             name: self.name.clone(),
             pos: self.pos,
-            is_alive: self.is_alive,
+            alive: self.alive,
+        }
+    }
+
+    pub fn export_owned(&self) -> OwnedCastleE {
+        OwnedCastleE {
+            alive: self.alive,
+            name: self.name.clone(),
+            pos: self.pos,
+            units: self.units.export(),
+            peasants: self.peasants,
         }
     }
 }

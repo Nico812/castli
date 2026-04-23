@@ -1,40 +1,58 @@
+use common::exports::game_object::CastleE;
+use common::exports::game_object::DeployedUnitsE;
 use common::exports::game_object::GameObjE;
 
 use crate::ansi::*;
 use crate::assets::*;
 
 pub trait WithArt {
-    fn get_art(&self, world: bool) -> &[&[TermCell]];
+    fn get_art(&self, world: bool, owned: bool) -> &[&[TermCell]];
     fn get_art_size(&self, world: bool) -> (usize, usize);
 }
 
 impl WithArt for GameObjE {
-    fn get_art(&self, world: bool) -> &[&[TermCell]] {
+    fn get_art(&self, world: bool, owned: bool) -> &[&[TermCell]] {
         match self {
-            Self::Castle(_) => {
-                if world {
-                    CASTLE_ART_WORLD
-                } else {
-                    CASTLE_ART
-                }
-            }
-            Self::DeployedUnits(_) => DEPLOYED_UNITS_ART,
+            Self::Castle(castle) => castle.get_art(world, owned),
+            Self::DeployedUnits(units) => units.get_art(world, owned),
             _ => ERR_ART,
         }
     }
 
     fn get_art_size(&self, world: bool) -> (usize, usize) {
         match self {
-            Self::Castle(_) => {
-                if world {
-                    CASTLE_ART_WORLD_SIZE
-                } else {
-                    CASTLE_ART_SIZE
-                }
-            }
-            Self::DeployedUnits(_) => DEPLOYED_UNITS_ART_SIZE,
+            Self::Castle(castle) => castle.get_art_size(world),
+            Self::DeployedUnits(units) => units.get_art_size(world),
             _ => ERR_ART_SIZE,
         }
+    }
+}
+
+impl WithArt for CastleE {
+    fn get_art(&self, _world: bool, owned: bool) -> &[&[TermCell]] {
+        if !self.alive {
+            DEAD_CASTLE_ART
+        } else if owned {
+            MY_CASTLE_ART
+        } else {
+            CASTLE_ART
+        }
+    }
+    fn get_art_size(&self, _world: bool) -> (usize, usize) {
+        CASTLE_ART_SIZE
+    }
+}
+
+impl WithArt for DeployedUnitsE {
+    fn get_art(&self, _world: bool, owned: bool) -> &[&[TermCell]] {
+        if owned {
+            MY_DEPLOYED_UNITS_ART
+        } else {
+            DEPLOYED_UNITS_ART
+        }
+    }
+    fn get_art_size(&self, _world: bool) -> (usize, usize) {
+        DEPLOYED_UNITS_ART_SIZE
     }
 }
 

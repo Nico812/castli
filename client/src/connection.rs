@@ -59,11 +59,17 @@ impl Connection {
                         S2C::L2S4C(L2S4C::GameObjs(objs)) => {
                             game_state.objs = objs;
                         }
-                        S2C::L2S4C(L2S4C::Player(player)) => {
-                            game_state.player = player;
+                        S2C::L2S4C(L2S4C::Client(client)) => {
+                            game_state.client = client;
+                        }
+                        S2C::L2S4C(L2S4C::OwnedCastle(castle)) => {
+                            game_state.castle = Some(castle);
                         }
                         S2C::L2S4C(L2S4C::Log(msg)) => {
                             game_state.add_log(msg);
+                        }
+                        S2C::L2S4C(L2S4C::CreateCastle) => {
+                            game_state.castle = None;
                         }
                         S2C::ServerShutdown => {
                             shutdown.shutdown(ShutdownReason::ServerShutdown);
@@ -80,7 +86,12 @@ impl Connection {
 
                     let _ = send_msg_to_server(
                         &mut self.writer,
-                        &C2S::C2S4L(C2S4L::GivePlayer),
+                        &C2S::C2S4L(C2S4L::GiveClient),
+                    ).await;
+
+                    let _ = send_msg_to_server(
+                        &mut self.writer,
+                        &C2S::C2S4L(C2S4L::GiveOwnedCastle),
                     ).await;
                 }
             }
@@ -93,24 +104,41 @@ impl Connection {
         let _ = send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GiveMap)).await;
         let map = match get_msg_from_server(&mut self.reader).await {
             Ok(S2C::L2S4C(L2S4C::Map(map))) => map,
-            _ => return Err(()),
+            _ => {
+                println!("Failed to receive map");
+                return Err(());
+            }
         };
 
         // Request game objects
         let _ = send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GiveObjs)).await;
         let objs = match get_msg_from_server(&mut self.reader).await {
             Ok(S2C::L2S4C(L2S4C::GameObjs(objs))) => objs,
-            _ => return Err(()),
+            _ => {
+                println!("Failed to receive game objs");
+                return Err(());
+            }
         };
 
-        // Request player data (this is a placeholder until the castle is built)
-        let _ = send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GivePlayer)).await;
-        let player = match get_msg_from_server(&mut self.reader).await {
-            Ok(S2C::L2S4C(L2S4C::Player(player))) => Some(player),
+        let _ = send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GiveClient)).await;
+        let client = match get_msg_from_server(&mut self.reader).await {
+            Ok(S2C::L2S4C(L2S4C::Client(client))) => client,
+            _ => {
+                println!("Failed to receive client");
+                return Err(());
+            }
+        };
+
+        let _ = send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GiveOwnedCastle)).await;
+        let castle = match get_msg_from_server(&mut self.reader).await {
+            Ok(S2C::L2S4C(L2S4C::OwnedCastle(castle))) => Some(castle),
             Ok(S2C::L2S4C(L2S4C::CreateCastle)) => None,
-            _ => return Err(()),
+            _ => {
+                println!("Failed to receive castle");
+                return Err(());
+            }
         };
 
-        Ok(GameState::new(objs, player, map))
+        Ok(GameState::new(objs, map, client, castle))
     }
 }

@@ -22,7 +22,7 @@ impl GameObjE {
 pub struct CastleE {
     pub name: String,
     pub pos: GameCoord,
-    pub is_alive: bool,
+    pub alive: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

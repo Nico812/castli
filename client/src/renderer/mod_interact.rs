@@ -27,6 +27,10 @@ impl ModInteract {
         ui_state: &UiState,
         map_data: &MapData,
     ) -> Option<Vec<Vec<TermCell>>> {
+        let Some(ref castle) = game_state.castle else {
+            return None;
+        };
+
         match ui_state.mode {
             UiMode::Interact(ref interact) => {
                 let tile = map_data.get_tile(interact.coord);
@@ -75,9 +79,7 @@ impl ModInteract {
                             &mut renderable,
                             &format!(
                                 "{:?}: {}/{}",
-                                unit,
-                                selection.active_input.1,
-                                game_state.player.units.quantities[i]
+                                unit, selection.active_input.1, castle.units.quantities[i]
                             ),
                         );
 
@@ -91,7 +93,7 @@ impl ModInteract {
                                 "{:?}: {}/{}",
                                 unit,
                                 selection.selected_units.quantities[i],
-                                game_state.player.units.quantities[i]
+                                castle.units.quantities[i]
                             ),
                         );
                     }
