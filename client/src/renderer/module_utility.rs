@@ -60,12 +60,12 @@ pub fn add_frame(title: &str, renderable: &mut Vec<Vec<TermCell>>) {
     let renderable_rows = renderable.len();
     let renderable_cols = renderable[0].len();
 
-    let bot_row = vec![TermCell::new('-', FG_WHITE, BG_BLACK); renderable_cols];
+    let bot_row = vec![TermCell::new('-', WHITE, BLACK); renderable_cols];
 
     let mut top_row = bot_row.clone();
     for (pos, char) in title.chars().enumerate() {
         if pos + 2 < renderable_cols {
-            top_row[pos + 2] = TermCell::new(char, FG_WHITE, BG_BLACK);
+            top_row[pos + 2] = TermCell::new(char, WHITE, BLACK);
         }
     }
 
@@ -74,9 +74,9 @@ pub fn add_frame(title: &str, renderable: &mut Vec<Vec<TermCell>>) {
 
     for (pos, rend_col) in renderable.iter_mut().enumerate() {
         let cell = if pos == 0 || pos == renderable_rows + 1 {
-            TermCell::new('+', FG_WHITE, BG_BLACK)
+            TermCell::new('+', WHITE, BLACK)
         } else {
-            TermCell::new('|', FG_WHITE, BG_BLACK)
+            TermCell::new('|', WHITE, BLACK)
         };
         rend_col.insert(0, cell);
         rend_col.push(cell);
@@ -100,8 +100,8 @@ pub fn draw_text_in_row(
         if i < space_available {
             content[row][pad_left + i] = TermCell {
                 ch,
-                fg: FG_WHITE,
-                bg: BG_BLACK,
+                fg: WHITE,
+                bg: BLACK,
             }
         }
     }

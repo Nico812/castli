@@ -21,10 +21,8 @@ impl ModRight {
     const CONTENT_COLS: usize = MOD_RIGHT_COLS.saturating_sub(2);
 
     pub fn update(frame_dt: u64, game_state: &GameState, ui_state: &UiState) -> Vec<Vec<TermCell>> {
-        let mut content = vec![
-            vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
-            Self::CONTENT_ROWS
-        ];
+        let mut content =
+            vec![vec![TermCell::new(' ', BLACK, BLACK); Self::CONTENT_COLS]; Self::CONTENT_ROWS];
 
         match ui_state.tab {
             ModRightTab::Castle => Self::add_castle_tab(&mut content, &game_state.castle),
@@ -177,18 +175,18 @@ impl ModRight {
 
         // Start with top padding
         for _ in 0..Self::PADDING_VERT {
-            let empty_row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
+            let empty_row = vec![TermCell::new(' ', BLACK, BLACK); Self::CONTENT_COLS];
             chatbox.push_back(empty_row);
         }
 
         // Add the content rows (oldest to newest from top to bottom)
         for line in recent_lines {
-            let mut row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
+            let mut row = vec![TermCell::new(' ', BLACK, BLACK); Self::CONTENT_COLS];
 
             for (i, ch) in line.chars().enumerate() {
                 let col_pos = Self::PADDING_HORI + i;
                 if col_pos < Self::CONTENT_COLS - Self::PADDING_HORI {
-                    row[col_pos] = TermCell::new(ch, FG_WHITE, BG_BLACK);
+                    row[col_pos] = TermCell::new(ch, WHITE, BLACK);
                 }
             }
             chatbox.push_back(row);
@@ -196,7 +194,7 @@ impl ModRight {
 
         // Fill remaining space with bottom padding
         while chatbox.len() < Self::CONTENT_ROWS {
-            let empty_row = vec![TermCell::new(' ', FG_BLACK, BG_BLACK); Self::CONTENT_COLS];
+            let empty_row = vec![TermCell::new(' ', BLACK, BLACK); Self::CONTENT_COLS];
             chatbox.push_back(empty_row);
         }
 

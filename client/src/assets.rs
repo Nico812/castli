@@ -6,42 +6,43 @@
 #![allow(dead_code)]
 
 use common::exports::tile::TileE;
+use crossterm::style::{Color, StyledContent, Stylize};
 
 use crate::ansi::*;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct TermCell {
     pub ch: char,
-    pub fg: &'static str,
-    pub bg: &'static str,
+    pub fg: Color,
+    pub bg: Color,
 }
 
 impl TermCell {
-    pub const fn new(ch: char, fg: &'static str, bg: &'static str) -> Self {
+    pub const fn new(ch: char, fg: Color, bg: Color) -> Self {
         Self { ch, fg, bg }
     }
 
-    pub fn as_string(&self) -> String {
-        format!("{}{}{}", self.fg, self.bg, self.ch)
+    pub fn printable(&self) -> StyledContent<char> {
+        self.ch.with(self.fg).on(self.bg)
     }
 }
 
 // Misc
+pub const BLOCK: char = '▀';
 
-pub const CURSOR_UP: TermCell = TermCell::new('\u{21B1}', FG_WHITE, BG_BLACK);
-pub const CURSOR_DOWN: TermCell = TermCell::new('\u{21B3}', FG_WHITE, BG_BLACK);
+pub const CURSOR_UP: TermCell = TermCell::new('\u{21B1}', WHITE, BLACK);
+pub const CURSOR_DOWN: TermCell = TermCell::new('\u{21B3}', WHITE, BLACK);
 
-pub const SELECTION_TERMCELL: TermCell = TermCell::new('<', FG_BLACK, BG_WHITE);
+pub const SELECTION_TERMCELL: TermCell = TermCell::new('<', BLACK, WHITE);
 
-pub const BKG_FG: &str = FG_BLACK;
-pub const BKG_BG: &str = BG_BLACK;
-pub const BKG_EL: TermCell = TermCell::new('.', FG_RED, BG_BLACK);
+pub const BKG_FG: Color = BLACK;
+pub const BKG_BG: Color = BLACK;
+pub const BKG_EL: TermCell = TermCell::new('.', RED, BLACK);
 
 // Tiles
-
 pub struct TileAsset {
-    pub fg: &'static str,
-    pub bg: &'static str,
+    pub fg: Color,
+    pub bg: Color,
     pub std: TermCell,
     pub wind: TermCell,
 }
@@ -60,62 +61,62 @@ impl TileAsset {
 }
 
 pub const GRASS: TileAsset = TileAsset {
-    fg: FG_GREEN,
-    bg: BG_GREEN,
-    std: TermCell::new(' ', FG_GREEN_BRIGHT, BG_GREEN),
-    wind: TermCell::new('\"', FG_GREEN_BRIGHT, BG_GREEN),
+    fg: GREEN,
+    bg: GREEN,
+    std: TermCell::new(' ', GREEN_BRIGHT, GREEN),
+    wind: TermCell::new('\"', GREEN_BRIGHT, GREEN),
 };
 
 pub const WATER: TileAsset = TileAsset {
-    fg: FG_BLUE,
-    bg: BG_BLUE_BRIGHT,
-    std: TermCell::new(' ', FG_BLUE_BRIGHT, BG_BLUE),
-    wind: TermCell::new('~', FG_BLUE_BRIGHT, BG_BLUE),
+    fg: BLUE,
+    bg: BLUE_BRIGHT,
+    std: TermCell::new(' ', BLUE_BRIGHT, BLUE),
+    wind: TermCell::new('~', BLUE_BRIGHT, BLUE),
 };
 
 pub const WOODS: TileAsset = TileAsset {
-    fg: FG_GREEN_DARK,
-    bg: BG_GREEN_DARK,
-    std: TermCell::new(' ', FG_GREEN, BG_GREEN_DARK),
-    wind: TermCell::new('"', FG_GREEN_DARKER, BG_GREEN_DARK),
+    fg: GREEN_DARK,
+    bg: GREEN_DARK,
+    std: TermCell::new(' ', GREEN, GREEN_DARK),
+    wind: TermCell::new('"', GREEN_DARKER, GREEN_DARK),
 };
 
 pub const MOUNTAIN: TileAsset = TileAsset {
-    fg: FG_GREY_BRIGHT,
-    bg: BG_GREY,
-    std: TermCell::new('^', FG_GREY, BG_GREY_GREENISH),
-    wind: TermCell::new('^', FG_WHITE, BG_GREY_GREENISH),
+    fg: GREY_BRIGHT,
+    bg: GREY,
+    std: TermCell::new('^', GREY, GREY_GREENISH),
+    wind: TermCell::new('^', WHITE, GREY_GREENISH),
 };
 
 pub const HIGH_MOUNTAIN: TileAsset = TileAsset {
-    fg: FG_WHITE,
-    bg: BG_WHITE,
-    std: TermCell::new(' ', FG_WHITE, BG_WHITE),
-    wind: TermCell::new('^', FG_BLUE_BRIGHT, BG_WHITE),
+    fg: WHITE,
+    bg: WHITE,
+    std: TermCell::new(' ', WHITE, WHITE),
+    wind: TermCell::new('^', BLUE_BRIGHT, WHITE),
 };
 
 pub const ERR: TileAsset = TileAsset {
-    fg: FG_MAGENTA,
-    bg: BG_MAGENTA,
-    std: TermCell::new('?', FG_WHITE, BG_MAGENTA),
-    wind: TermCell::new('!', FG_WHITE, BG_MAGENTA),
+    fg: MAGENTA,
+    bg: MAGENTA,
+    std: TermCell::new('?', WHITE, MAGENTA),
+    wind: TermCell::new('!', WHITE, MAGENTA),
 };
 
 // Game elements
 
-pub const MY_CASTLE_FG: &str = FG_WHITE;
-pub const MY_CASTLE_BG: &str = BG_BLACK;
-pub const MY_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', FG_GREEN, BG_BLACK)]];
-pub const CASTLE_FG: &str = FG_BLACK;
-pub const CASTLE_BG: &str = BG_WHITE;
-pub const CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', FG_WHITE, BG_BLACK)]];
-pub const DEAD_CASTLE_FG: &str = FG_BLACK;
-pub const DEAD_CASTLE_BG: &str = BG_WHITE;
-pub const DEAD_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('X', FG_RED, BG_BLACK)]];
+pub const MY_CASTLE_FG: Color = WHITE;
+pub const MY_CASTLE_BG: Color = BLACK;
+pub const MY_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', GREEN, BLACK)]];
+pub const CASTLE_FG: Color = BLACK;
+pub const CASTLE_BG: Color = WHITE;
+pub const CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', WHITE, BLACK)]];
+pub const DEAD_CASTLE_FG: Color = BLACK;
+pub const DEAD_CASTLE_BG: Color = WHITE;
+pub const DEAD_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('X', RED, BLACK)]];
 pub const CASTLE_ART_SIZE: (usize, usize) = (CASTLE_ART.len(), CASTLE_ART[0].len());
 
-pub const MY_DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', FG_GREEN, BG_BLACK)]];
-pub const DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', FG_WHITE, BG_BLACK)]];
+pub const MY_DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', GREEN, BLACK)]];
+pub const DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', WHITE, BLACK)]];
 pub const DEPLOYED_UNITS_ART_SIZE: (usize, usize) =
     (DEPLOYED_UNITS_ART.len(), DEPLOYED_UNITS_ART[0].len());
 
@@ -168,6 +169,6 @@ pub const ERR_ART_SIZE: (usize, usize) = (ERR_ART.len(), ERR_ART[0].len());
 // ];
 //
 // pub const CASTLE_ART_WORLD: &[&[TermCell]] = &[&[
-//     TermCell::new('C', FG_YELLOW, BG_BLACK),
-//     TermCell::new('C', FG_YELLOW, BG_BLACK),
+//     TermCell::new('C', YELLOW, BLACK),
+//     TermCell::new('C', YELLOW, BLACK),
 // ]];

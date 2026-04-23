@@ -1,13 +1,12 @@
 use common::GameID;
 use common::exports::game_object::GameObjE;
 use common::exports::units::UnitType;
+use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use std::collections::HashMap;
-use std::ops::{DerefMut, RangeToInclusive, RemAssign};
+use std::ops::DerefMut;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::io::{self, AsyncReadExt, stdin};
 use tokio::sync::Mutex;
-use tokio::time::{interval, timeout};
 
 use crate::client::{ShutdownChannel, ShutdownReason};
 use crate::game_state::GameState;
@@ -26,24 +25,18 @@ impl InputHandler {
         ui_state: Arc<Mutex<UiState>>,
         shutdown: ShutdownChannel,
     ) {
-        let mut reloop_tick = interval(Duration::from_secs(1));
-
-        let mut stdin = stdin();
-        let mut buf = [0u8; 8];
-
         loop {
             if shutdown.is_shutdown() {
                 return;
             }
 
-            let n = tokio::select! {
-                n = stdin.read(&mut buf) => n.unwrap_or(0),
-                _ = reloop_tick.tick() => 0,
+            let key = match event::poll(Duration::from_secs(1)) {
+                Ok(true) => match event::read() {
+                    Ok(Event::Key(key_event)) => key_event,
+                    _ => continue, // o gestisci come vuoi
+                },
+                _ => continue,
             };
-
-            if n == 0 {
-                continue;
-            }
 
             // Convert the MutexGuard into &mut SharedState.
             // This helps the borrow checker perform field-level borrowing more precisely
@@ -54,55 +47,61 @@ impl InputHandler {
             let game_state = game_guard.deref_mut();
 
             // Keys that work for any UI mode
-            match &buf[..n] {
-                [b'q'] => {
+            match key.code {
+                KeyCode::Char('q') => {
                     shutdown.shutdown(ShutdownReason::Key);
                 }
-                [b'y'] => ui_state.tab = crate::renderer::ModRightTab::Castle,
-                [b'x'] => ui_state.tab = crate::renderer::ModRightTab::Logs,
-                [b'c'] => ui_state.tab = crate::renderer::ModRightTab::Debug,
+                KeyCode::Char('y') => ui_state.tab = crate::renderer::ModRightTab::Castle,
+                KeyCode::Char('x') => ui_state.tab = crate::renderer::ModRightTab::Logs,
+                KeyCode::Char('c') => ui_state.tab = crate::renderer::ModRightTab::Debug,
                 _ => {}
             }
 
             // Custom keybinds for each UI mode
             match ui_state.mode {
-                UiMode::Std => match &buf[..n] {
-                    [b'z'] => {
+                UiMode::Std => match (key.code, key.modifiers) {
+                    (KeyCode::Char('z'), _) => {
                         Self::toggle_zoom(&mut ui_state.zoom, None);
                     }
-                    [b'l'] => {
+                    (KeyCode::Char('l'), _) => {
                         Self::toggle_inspect(&mut ui_state);
                     }
-                    [0x1b, b'[', b'A'] => Self::move_zoom(0, -1, &mut ui_state.zoom),
-                    [0x1b, b'[', b'B'] => Self::move_zoom(0, 1, &mut ui_state.zoom),
-                    [0x1b, b'[', b'C'] => Self::move_zoom(1, 0, &mut ui_state.zoom),
-                    [0x1b, b'[', b'D'] => Self::move_zoom(-1, 0, &mut ui_state.zoom),
-                    [0x1b, b'[', b'1', b';', b'5', b'A'] => {
+                    (KeyCode::Up, KeyModifiers::NONE) => Self::move_zoom(0, -1, &mut ui_state.zoom),
+                    (KeyCode::Down, KeyModifiers::NONE) => {
+                        Self::move_zoom(0, 1, &mut ui_state.zoom)
+                    }
+                    (KeyCode::Right, KeyModifiers::NONE) => {
+                        Self::move_zoom(1, 0, &mut ui_state.zoom)
+                    }
+                    (KeyCode::Left, KeyModifiers::NONE) => {
+                        Self::move_zoom(-1, 0, &mut ui_state.zoom)
+                    }
+                    (KeyCode::Up, KeyModifiers::CONTROL) => {
                         Self::move_zoom(0, -8, &mut ui_state.zoom)
                     }
-                    [0x1b, b'[', b'1', b';', b'5', b'B'] => {
+                    (KeyCode::Down, KeyModifiers::CONTROL) => {
                         Self::move_zoom(0, 8, &mut ui_state.zoom)
                     }
-                    [0x1b, b'[', b'1', b';', b'5', b'C'] => {
+                    (KeyCode::Right, KeyModifiers::CONTROL) => {
                         Self::move_zoom(8, 0, &mut ui_state.zoom)
                     }
-                    [0x1b, b'[', b'1', b';', b'5', b'D'] => {
+                    (KeyCode::Left, KeyModifiers::CONTROL) => {
                         Self::move_zoom(-8, 0, &mut ui_state.zoom)
                     }
                     _ => {}
                 },
-                UiMode::Inspect(ref mut inspect) => match &buf[..n] {
-                    [b'\x1b'] => ui_state.mode = UiMode::Std,
-                    [b'n'] => Self::handle_new_castle(&tx, inspect),
-                    [b'z'] => {
+                UiMode::Inspect(ref mut inspect) => match (key.code, key.modifiers) {
+                    (KeyCode::Esc, _) => ui_state.mode = UiMode::Std,
+                    (KeyCode::Char('n'), _) => Self::handle_new_castle(&tx, inspect),
+                    (KeyCode::Char('z'), _) => {
                         Self::toggle_zoom(&mut ui_state.zoom, Some(inspect));
                     }
-                    [b'l'] => {
+                    (KeyCode::Char('l'), _) => {
                         Self::toggle_inspect(&mut ui_state);
                     }
-                    [b'\r'] => {
+                    (KeyCode::Enter, _) => {
                         if game_state.client.castle_id.is_none() {
-                            continue;
+                            return;
                         }
                         let looked_objs =
                             Tui::get_looked_objs(inspect.coord, &ui_state.zoom, &game_state.objs);
@@ -130,35 +129,35 @@ impl InputHandler {
                             ui_state.mode = UiMode::Interact(Interact { obj_id, coord });
                         }
                     }
-                    [0x1b, b'[', b'A'] => {
+                    (KeyCode::Up, KeyModifiers::NONE) => {
                         Self::move_inspect(0, -1, inspect, &ui_state.zoom, &game_state.objs)
                     }
-                    [0x1b, b'[', b'B'] => {
+                    (KeyCode::Down, KeyModifiers::NONE) => {
                         Self::move_inspect(0, 1, inspect, &ui_state.zoom, &game_state.objs)
                     }
-                    [0x1b, b'[', b'C'] => {
+                    (KeyCode::Right, KeyModifiers::NONE) => {
                         Self::move_inspect(1, 0, inspect, &ui_state.zoom, &game_state.objs)
                     }
-                    [0x1b, b'[', b'D'] => {
+                    (KeyCode::Left, KeyModifiers::NONE) => {
                         Self::move_inspect(-1, 0, inspect, &ui_state.zoom, &game_state.objs)
                     }
-                    [0x1b, b'[', b'1', b';', b'5', b'A'] => {
+                    (KeyCode::Up, KeyModifiers::CONTROL) => {
                         Self::move_inspect(0, -8, inspect, &ui_state.zoom, &game_state.objs)
                     }
-                    [0x1b, b'[', b'1', b';', b'5', b'B'] => {
+                    (KeyCode::Down, KeyModifiers::CONTROL) => {
                         Self::move_inspect(0, 8, inspect, &ui_state.zoom, &game_state.objs)
                     }
-                    [0x1b, b'[', b'1', b';', b'5', b'C'] => {
+                    (KeyCode::Right, KeyModifiers::CONTROL) => {
                         Self::move_inspect(8, 0, inspect, &ui_state.zoom, &game_state.objs)
                     }
-                    [0x1b, b'[', b'1', b';', b'5', b'D'] => {
+                    (KeyCode::Left, KeyModifiers::CONTROL) => {
                         Self::move_inspect(-8, 0, inspect, &ui_state.zoom, &game_state.objs)
                     }
                     _ => {}
                 },
-                UiMode::Interact(ref mut interact) => match &buf[..n] {
-                    [b'\x1b'] => ui_state.mode = UiMode::Std,
-                    [b'a'] => {
+                UiMode::Interact(ref mut interact) => match (key.code, key.modifiers) {
+                    (KeyCode::Esc, _) => ui_state.mode = UiMode::Std,
+                    (KeyCode::Char('a'), _) => {
                         ui_state.mode =
                             UiMode::UnitSelection(UnitSelection::from_interact(interact.clone()))
                     }
@@ -166,16 +165,16 @@ impl InputHandler {
                 },
                 UiMode::UnitSelection(ref mut selection) => {
                     let Some(ref castle) = game_state.castle else {
-                        continue;
+                        return;
                     };
 
-                    match &buf[..n] {
-                        [b'\x1b'] => ui_state.mode = UiMode::Std,
-                        [b'a'] => {
+                    match (key.code, key.modifiers) {
+                        (KeyCode::Esc, _) => ui_state.mode = UiMode::Std,
+                        (KeyCode::Char('a'), _) => {
                             Self::handle_unit_deploy(&tx, selection);
                             ui_state.mode = UiMode::Std;
                         }
-                        [b'\r'] => {
+                        (KeyCode::Enter, _) => {
                             if let Some(ref string) = selection.active_input.1 {
                                 let unit_index = selection.active_input.0.as_index();
 
@@ -188,22 +187,26 @@ impl InputHandler {
                                 selection.active_input.1 = Some(String::new());
                             }
                         }
-                        [b] if matches!(b, b'0'..=b'9') => {
+                        (KeyCode::Char(c), _) if c.is_ascii_digit() => {
                             if let Some(ref mut string) = selection.active_input.1 {
-                                string.push(*b as char);
+                                string.push(c);
                             }
                         }
-                        [b'\x7f'] => {
+                        (KeyCode::Backspace, _) => {
                             if let Some(ref mut string) = selection.active_input.1 {
                                 let _ = string.pop();
                             }
                         }
-                        [0x1b, b'[', b'A'] => Self::move_unit_selection(-1, selection),
-                        [0x1b, b'[', b'B'] => Self::move_unit_selection(1, selection),
-                        [0x1b, b'[', b'1', b';', b'5', b'A'] => {
+                        (KeyCode::Up, KeyModifiers::NONE) => {
+                            Self::move_unit_selection(-1, selection)
+                        }
+                        (KeyCode::Down, KeyModifiers::NONE) => {
+                            Self::move_unit_selection(1, selection)
+                        }
+                        (KeyCode::Up, KeyModifiers::CONTROL) => {
                             Self::move_unit_selection(-8, selection)
                         }
-                        [0x1b, b'[', b'1', b';', b'5', b'B'] => {
+                        (KeyCode::Down, KeyModifiers::CONTROL) => {
                             Self::move_unit_selection(8, selection)
                         }
                         _ => {}

@@ -6,7 +6,6 @@ use common::exports::tile::TileE;
 use common::{GameCoord, GameID};
 
 use super::module_utility;
-use crate::ansi::*;
 use crate::assets::*;
 use crate::game_state::GameState;
 use crate::renderer::map_data::MapData;
@@ -126,8 +125,8 @@ impl ModCentral {
         for (id, obj) in world_objs.iter() {
             let pos = obj.get_pos();
             let rel_pos_in_quad: (isize, isize) = (
-                (pos.y / (Renderer::ZOOM_FACTOR * 2)) as isize,
-                (pos.x / Renderer::ZOOM_FACTOR) as isize,
+                (pos.y / (Renderer::ZOOM_FACTOR as usize * 2)) as isize,
+                (pos.x / Renderer::ZOOM_FACTOR as usize) as isize,
             );
 
             let owned = *castle_id == Some(*id);

@@ -1,7 +1,12 @@
-use common::exports::tile::TileE;
-use terminal_size::{Height, Width, terminal_size};
+use std::io::Stdout;
+use std::io::Write;
 
-use crate::ansi;
+use common::exports::tile::TileE;
+use crossterm::cursor;
+use crossterm::queue;
+use crossterm::style::PrintStyledContent;
+use crossterm::terminal;
+
 use crate::assets;
 use crate::assets::CURSOR_DOWN;
 use crate::assets::CURSOR_UP;
@@ -28,7 +33,7 @@ impl Renderer {
     pub const ZOOM_FACTOR: usize = 8;
 
     pub fn new(map_tiles: Vec<Vec<TileE>>) -> Result<Self, ()> {
-        let canvas_pos = if let Some((Width(w), Height(h))) = terminal_size()
+        let canvas_pos = if let Ok((w, h)) = terminal::size()
             && (h as usize) >= CANVAS_ROWS
             && (w as usize) >= CANVAS_COLS
         {
@@ -51,7 +56,13 @@ impl Renderer {
         })
     }
 
-    pub fn render(&mut self, game_state: &GameState, ui_state: &UiState, frame_dt: u64) {
+    pub fn render(
+        &mut self,
+        stdout: &mut Stdout,
+        game_state: &GameState,
+        ui_state: &UiState,
+        frame_dt: u64,
+    ) {
         self.map_data.update_wind(self.render_count, ui_state.zoom);
 
         // Right module
@@ -129,17 +140,20 @@ impl Renderer {
                 let last_cell = &self.prev_frame[row][col];
                 if new_cell != last_cell {
                     // Move cursor and print changed cell
-                    print!(
-                        "\x1b[{};{}H{}",
-                        self.canvas_pos.0 + row + 1,
-                        self.canvas_pos.1 + col + 1,
-                        new_cell.as_string()
+                    let x = (self.canvas_pos.1 + col + 1) as u16;
+                    let y = (self.canvas_pos.0 + row + 1) as u16;
+                    let _ = queue!(
+                        stdout,
+                        cursor::MoveTo(x, y),
+                        PrintStyledContent(new_cell.printable())
                     );
                 }
             }
         }
-        print!("{}", ansi::RESET_COLOR);
         self.prev_frame = new_frame;
         self.render_count += 1;
+
+        // All the commands are executed and tha changes printed now
+        let _ = stdout.flush();
     }
 }

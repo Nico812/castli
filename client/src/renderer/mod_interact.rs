@@ -4,7 +4,7 @@ use common::{
 };
 
 use crate::{
-    ansi::{BG_BLACK, FG_BLACK},
+    ansi::BLACK,
     assets::{SELECTION_TERMCELL, TermCell},
     game_state::GameState,
     renderer::{
@@ -109,17 +109,11 @@ impl ModInteract {
     }
 
     fn push_empty_row(renderable: &mut Vec<Vec<TermCell>>) {
-        renderable.push(vec![
-            TermCell::new(' ', FG_BLACK, BG_BLACK);
-            Self::CONTENT_COLS
-        ]);
+        renderable.push(vec![TermCell::new(' ', BLACK, BLACK); Self::CONTENT_COLS]);
     }
 
     fn push_row_with_text(renderable: &mut Vec<Vec<TermCell>>, text: &str) {
-        renderable.push(vec![
-            TermCell::new(' ', FG_BLACK, BG_BLACK);
-            Self::CONTENT_COLS
-        ]);
+        renderable.push(vec![TermCell::new(' ', BLACK, BLACK); Self::CONTENT_COLS]);
         let row_to_write = renderable.len() - 1;
         draw_text_in_row(
             renderable,

@@ -9,7 +9,13 @@ use common::{
     GameCoord, GameID,
     exports::{game_object::GameObjE, units::UnitGroupE},
 };
-use std::{collections::HashMap, io::Write, process::Command, sync::Arc};
+use crossterm::{ExecutableCommand, cursor, terminal};
+use std::{
+    collections::HashMap,
+    io::{self, Stdout, Write},
+    process::Command,
+    sync::Arc,
+};
 use tokio::{
     sync::{Mutex, mpsc},
     time,
@@ -30,8 +36,9 @@ impl Tui {
         game_state: Arc<Mutex<GameState>>,
         shutdown: ShutdownChannel,
     ) {
+        let mut stdout = io::stdout();
         Self::set_raw_mode();
-        Self::hide_cursor();
+        Self::hide_cursor(&mut stdout);
 
         let ui_state = Arc::new(Mutex::new(UiState::new()));
 
@@ -44,15 +51,16 @@ impl Tui {
         ));
 
         // Render loop
-        Self::render_loop(game_state, ui_state, shutdown).await;
+        Self::render_loop(&mut stdout, game_state, ui_state, shutdown).await;
         // When input handling ends, abort other tasks and clean uplet _ = .
         let _ = input_handle.await;
         Self::clear_screen();
-        Self::show_cursor();
+        Self::show_cursor(&mut stdout);
         Self::reset_mode();
     }
 
     async fn render_loop(
+        stdout: &mut Stdout,
         game_state: Arc<Mutex<GameState>>,
         ui_state: Arc<Mutex<UiState>>,
         shutdown: ShutdownChannel,
@@ -90,7 +98,7 @@ impl Tui {
             {
                 let game_state = game_state.lock().await;
                 let mut ui_state = ui_state.lock().await;
-                renderer.render(&game_state, &mut ui_state, frame_dt);
+                renderer.render(stdout, &game_state, &mut ui_state, frame_dt);
                 let _ = std::io::stdout().flush();
             }
 
@@ -145,25 +153,18 @@ impl Tui {
     }
 
     fn set_raw_mode() {
-        Command::new("stty")
-            .arg("raw")
-            .arg("-echo")
-            .status()
-            .expect("Failed to set terminal to raw mode");
+        terminal::enable_raw_mode().expect("Failed to set terminal to raw mode");
     }
 
     fn reset_mode() {
-        Command::new("stty")
-            .arg("sane")
-            .status()
-            .expect("Failed to reset terminal mode");
+        terminal::disable_raw_mode().expect("Failed to reset terminal mode");
     }
 
-    fn hide_cursor() {
-        print!("\x1b[?25l");
+    fn hide_cursor(stdout: &mut Stdout) {
+        let _ = stdout.execute(cursor::Hide);
     }
 
-    fn show_cursor() {
-        print!("\x1b[?25h");
+    fn show_cursor(stdout: &mut Stdout) {
+        let _ = stdout.execute(cursor::Show);
     }
 }

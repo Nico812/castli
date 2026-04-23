@@ -105,7 +105,7 @@ impl Lobby {
                     let _ = self
                         .add_client(self.id, client_id, client_name, client_tx, client_rx)
                         .await
-                        .inspect_err(|err| eprintln!("\x1b[35mLOBBY ERROR: {:?}\x1b[0m", err));
+                        .inspect_err(|err| eprintln!("LOBBY ERROR: {:?}", err));
                 }
                 S2L::Shutdown => {
                     println!("Lobby shutting down");
