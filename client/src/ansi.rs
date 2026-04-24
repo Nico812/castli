@@ -1,43 +1,32 @@
-#![allow(dead_code)]
-
 use crossterm::style::Color;
 
 // COLOR SCHEME
 pub const BLACK: Color = Color::Black;
-pub const BLACK_BRIGHT: Color = Color::DarkGrey;
-pub const BLUE: Color = Color::Blue;
-pub const BLUE_BRIGHT: Color = Color::Rgb {
-    r: 80,
-    g: 80,
+pub const BLUE_1: Color = Color::Blue;
+pub const BLUE_0: Color = Color::Rgb {
+    r: 200,
+    g: 200,
     b: 255,
 };
-pub const BROWN: Color = Color::Rgb {
-    r: 139,
-    g: 69,
-    b: 19,
+pub const GREEN_0: Color = Color::Green;
+pub const GREEN_1: Color = Color::Rgb { r: 0, g: 150, b: 0 };
+pub const GREEN_2: Color = Color::Rgb { r: 0, g: 100, b: 0 };
+pub const GREEN_3: Color = Color::Rgb { r: 0, g: 70, b: 0 };
+pub const GREY_2: Color = Color::Rgb {
+    r: 100,
+    g: 100,
+    b: 100,
 };
-pub const CYAN: Color = Color::Cyan;
-pub const GREEN_BRIGHT: Color = Color::Green;
-pub const GREEN: Color = Color::Rgb {
-    r: 30,
-    g: 240,
-    b: 30,
-};
-pub const GREEN_DARK: Color = Color::DarkGreen;
-pub const GREEN_DARKER: Color = Color::Rgb { r: 0, g: 70, b: 0 };
-pub const GREY: Color = Color::Grey;
-pub const GREY_BRIGHT: Color = Color::White; // O Color::BrightWhite
-pub const GREY_GREENISH: Color = Color::Rgb {
+pub const GREY_1: Color = Color::Rgb {
     r: 128,
-    g: 138,
-    b: 115,
+    g: 128,
+    b: 128,
 };
-pub const LIGHT_BROWN: Color = Color::Rgb {
-    r: 205,
-    g: 133,
-    b: 63,
+pub const GREY_0: Color = Color::Rgb {
+    r: 192,
+    g: 192,
+    b: 192,
 };
 pub const MAGENTA: Color = Color::Magenta;
 pub const RED: Color = Color::Red;
 pub const WHITE: Color = Color::White;
-pub const YELLOW: Color = Color::Yellow;

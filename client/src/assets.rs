@@ -61,38 +61,38 @@ impl TileAsset {
 }
 
 pub const GRASS: TileAsset = TileAsset {
-    fg: GREEN,
-    bg: GREEN,
-    std: TermCell::new(' ', GREEN_BRIGHT, GREEN),
-    wind: TermCell::new('\"', GREEN_BRIGHT, GREEN),
+    fg: GREEN_1,
+    bg: GREEN_1,
+    std: TermCell::new(' ', GREEN_0, GREEN_1),
+    wind: TermCell::new('\"', GREEN_0, GREEN_1),
 };
 
 pub const WATER: TileAsset = TileAsset {
-    fg: BLUE,
-    bg: BLUE_BRIGHT,
-    std: TermCell::new(' ', BLUE_BRIGHT, BLUE),
-    wind: TermCell::new('~', BLUE_BRIGHT, BLUE),
+    fg: BLUE_1,
+    bg: BLUE_0,
+    std: TermCell::new(' ', BLUE_0, BLUE_1),
+    wind: TermCell::new('~', BLUE_0, BLUE_1),
 };
 
 pub const WOODS: TileAsset = TileAsset {
-    fg: GREEN_DARK,
-    bg: GREEN_DARK,
-    std: TermCell::new(' ', GREEN, GREEN_DARK),
-    wind: TermCell::new('"', GREEN_DARKER, GREEN_DARK),
+    fg: GREEN_2,
+    bg: GREEN_2,
+    std: TermCell::new(' ', GREEN_1, GREEN_2),
+    wind: TermCell::new('"', GREEN_3, GREEN_2),
 };
 
 pub const MOUNTAIN: TileAsset = TileAsset {
-    fg: GREY_BRIGHT,
-    bg: GREY,
-    std: TermCell::new('^', GREY, GREY_GREENISH),
-    wind: TermCell::new('^', WHITE, GREY_GREENISH),
+    fg: GREY_0,
+    bg: GREY_2,
+    std: TermCell::new('^', GREY_1, GREY_1),
+    wind: TermCell::new('^', WHITE, GREY_1),
 };
 
 pub const HIGH_MOUNTAIN: TileAsset = TileAsset {
     fg: WHITE,
     bg: WHITE,
     std: TermCell::new(' ', WHITE, WHITE),
-    wind: TermCell::new('^', BLUE_BRIGHT, WHITE),
+    wind: TermCell::new('^', BLUE_0, WHITE),
 };
 
 pub const ERR: TileAsset = TileAsset {
@@ -106,7 +106,7 @@ pub const ERR: TileAsset = TileAsset {
 
 pub const MY_CASTLE_FG: Color = WHITE;
 pub const MY_CASTLE_BG: Color = BLACK;
-pub const MY_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', GREEN, BLACK)]];
+pub const MY_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', GREEN_1, BLACK)]];
 pub const CASTLE_FG: Color = BLACK;
 pub const CASTLE_BG: Color = WHITE;
 pub const CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', WHITE, BLACK)]];
@@ -115,7 +115,7 @@ pub const DEAD_CASTLE_BG: Color = WHITE;
 pub const DEAD_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('X', RED, BLACK)]];
 pub const CASTLE_ART_SIZE: (usize, usize) = (CASTLE_ART.len(), CASTLE_ART[0].len());
 
-pub const MY_DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', GREEN, BLACK)]];
+pub const MY_DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', GREEN_1, BLACK)]];
 pub const DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', WHITE, BLACK)]];
 pub const DEPLOYED_UNITS_ART_SIZE: (usize, usize) =
     (DEPLOYED_UNITS_ART.len(), DEPLOYED_UNITS_ART[0].len());
