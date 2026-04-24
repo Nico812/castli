@@ -51,7 +51,6 @@ impl GameState {
             logs: Logs::new(LOGS_CAPACITY),
         }
     }
-
     pub fn add_log(&mut self, message: impl Into<String>) {
         self.logs.add(message.into());
     }

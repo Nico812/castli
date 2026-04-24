@@ -1,14 +1,13 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use common::{
-    C2S, C2S4L, L2S4C, S2C,
+    C2S, C2S4L, L2S4C, LogE, S2C,
     stream::{get_msg_from_server, send_msg_to_server},
 };
 use tokio::{
     io::BufReader,
     net::tcp::{OwnedReadHalf, OwnedWriteHalf},
     sync::{Mutex, mpsc::UnboundedReceiver},
-    time::interval,
 };
 
 use crate::{
@@ -29,8 +28,6 @@ impl Connection {
         shutdown: ShutdownChannel,
         game_state: Arc<Mutex<GameState>>,
     ) {
-        let mut request_tick = interval(Duration::from_millis(1000));
-
         loop {
             if shutdown.is_shutdown() {
                 return;
@@ -56,20 +53,21 @@ impl Connection {
                 Ok(msg) = get_msg_from_server(&mut self.reader) =>  {
                     let mut game_state = game_state.lock().await;
                     match msg {
-                        S2C::L2S4C(L2S4C::GameObjs(objs)) => {
-                            game_state.objs = objs;
+                        S2C::L2S4C(L2S4C::MainPacket(packet)) => {
+                            game_state.castle = packet.castle;
+                            game_state.client = packet.client;
+                            game_state.objs = packet.objs;
                         }
-                        S2C::L2S4C(L2S4C::Client(client)) => {
-                            game_state.client = client;
+                        S2C::L2S4C(L2S4C::Map(map)) => {
+                            game_state.map = map;
                         }
-                        S2C::L2S4C(L2S4C::OwnedCastle(castle)) => {
-                            game_state.castle = Some(castle);
-                        }
-                        S2C::L2S4C(L2S4C::Log(msg)) => {
-                            game_state.add_log(msg);
-                        }
-                        S2C::L2S4C(L2S4C::CreateCastle) => {
-                            game_state.castle = None;
+                        S2C::L2S4C(L2S4C::Log(log)) => {
+                            let string = match log {
+                                LogE::CastleCreationErr => {"Could not create castle".to_string()},
+                                LogE::UnitDeployErr => {"Could not deploy units".to_string()},
+                                LogE::AttackDeployErr => {"Could not attack ziocan".to_string()},
+                            };
+                            game_state.add_log(string);
                         }
                         S2C::ServerShutdown => {
                             shutdown.shutdown(ShutdownReason::ServerShutdown);
@@ -77,31 +75,11 @@ impl Connection {
                         _ => {}
                     }
                 }
-                // Otherwise, run the periodic update requests
-                _ = request_tick.tick() => {
-                    let _ = send_msg_to_server(
-                        &mut self.writer,
-                        &C2S::C2S4L(C2S4L::GiveObjs),
-                    ).await;
-
-                    let _ = send_msg_to_server(
-                        &mut self.writer,
-                        &C2S::C2S4L(C2S4L::GiveClient),
-                    ).await;
-
-                    let _ = send_msg_to_server(
-                        &mut self.writer,
-                        &C2S::C2S4L(C2S4L::GiveOwnedCastle),
-                    ).await;
-                }
             }
         }
     }
 
-    // Fetches the initial game objects and player data required to start the TUI.
     pub async fn fetch_initial_state(&mut self) -> Result<GameState, ()> {
-        // Request map
-        let _ = send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GiveMap)).await;
         let map = match get_msg_from_server(&mut self.reader).await {
             Ok(S2C::L2S4C(L2S4C::Map(map))) => map,
             _ => {
@@ -110,31 +88,12 @@ impl Connection {
             }
         };
 
-        // Request game objects
-        let _ = send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GiveObjs)).await;
-        let objs = match get_msg_from_server(&mut self.reader).await {
-            Ok(S2C::L2S4C(L2S4C::GameObjs(objs))) => objs,
+        let (objs, client, castle) = match get_msg_from_server(&mut self.reader).await {
+            Ok(S2C::L2S4C(L2S4C::MainPacket(packet))) => {
+                (packet.objs, packet.client, packet.castle)
+            }
             _ => {
                 println!("Failed to receive game objs");
-                return Err(());
-            }
-        };
-
-        let _ = send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GiveClient)).await;
-        let client = match get_msg_from_server(&mut self.reader).await {
-            Ok(S2C::L2S4C(L2S4C::Client(client))) => client,
-            _ => {
-                println!("Failed to receive client");
-                return Err(());
-            }
-        };
-
-        let _ = send_msg_to_server(&mut self.writer, &C2S::C2S4L(C2S4L::GiveOwnedCastle)).await;
-        let castle = match get_msg_from_server(&mut self.reader).await {
-            Ok(S2C::L2S4C(L2S4C::OwnedCastle(castle))) => Some(castle),
-            Ok(S2C::L2S4C(L2S4C::CreateCastle)) => None,
-            _ => {
-                println!("Failed to receive castle");
                 return Err(());
             }
         };

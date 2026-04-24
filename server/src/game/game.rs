@@ -8,7 +8,7 @@ use crate::game::{
     units::{DeployedUnits, UnitGroup},
 };
 use common::{
-    GameCoord, GameID,
+    GameCoord, GameID, Time,
     exports::{game_object::GameObjE, owned_castle::OwnedCastleE, tile::TileE, units::UnitGroupE},
 };
 use tokio::task::JoinHandle;
@@ -18,7 +18,8 @@ pub struct Game {
     game_objs: HashMap<GameID, GameObj>,
     incomp_game_objs: HashMap<GameID, GameObj>,
     pathfinding_tasks: HashMap<GameID, JoinHandle<Option<VecDeque<GameCoord>>>>,
-    id_counter: GameID,
+    id_cnt: GameID,
+    pub time: Time,
 }
 
 impl Game {
@@ -27,14 +28,15 @@ impl Game {
         let game_objs = HashMap::new();
         let incomp_game_objs = HashMap::new();
         let pathfinding_tasks = HashMap::new();
-        let id_counter = 0;
+        let id_cnt = 0;
 
         Self {
             map,
             game_objs,
             incomp_game_objs,
             pathfinding_tasks,
-            id_counter,
+            id_cnt,
+            time: Time::new(),
         }
     }
 
@@ -85,6 +87,7 @@ impl Game {
             Vec::new()
         };
 
+        self.time.tick();
         dead_castles
     }
 
@@ -225,8 +228,9 @@ impl Game {
             })
     }
 
+    // TODO: Manage max amount of objects
     fn new_id(&mut self) -> GameID {
-        self.id_counter += 1;
-        self.id_counter
+        self.id_cnt += 1;
+        self.id_cnt
     }
 }

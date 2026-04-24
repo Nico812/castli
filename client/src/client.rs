@@ -6,10 +6,11 @@ use tokio::{
         Mutex, mpsc,
         watch::{Receiver, Sender},
     },
+    time::{Duration, Timeout, sleep},
 };
 
-use crate::connection::Connection;
 use crate::tui::Tui;
+use crate::{connection::Connection, game_state::GameState};
 use common::{
     C2S,
     r#const::{IP_LOCAL, ONLINE},
@@ -107,7 +108,8 @@ impl Client {
         ));
 
         // Create and run the TUI. The main thread will now be dedicated to the UI.
-        Tui::run(t2c_tx, game_state, shutdown).await; // This blocks until the user quits the TUI.
+        // This blocks until the user quits the TUI.
+        Tui::run(t2c_tx, game_state, shutdown).await;
 
         // Cleanup
         let _ = communication_handle.await;

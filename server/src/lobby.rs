@@ -7,16 +7,16 @@ use crate::{
     game::game::Game,
     server::{ClientID, S2L},
 };
-use common::{C2S4L, L2S4C, r#const::MAX_LOBBY_PLAYERS};
+use common::{C2S4L, L2S4C, LogE, MainPacket, r#const::MAX_LOBBY_PLAYERS};
 
-#[derive(Debug)]
-enum LobbyErr {
-    AddClientFail,
+struct ClientCh {
+    tx: mpsc::UnboundedSender<L2S4C>,
+    rx: mpsc::UnboundedReceiver<C2S4L>,
 }
 
 pub struct Lobby {
     id: usize,
-    clients_ch: HashMap<ClientID, (mpsc::UnboundedSender<L2S4C>, mpsc::UnboundedReceiver<C2S4L>)>,
+    clients_ch: HashMap<ClientID, ClientCh>,
     clients: HashMap<ClientID, Client>,
     num_players: usize,
     game: Game,
@@ -66,6 +66,8 @@ impl Lobby {
                             client.castle_id = None;
                         }
                     }
+
+                    self.send_updates().await;
                 }
             }
         }
@@ -76,17 +78,21 @@ impl Lobby {
         lobby_id: usize,
         client_id: ClientID,
         client_name: String,
-        client_tx: mpsc::UnboundedSender<L2S4C>,
-        client_rx: mpsc::UnboundedReceiver<C2S4L>,
-    ) -> Result<(), LobbyErr> {
+        client_ch: ClientCh,
+    ) -> Result<(), ()> {
         if self.num_players >= MAX_LOBBY_PLAYERS {
-            Err(LobbyErr::AddClientFail)
+            Err(())
         } else {
             let client = Client::new(client_name, lobby_id);
-            self.clients_ch.insert(client_id, (client_tx, client_rx));
-            self.clients.insert(client_id, client);
             self.num_players += 1;
             println!("New player joined in a lobby, ID: {}", client_id);
+
+            Self::send_map(&client_ch, &client, &self.game).await;
+            Self::send_main_packet(&client_ch, &client, &self.game).await;
+            println!("Sent initial data to client");
+
+            self.clients_ch.insert(client_id, client_ch);
+            self.clients.insert(client_id, client);
             Ok(())
         }
     }
@@ -103,7 +109,15 @@ impl Lobby {
                 }
                 S2L::NewClient(client_id, client_name, client_tx, client_rx) => {
                     let _ = self
-                        .add_client(self.id, client_id, client_name, client_tx, client_rx)
+                        .add_client(
+                            self.id,
+                            client_id,
+                            client_name,
+                            ClientCh {
+                                tx: client_tx,
+                                rx: client_rx,
+                            },
+                        )
                         .await
                         .inspect_err(|err| eprintln!("LOBBY ERROR: {:?}", err));
                 }
@@ -116,12 +130,12 @@ impl Lobby {
     }
 
     async fn listen_clients(&mut self) {
-        for (client_id, (client_tx, client_rx)) in self.clients_ch.iter_mut() {
+        for (client_id, client_ch) in self.clients_ch.iter_mut() {
             let Some(client) = self.clients.get_mut(client_id) else {
                 continue;
             };
 
-            if let Ok(msg) = client_rx.try_recv() {
+            if let Ok(msg) = client_ch.rx.try_recv() {
                 let mut log = None;
                 match msg {
                     C2S4L::NewCastle(pos) => {
@@ -131,67 +145,66 @@ impl Lobby {
                                 self.game.add_player_castle(client.name.clone(), pos)
                         {
                             client.set_castle_id(castle_id);
-                            log = Some("Castle created successfully.".to_string());
                         } else {
-                            log = Some("Castle could not be created.".to_string());
+                            log = Some(LogE::CastleCreationErr);
                         }
                     }
                     C2S4L::AttackCastle(target_id, unit_group_e) => {
                         if let Some(castle_id) = client.castle_id {
-                            match self.game.attack_castle(castle_id, target_id, unit_group_e) {
-                                true => {
-                                    log = Some(format!("Attacking castle with ID: {}", target_id))
-                                }
-                                false => {
-                                    log = Some(format!(
-                                        "Failed attacking castle with ID: {}",
-                                        target_id
-                                    ))
-                                }
+                            if !self.game.attack_castle(castle_id, target_id, unit_group_e) {
+                                log = Some(LogE::AttackDeployErr);
                             }
                         }
                     }
                     C2S4L::SendUnits(target_pos, unit_group_e) => {
                         if let Some(castle_id) = client.castle_id {
-                            match self.game.request_send_units(
+                            if !self.game.request_send_units(
                                 castle_id,
                                 target_pos,
                                 unit_group_e,
                                 None,
                             ) {
-                                true => {
-                                    log = Some(format!("Sending units to {}", target_pos));
-                                }
-                                false => {
-                                    log = Some(format!("Failed sending units to: {}", target_pos));
-                                }
+                                log = Some(LogE::UnitDeployErr);
                             }
                         }
                     }
-                    C2S4L::GiveMap => {
-                        let _ = client_tx.send(L2S4C::Map(self.game.export_map()));
-                    }
-                    C2S4L::GiveObjs => {
-                        let _ = client_tx.send(L2S4C::GameObjs(self.game.export_objs()));
-                    }
-                    C2S4L::GiveOwnedCastle => {
-                        if let Some(castle_id) = client.castle_id
-                            && let Some(castle) = self.game.export_owned_castle(castle_id)
-                        {
-                            let _ = client_tx.send(L2S4C::OwnedCastle(castle));
-                        } else {
-                            let _ = client_tx.send(L2S4C::CreateCastle);
-                        }
-                    }
-                    C2S4L::GiveClient => {
-                        let _ = client_tx.send(L2S4C::Client(client.export()));
-                    }
-                };
+                }
                 if let Some(log) = log {
-                    let _ = client_tx.send(L2S4C::Log(log));
+                    let _ = client_ch.tx.send(L2S4C::Log(log));
                 }
             }
         }
+    }
+
+    async fn send_updates(&mut self) {
+        for (client_id, client_ch) in self.clients_ch.iter_mut() {
+            let Some(client) = self.clients.get_mut(client_id) else {
+                continue;
+            };
+
+            Self::send_main_packet(client_ch, &client, &self.game).await
+        }
+    }
+
+    async fn send_map(client_ch: &ClientCh, client: &Client, game: &Game) {
+        let _ = client_ch.tx.send(L2S4C::Map(game.export_map()));
+    }
+
+    async fn send_main_packet(client_ch: &ClientCh, client: &Client, game: &Game) {
+        let castle = if let Some(castle_id) = client.castle_id {
+            game.export_owned_castle(castle_id)
+        } else {
+            None
+        };
+
+        let packet = MainPacket {
+            time: game.time,
+            objs: game.export_objs(),
+            client: client.export(),
+            castle,
+        };
+
+        let _ = client_ch.tx.send(L2S4C::MainPacket(packet));
     }
 
     pub fn is_full(&self) -> bool {
