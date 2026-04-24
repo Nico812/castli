@@ -147,7 +147,7 @@ impl Renderer {
                     let _ = queue!(
                         stdout,
                         cursor::MoveTo(x, y),
-                        PrintStyledContent(new_cell.printable(game_state.time.night))
+                        PrintStyledContent(new_cell.printable())
                     );
                 }
             }

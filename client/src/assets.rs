@@ -22,7 +22,7 @@ impl TermCell {
         Self { ch, fg, bg }
     }
 
-    pub fn printable(&self, night: bool) -> StyledContent<char> {
+    pub fn printable(&self) -> StyledContent<char> {
         self.ch.with(self.fg).on(self.bg)
     }
 }

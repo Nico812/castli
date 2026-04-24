@@ -87,7 +87,7 @@ impl Lobby {
             self.num_players += 1;
             println!("New player joined in a lobby, ID: {}", client_id);
 
-            Self::send_map(&client_ch, &client, &self.game).await;
+            Self::send_map(&client_ch, &self.game).await;
             Self::send_main_packet(&client_ch, &client, &self.game).await;
             println!("Sent initial data to client");
 
@@ -186,7 +186,7 @@ impl Lobby {
         }
     }
 
-    async fn send_map(client_ch: &ClientCh, client: &Client, game: &Game) {
+    async fn send_map(client_ch: &ClientCh, game: &Game) {
         let _ = client_ch.tx.send(L2S4C::Map(game.export_map()));
     }
 

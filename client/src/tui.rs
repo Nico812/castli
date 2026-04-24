@@ -16,7 +16,7 @@ use crossterm::{
 };
 use std::{
     collections::HashMap,
-    io::{self, Stdout, Write},
+    io::{self, Stdout},
     ops::DerefMut,
     process::Command,
     sync::Arc,

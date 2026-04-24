@@ -6,11 +6,10 @@ use tokio::{
         Mutex, mpsc,
         watch::{Receiver, Sender},
     },
-    time::{Duration, Timeout, sleep},
 };
 
+use crate::connection::Connection;
 use crate::tui::Tui;
-use crate::{connection::Connection, game_state::GameState};
 use common::{
     C2S,
     r#const::{IP_LOCAL, ONLINE},
