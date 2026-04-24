@@ -9,12 +9,18 @@ use common::{
     GameCoord, GameID,
     exports::{game_object::GameObjE, units::UnitGroupE},
 };
-use crossterm::{ExecutableCommand, cursor, terminal};
+use crossterm::{
+    ExecutableCommand, cursor,
+    event::{Event, poll, read},
+    terminal,
+};
 use std::{
     collections::HashMap,
     io::{self, Stdout, Write},
+    ops::DerefMut,
     process::Command,
     sync::Arc,
+    time::Duration,
 };
 use tokio::{
     sync::{Mutex, mpsc},
@@ -37,39 +43,12 @@ impl Tui {
         shutdown: ShutdownChannel,
     ) {
         let mut stdout = io::stdout();
-        Self::set_raw_mode();
-        Self::hide_cursor(&mut stdout);
-
-        let ui_state = Arc::new(Mutex::new(UiState::new()));
-
-        // Spawn a task to listen to user inputs
-        let input_handle = tokio::spawn(InputHandler::run(
-            tx,
-            Arc::clone(&game_state),
-            Arc::clone(&ui_state),
-            ShutdownChannel::clone(&shutdown),
-        ));
-
-        // Render loop
-        Self::render_loop(&mut stdout, game_state, ui_state, shutdown).await;
-        // When input handling ends, abort other tasks and clean uplet _ = .
-        let _ = input_handle.await;
-        Self::clear_screen();
-        Self::show_cursor(&mut stdout);
-        Self::reset_mode();
-    }
-
-    async fn render_loop(
-        stdout: &mut Stdout,
-        game_state: Arc<Mutex<GameState>>,
-        ui_state: Arc<Mutex<UiState>>,
-        shutdown: ShutdownChannel,
-    ) {
         let mut render_tick = time::interval(time::Duration::from_millis(16));
         let mut last_frame = time::Instant::now();
         let mut frame_dt: u64 = 0;
-
         let map = game_state.lock().await.map.clone();
+        let mut ui_state = UiState::new();
+
         let mut renderer = match Renderer::new(map) {
             Ok(renderer) => renderer,
             Err(_) => {
@@ -78,11 +57,29 @@ impl Tui {
             }
         };
 
+        Self::set_raw_mode();
+        Self::hide_cursor(&mut stdout);
         Self::clear_screen();
-        loop {
-            if shutdown.is_shutdown() {
-                return;
+
+        while !shutdown.is_shutdown() {
+            // Convert the MutexGuard into &mut.
+            // This helps the borrow checker perform field-level borrowing more precisely
+            // (borrow splitting works better on &mut T than on MutexGuard<T> in complex flows).
+            let mut game_guard = game_state.lock().await;
+            let game_state = game_guard.deref_mut();
+
+            while let Ok(true) = poll(Duration::from_millis(0)) {
+                if let Ok(Event::Key(key)) = read() {
+                    InputHandler::handle_key(
+                        &key,
+                        &tx,
+                        game_state,
+                        &mut ui_state,
+                        ShutdownChannel::clone(&shutdown),
+                    );
+                }
             }
+
             // Rendering fps
             // There's a problem that the frames can go really fast when there is delay
             // so i take only the frames with a reasonable high dt.
@@ -93,17 +90,14 @@ impl Tui {
             };
             last_frame = now;
 
-            // Rendering
-            // Self::clear_screen(); // For cool visuals
-            {
-                let game_state = game_state.lock().await;
-                let mut ui_state = ui_state.lock().await;
-                renderer.render(stdout, &game_state, &mut ui_state, frame_dt);
-                let _ = std::io::stdout().flush();
-            }
+            renderer.render(&mut stdout, &game_state, &mut ui_state, frame_dt);
 
             render_tick.tick().await;
         }
+
+        Self::clear_screen();
+        Self::show_cursor(&mut stdout);
+        Self::reset_mode();
     }
 
     pub fn get_looked_objs<'a>(
