@@ -84,7 +84,7 @@ pub const WOODS: TileAsset = TileAsset {
 pub const MOUNTAIN: TileAsset = TileAsset {
     fg: GREY_0,
     bg: GREY_2,
-    std: TermCell::new('^', GREY_1, GREY_1),
+    std: TermCell::new('^', GREY_2, GREY_1),
     wind: TermCell::new('^', WHITE, GREY_1),
 };
 
