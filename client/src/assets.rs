@@ -13,35 +13,65 @@ use crate::ansi::*;
 #[derive(Copy, Clone, PartialEq)]
 pub struct TermCell {
     pub ch: char,
-    pub fg: DynamicColor,
-    pub bg: DynamicColor,
+    pub fg: Color,
+    pub bg: Color,
 }
 
 impl TermCell {
-    pub const fn new(ch: char, fg: DynamicColor, bg: DynamicColor) -> Self {
+    pub const fn new(ch: char, fg: Color, bg: Color) -> Self {
         Self { ch, fg, bg }
     }
 
     pub fn printable(&self, night: bool) -> StyledContent<char> {
-        self.ch.with(self.fg.get(night)).on(self.bg.get(night))
+        self.ch.with(self.fg).on(self.bg)
     }
 }
 
 pub struct TileAsset {
-    pub fg: DynamicColor,
-    pub bg: DynamicColor,
+    pub fg: Color,
+    pub bg: Color,
     pub std: TermCell,
     pub wind: TermCell,
 }
 
 impl TileAsset {
-    pub fn get_asset(tile: TileE) -> Self {
+    pub fn get_asset(tile: TileE, night: bool) -> Self {
         match tile {
-            TileE::Grass => GRASS,
-            TileE::Water => WATER,
-            TileE::Woods => WOODS,
-            TileE::Mountain => MOUNTAIN,
-            TileE::HighMountain => HIGH_MOUNTAIN,
+            TileE::Grass => {
+                if night {
+                    NIGHT_GRASS
+                } else {
+                    DAY_GRASS
+                }
+            }
+            TileE::Water => {
+                if night {
+                    NIGHT_WATER
+                } else {
+                    DAY_WATER
+                }
+            }
+            TileE::Woods => {
+                if night {
+                    NIGHT_WOODS
+                } else {
+                    DAY_WOODS
+                }
+            }
+            TileE::Mountain => {
+                if night {
+                    NIGHT_MOUNTAIN
+                } else {
+                    DAY_MOUNTAIN
+                }
+            }
+            TileE::HighMountain => {
+                if night {
+                    NIGHT_HIGH_MOUNTAIN
+                } else {
+                    DAY_HIGH_MOUNTAIN
+                }
+            }
             TileE::Err => ERR,
         }
     }
@@ -55,44 +85,80 @@ pub const CURSOR_DOWN: TermCell = TermCell::new('\u{21B3}', WHITE, BLACK);
 
 pub const SELECTION_TERMCELL: TermCell = TermCell::new('<', BLACK, WHITE);
 
-pub const BKG_FG: DynamicColor = BLACK;
-pub const BKG_BG: DynamicColor = BLACK;
+pub const BKG_FG: Color = BLACK;
+pub const BKG_BG: Color = BLACK;
 pub const BKG_EL: TermCell = TermCell::new('.', RED, BLACK);
 
 // Tiles
-pub const GRASS: TileAsset = TileAsset {
-    fg: GREEN_1,
-    bg: GREEN_1,
-    std: TermCell::new(' ', GREEN_0, GREEN_1),
-    wind: TermCell::new('\"', GREEN_0, GREEN_1),
+
+pub const DAY_GRASS: TileAsset = TileAsset {
+    fg: DAY_GREEN_1,
+    bg: DAY_GREEN_1,
+    std: TermCell::new(' ', DAY_GREEN_0, DAY_GREEN_1),
+    wind: TermCell::new('\"', DAY_GREEN_0, DAY_GREEN_1),
 };
 
-pub const WATER: TileAsset = TileAsset {
-    fg: BLUE_1,
-    bg: BLUE_0,
-    std: TermCell::new(' ', BLUE_0, BLUE_1),
-    wind: TermCell::new('~', BLUE_0, BLUE_1),
+pub const NIGHT_GRASS: TileAsset = TileAsset {
+    fg: NIGHT_GREEN_1,
+    bg: NIGHT_GREEN_1,
+    std: TermCell::new(' ', NIGHT_GREEN_0, NIGHT_GREEN_1),
+    wind: TermCell::new('\"', NIGHT_GREEN_0, NIGHT_GREEN_1),
 };
 
-pub const WOODS: TileAsset = TileAsset {
-    fg: GREEN_2,
-    bg: GREEN_2,
-    std: TermCell::new(' ', GREEN_1, GREEN_2),
-    wind: TermCell::new('"', GREEN_3, GREEN_2),
+pub const DAY_WATER: TileAsset = TileAsset {
+    fg: DAY_BLUE_1,
+    bg: DAY_BLUE_0,
+    std: TermCell::new(' ', DAY_BLUE_0, DAY_BLUE_1),
+    wind: TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
 };
 
-pub const MOUNTAIN: TileAsset = TileAsset {
-    fg: GREY_0,
-    bg: GREY_2,
-    std: TermCell::new('^', GREY_2, GREY_1),
-    wind: TermCell::new('^', WHITE, GREY_1),
+pub const NIGHT_WATER: TileAsset = TileAsset {
+    fg: NIGHT_BLUE_1,
+    bg: NIGHT_BLUE_0,
+    std: TermCell::new(' ', NIGHT_BLUE_0, NIGHT_BLUE_1),
+    wind: TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
 };
 
-pub const HIGH_MOUNTAIN: TileAsset = TileAsset {
-    fg: WHITE,
-    bg: WHITE,
-    std: TermCell::new(' ', WHITE, WHITE),
-    wind: TermCell::new('^', BLUE_0, WHITE),
+pub const DAY_WOODS: TileAsset = TileAsset {
+    fg: DAY_GREEN_2,
+    bg: DAY_GREEN_2,
+    std: TermCell::new(' ', DAY_GREEN_1, DAY_GREEN_2),
+    wind: TermCell::new('"', DAY_GREEN_3, DAY_GREEN_2),
+};
+
+pub const NIGHT_WOODS: TileAsset = TileAsset {
+    fg: NIGHT_GREEN_2,
+    bg: NIGHT_GREEN_2,
+    std: TermCell::new(' ', NIGHT_GREEN_1, NIGHT_GREEN_2),
+    wind: TermCell::new('"', NIGHT_GREEN_3, NIGHT_GREEN_2),
+};
+
+pub const DAY_MOUNTAIN: TileAsset = TileAsset {
+    fg: DAY_GREY_0,
+    bg: DAY_GREY_2,
+    std: TermCell::new('^', DAY_GREY_2, DAY_GREY_1),
+    wind: TermCell::new('^', DAY_WHITE, DAY_GREY_1),
+};
+
+pub const NIGHT_MOUNTAIN: TileAsset = TileAsset {
+    fg: NIGHT_GREY_0,
+    bg: NIGHT_GREY_2,
+    std: TermCell::new('^', NIGHT_GREY_2, NIGHT_GREY_1),
+    wind: TermCell::new('^', NIGHT_WHITE, NIGHT_GREY_1),
+};
+
+pub const DAY_HIGH_MOUNTAIN: TileAsset = TileAsset {
+    fg: DAY_WHITE,
+    bg: DAY_WHITE,
+    std: TermCell::new(' ', DAY_WHITE, DAY_WHITE),
+    wind: TermCell::new('^', DAY_BLUE_0, DAY_WHITE),
+};
+
+pub const NIGHT_HIGH_MOUNTAIN: TileAsset = TileAsset {
+    fg: NIGHT_WHITE,
+    bg: NIGHT_WHITE,
+    std: TermCell::new(' ', NIGHT_WHITE, NIGHT_WHITE),
+    wind: TermCell::new('^', NIGHT_BLUE_0, NIGHT_WHITE),
 };
 
 pub const ERR: TileAsset = TileAsset {
@@ -104,18 +170,18 @@ pub const ERR: TileAsset = TileAsset {
 
 // Game elements
 
-pub const MY_CASTLE_FG: DynamicColor = WHITE;
-pub const MY_CASTLE_BG: DynamicColor = BLACK;
-pub const MY_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', GREEN_1, BLACK)]];
-pub const CASTLE_FG: DynamicColor = BLACK;
-pub const CASTLE_BG: DynamicColor = WHITE;
+pub const MY_CASTLE_FG: Color = WHITE;
+pub const MY_CASTLE_BG: Color = BLACK;
+pub const MY_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', GREEN, BLACK)]];
+pub const CASTLE_FG: Color = BLACK;
+pub const CASTLE_BG: Color = WHITE;
 pub const CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', WHITE, BLACK)]];
-pub const DEAD_CASTLE_FG: DynamicColor = BLACK;
-pub const DEAD_CASTLE_BG: DynamicColor = WHITE;
+pub const DEAD_CASTLE_FG: Color = BLACK;
+pub const DEAD_CASTLE_BG: Color = WHITE;
 pub const DEAD_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('X', RED, BLACK)]];
 pub const CASTLE_ART_SIZE: (usize, usize) = (CASTLE_ART.len(), CASTLE_ART[0].len());
 
-pub const MY_DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', GREEN_1, BLACK)]];
+pub const MY_DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', GREEN, BLACK)]];
 pub const DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', WHITE, BLACK)]];
 pub const DEPLOYED_UNITS_ART_SIZE: (usize, usize) =
     (DEPLOYED_UNITS_ART.len(), DEPLOYED_UNITS_ART[0].len());

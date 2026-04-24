@@ -28,6 +28,7 @@ impl ModInspect {
         map_data: &MapData,
     ) -> Option<Vec<Vec<TermCell>>> {
         if let UiMode::Inspect(ref inspect) = ui_state.mode {
+            let night = game_state.time.night;
             let looked_tile = map_data.get_tile(inspect.coord);
 
             let mut renderable = Vec::new();
@@ -48,7 +49,7 @@ impl ModInspect {
                 renderable.append(&mut objs_comp);
             }
 
-            let mut tile_comp = Self::create_tile_component(looked_tile);
+            let mut tile_comp = Self::create_tile_component(looked_tile, night);
             renderable.append(&mut tile_comp);
 
             for _ in 0..Self::PADDING_VERT {
@@ -147,10 +148,11 @@ impl ModInspect {
         renderable
     }
 
-    fn create_tile_component(tile: TileE) -> Vec<Vec<TermCell>> {
+    fn create_tile_component(tile: TileE, night: bool) -> Vec<Vec<TermCell>> {
         let mut tile_component = Vec::new();
         Self::push_row_with_text(&mut tile_component, &format!(" : {:?}", tile));
-        tile_component.last_mut().unwrap()[Self::PADDING_HORI] = TileAsset::get_asset(tile).std;
+        tile_component.last_mut().unwrap()[Self::PADDING_HORI] =
+            TileAsset::get_asset(tile, night).std;
         tile_component
     }
 

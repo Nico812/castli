@@ -37,7 +37,7 @@ impl ModCentral {
         let wind_pos = zoom_coord.unwrap_or(GameCoord { x: 0, y: 0 });
         let cut_wind = Self::get_wind_slice(&map_data.wind, wind_pos);
 
-        let mut cells = Self::tiles_to_cells(&tiles, &cut_wind);
+        let mut cells = Self::tiles_to_cells(&tiles, &cut_wind, game_state.time.night);
 
         match zoom_coord {
             Some(coord) => Self::add_objs_to_cells(
@@ -58,7 +58,7 @@ impl ModCentral {
         cells
     }
 
-    fn tiles_to_cells(tiles: &[Vec<TileE>], wind: &[Vec<bool>]) -> Vec<Vec<TermCell>> {
+    fn tiles_to_cells(tiles: &[Vec<TileE>], wind: &[Vec<bool>], night: bool) -> Vec<Vec<TermCell>> {
         tiles
             .iter()
             .step_by(2)
@@ -75,8 +75,8 @@ impl ModCentral {
                             return ERR.std;
                         };
 
-                        let top_tile_asset = TileAsset::get_asset(tile_top);
-                        let bot_tile_asset = TileAsset::get_asset(tile_bot);
+                        let top_tile_asset = TileAsset::get_asset(tile_top, night);
+                        let bot_tile_asset = TileAsset::get_asset(tile_bot, night);
                         if tile_top == tile_bot {
                             match wind[cells_row][cells_col] {
                                 true => top_tile_asset.wind,
