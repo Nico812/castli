@@ -25,6 +25,7 @@ pub struct Renderer {
     canvas_pos: (usize, usize),
     render_count: u32,
     map_data: MapData,
+    prev_is_night: bool,
 }
 
 impl Renderer {
@@ -49,6 +50,7 @@ impl Renderer {
         let map_data = MapData::new(map_tiles);
 
         Ok(Self {
+            prev_is_night: false,
             prev_frame,
             canvas_pos,
             render_count: 0,
@@ -138,18 +140,20 @@ impl Renderer {
             for col in 0..CANVAS_COLS {
                 let new_cell = &new_frame[row][col];
                 let last_cell = &self.prev_frame[row][col];
-                if new_cell != last_cell {
+                if (new_cell != last_cell) || (self.prev_is_night != game_state.time.night) {
                     // Move cursor and print changed cell
                     let x = (self.canvas_pos.1 + col + 1) as u16;
                     let y = (self.canvas_pos.0 + row + 1) as u16;
                     let _ = queue!(
                         stdout,
                         cursor::MoveTo(x, y),
-                        PrintStyledContent(new_cell.printable())
+                        PrintStyledContent(new_cell.printable(game_state.time.night))
                     );
                 }
             }
         }
+
+        self.prev_is_night = game_state.time.night;
         self.prev_frame = new_frame;
         self.render_count += 1;
 

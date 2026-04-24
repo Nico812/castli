@@ -8,6 +8,7 @@ use crate::game_state::Logs;
 use crate::renderer::ModRightTab;
 use crate::renderer::module_utility::draw_text_in_row;
 use crate::ui_state::UiState;
+use common::Time;
 use common::exports::client::ClientE;
 use common::exports::owned_castle::OwnedCastleE;
 use common::exports::units::UnitType;
@@ -25,15 +26,19 @@ impl ModRight {
             vec![vec![TermCell::new(' ', BLACK, BLACK); Self::CONTENT_COLS]; Self::CONTENT_ROWS];
 
         match ui_state.tab {
-            ModRightTab::Castle => Self::add_castle_tab(&mut content, &game_state.castle),
-            ModRightTab::Debug => Self::add_debug_tab(&mut content, frame_dt, &game_state.client),
+            ModRightTab::Castle => {
+                Self::add_castle_tab(&mut content, &game_state.castle, &game_state.time)
+            }
+            ModRightTab::Debug => {
+                Self::add_debug_tab(&mut content, frame_dt, &game_state.client, &game_state.time)
+            }
             ModRightTab::Logs => Self::add_logs_tab(&mut content, &game_state.logs),
         };
         module_utility::add_frame("(y): me | (x): logs | (c): debug", &mut content);
         content
     }
 
-    fn add_debug_tab(content: &mut [Vec<TermCell>], frame_dt: u64, client: &ClientE) {
+    fn add_debug_tab(content: &mut [Vec<TermCell>], frame_dt: u64, client: &ClientE, time: &Time) {
         let lobby_str = format!("Lobby {}", client.lobby);
         module_utility::draw_text_in_row(
             content,
@@ -59,9 +64,17 @@ impl ModRight {
             Self::PADDING_HORI,
             Self::PADDING_HORI,
         );
+        let tick_str = format!("Tick: {}", time.tick_cnt);
+        module_utility::draw_text_in_row(
+            content,
+            &tick_str,
+            Self::PADDING_VERT + 3,
+            Self::PADDING_HORI,
+            Self::PADDING_HORI,
+        );
     }
 
-    fn add_castle_tab(content: &mut [Vec<TermCell>], castle: &Option<OwnedCastleE>) {
+    fn add_castle_tab(content: &mut [Vec<TermCell>], castle: &Option<OwnedCastleE>, time: &Time) {
         let Some(castle) = castle else {
             draw_text_in_row(
                 content,
@@ -89,6 +102,7 @@ impl ModRight {
 
         let alive_str = if castle.alive { "Alive :)" } else { "Dead x|" };
         let pos_str = format!("{}", castle.pos);
+        let time_str = format!("Time: {}", time.h);
         let peasants_str = format!("Peasants: {}", castle.peasants);
         let knights_str = format!(
             "Knights: {}",
@@ -107,6 +121,7 @@ impl ModRight {
             (&castle.name, Self::PADDING_VERT),
             (&alive_str.to_string(), Self::PADDING_VERT + 1),
             (&pos_str, Self::PADDING_VERT + 2),
+            (&time_str, Self::PADDING_VERT + 3),
             (&peasants_str, Self::PADDING_VERT + 5),
             (&knights_str, Self::PADDING_VERT + 6),
             (&mages_str, Self::PADDING_VERT + 7),

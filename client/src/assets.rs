@@ -10,39 +10,26 @@ use crossterm::style::{Color, StyledContent, Stylize};
 
 use crate::ansi::*;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct TermCell {
     pub ch: char,
-    pub fg: Color,
-    pub bg: Color,
+    pub fg: DynamicColor,
+    pub bg: DynamicColor,
 }
 
 impl TermCell {
-    pub const fn new(ch: char, fg: Color, bg: Color) -> Self {
+    pub const fn new(ch: char, fg: DynamicColor, bg: DynamicColor) -> Self {
         Self { ch, fg, bg }
     }
 
-    pub fn printable(&self) -> StyledContent<char> {
-        self.ch.with(self.fg).on(self.bg)
+    pub fn printable(&self, night: bool) -> StyledContent<char> {
+        self.ch.with(self.fg.get(night)).on(self.bg.get(night))
     }
 }
 
-// Misc
-pub const BLOCK: char = '▀';
-
-pub const CURSOR_UP: TermCell = TermCell::new('\u{21B1}', WHITE, BLACK);
-pub const CURSOR_DOWN: TermCell = TermCell::new('\u{21B3}', WHITE, BLACK);
-
-pub const SELECTION_TERMCELL: TermCell = TermCell::new('<', BLACK, WHITE);
-
-pub const BKG_FG: Color = BLACK;
-pub const BKG_BG: Color = BLACK;
-pub const BKG_EL: TermCell = TermCell::new('.', RED, BLACK);
-
-// Tiles
 pub struct TileAsset {
-    pub fg: Color,
-    pub bg: Color,
+    pub fg: DynamicColor,
+    pub bg: DynamicColor,
     pub std: TermCell,
     pub wind: TermCell,
 }
@@ -60,6 +47,19 @@ impl TileAsset {
     }
 }
 
+// Misc
+pub const BLOCK: char = '▀';
+
+pub const CURSOR_UP: TermCell = TermCell::new('\u{21B1}', WHITE, BLACK);
+pub const CURSOR_DOWN: TermCell = TermCell::new('\u{21B3}', WHITE, BLACK);
+
+pub const SELECTION_TERMCELL: TermCell = TermCell::new('<', BLACK, WHITE);
+
+pub const BKG_FG: DynamicColor = BLACK;
+pub const BKG_BG: DynamicColor = BLACK;
+pub const BKG_EL: TermCell = TermCell::new('.', RED, BLACK);
+
+// Tiles
 pub const GRASS: TileAsset = TileAsset {
     fg: GREEN_1,
     bg: GREEN_1,
@@ -104,14 +104,14 @@ pub const ERR: TileAsset = TileAsset {
 
 // Game elements
 
-pub const MY_CASTLE_FG: Color = WHITE;
-pub const MY_CASTLE_BG: Color = BLACK;
+pub const MY_CASTLE_FG: DynamicColor = WHITE;
+pub const MY_CASTLE_BG: DynamicColor = BLACK;
 pub const MY_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', GREEN_1, BLACK)]];
-pub const CASTLE_FG: Color = BLACK;
-pub const CASTLE_BG: Color = WHITE;
+pub const CASTLE_FG: DynamicColor = BLACK;
+pub const CASTLE_BG: DynamicColor = WHITE;
 pub const CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', WHITE, BLACK)]];
-pub const DEAD_CASTLE_FG: Color = BLACK;
-pub const DEAD_CASTLE_BG: Color = WHITE;
+pub const DEAD_CASTLE_FG: DynamicColor = BLACK;
+pub const DEAD_CASTLE_BG: DynamicColor = WHITE;
 pub const DEAD_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('X', RED, BLACK)]];
 pub const CASTLE_ART_SIZE: (usize, usize) = (CASTLE_ART.len(), CASTLE_ART[0].len());
 

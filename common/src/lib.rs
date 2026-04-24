@@ -27,7 +27,7 @@ impl fmt::Display for GameCoord {
 
 #[derive(Serialize, Deserialize, Copy, Clone)]
 pub struct Time {
-    tick_cnt: u16,
+    pub tick_cnt: u16,
     pub h: u8,
     pub night: bool,
 }
@@ -43,7 +43,7 @@ impl Time {
 
     pub fn tick(&mut self) {
         self.tick_cnt += 1;
-        if self.tick_cnt == 10 {
+        if self.tick_cnt == 1 {
             self.h += 1;
             if self.h == 24 {
                 self.h = 0;

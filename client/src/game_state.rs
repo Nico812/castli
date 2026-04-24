@@ -1,7 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 
 use common::{
-    GameID,
+    GameID, Time,
     exports::{client::ClientE, game_object::GameObjE, owned_castle::OwnedCastleE, tile::TileE},
 };
 
@@ -29,6 +29,7 @@ impl Logs {
 }
 
 pub struct GameState {
+    pub time: Time,
     pub map: Vec<Vec<TileE>>,
     pub client: ClientE,
     pub castle: Option<OwnedCastleE>,
@@ -38,12 +39,14 @@ pub struct GameState {
 
 impl GameState {
     pub fn new(
+        time: Time,
         objs: HashMap<usize, GameObjE>,
         map: Vec<Vec<TileE>>,
         client: ClientE,
         castle: Option<OwnedCastleE>,
     ) -> Self {
         Self {
+            time,
             map,
             client,
             castle,

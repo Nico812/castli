@@ -57,6 +57,7 @@ impl Connection {
                             game_state.castle = packet.castle;
                             game_state.client = packet.client;
                             game_state.objs = packet.objs;
+                            game_state.time = packet.time;
                         }
                         S2C::L2S4C(L2S4C::Map(map)) => {
                             game_state.map = map;
@@ -88,9 +89,9 @@ impl Connection {
             }
         };
 
-        let (objs, client, castle) = match get_msg_from_server(&mut self.reader).await {
+        let (time, objs, client, castle) = match get_msg_from_server(&mut self.reader).await {
             Ok(S2C::L2S4C(L2S4C::MainPacket(packet))) => {
-                (packet.objs, packet.client, packet.castle)
+                (packet.time, packet.objs, packet.client, packet.castle)
             }
             _ => {
                 println!("Failed to receive game objs");
@@ -98,6 +99,6 @@ impl Connection {
             }
         };
 
-        Ok(GameState::new(objs, map, client, castle))
+        Ok(GameState::new(time, objs, map, client, castle))
     }
 }
