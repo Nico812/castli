@@ -13,7 +13,7 @@ use crate::lobby::Lobby;
 use common::{
     C2S, C2S4L, L2S4C, S2C,
     r#const::{IP_LOCAL, MAX_LOBBIES},
-    stream,
+    stream::{self, StreamErr},
 };
 
 pub enum S2L {
@@ -118,20 +118,22 @@ impl ClientHandler {
                         Ok(C2S::C2S4L(msg)) => {
                             if self.lobby_tx.send(msg).is_err() {
                                 println!("[server] Failed...");
-                                break;
                             }
                         },
                         Ok(_) => {},
-                        Err(_) => {
+                        Err(StreamErr::ConnectionEnded) => {
                             eprintln!("[server] CLIENT (ID: {}) DISCONNECTED.", self.client_id);
-                            break;
+                            return;
+                        }
+                        Err(StreamErr::SerializationErr) => {
+                            eprintln!("[server] CLIENT (ID: {}) SERIALIZATION ERR.", self.client_id);
                         }
                     }
                 },
                 Some(msg) = self.lobby_rx.recv() => {
                     let s2c_msg = S2C::L2S4C(msg);
                     if stream::send_msg_to_client(&mut self.writer, &s2c_msg).await.is_err() {
-                        break;
+                            eprintln!("[server] CLIENT (ID: {}) ERR SENDING MSG", self.client_id);
                     }
                 }
             }
@@ -191,10 +193,10 @@ impl Server {
                     *id_guard += 1;
                     id
                 };
-
                 let lobby_channels = lobby_manager_clone
                     .assign_client_to_lobby(client_id, user_name)
                     .await;
+
                 match lobby_channels {
                     Ok((lobby_tx, lobby_rx)) => {
                         // 3. Hand off to Client Handler

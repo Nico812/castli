@@ -47,9 +47,9 @@ impl Time {
             self.h += 1;
             if self.h == 24 {
                 self.h = 0;
-            } else if self.h == 6 {
+            } else if self.h == 7 {
                 self.night = false;
-            } else if self.h == 21 {
+            } else if self.h == 19 {
                 self.night = true;
             }
             self.tick_cnt = 0;

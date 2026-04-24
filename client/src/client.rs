@@ -16,7 +16,7 @@ use common::{
     stream,
 };
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum ShutdownReason {
     Key,
     Connection,
@@ -108,10 +108,16 @@ impl Client {
 
         // Create and run the TUI. The main thread will now be dedicated to the UI.
         // This blocks until the user quits the TUI.
-        Tui::run(t2c_tx, game_state, shutdown).await;
+        Tui::run(t2c_tx, game_state, ShutdownChannel::clone(&shutdown)).await;
 
         // Cleanup
         let _ = communication_handle.await;
+        let shutdown_str = if let Some(reason) = shutdown.get_reason() {
+            format!("{:?}", reason)
+        } else {
+            "no resaon".to_string()
+        };
         println!("Client shutting down. Goodbye!");
+        println!("Shutdown reason: {}", shutdown_str);
     }
 }

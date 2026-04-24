@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use common::{
     C2S, C2S4L, L2S4C, LogE, S2C,
-    stream::{get_msg_from_server, send_msg_to_server},
+    stream::{StreamErr, get_msg_from_server, send_msg_to_server},
 };
 use tokio::{
     io::BufReader,
@@ -50,8 +50,21 @@ impl Connection {
 
                 // Check for messages from the server and redirects them to the TUI
                 // TODO: the tokio select here can cause data loss, should i address this?
-                Ok(msg) = get_msg_from_server(&mut self.reader) =>  {
+                msg = get_msg_from_server(&mut self.reader) =>  {
                     let mut game_state = game_state.lock().await;
+
+                    let msg = match msg {
+                        Ok(msg) => msg,
+                        Err(StreamErr::ConnectionEnded) => {
+                            shutdown.shutdown(ShutdownReason::Connection);
+                            return;
+                        }
+                        Err(StreamErr::SerializationErr) => {
+                            game_state.add_log("Some serialization error...");
+                            continue;
+                        }
+                    };
+
                     match msg {
                         S2C::L2S4C(L2S4C::MainPacket(packet)) => {
                             game_state.castle = packet.castle;

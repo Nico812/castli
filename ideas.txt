@@ -1,1 +1,7 @@
 Let castles continue to develop after the player died and got eradicated from his throne.
+
+Castle zoom in:
+You can place roads, structures, etc. in build mode. Roads are cosmetic, but other structures serve a purpose.
+Some units go around the town but its only cosmetic in the client.
+New build stuff is sent to the server to have it saved between sessions.
+The town data is only sent to the client when he is in town view (TownState).
