@@ -26,8 +26,8 @@ const DAY_BLUE_1: Color = Color::Rgb {
     b: 190,
 };
 const DAY_BLUE_0: Color = Color::Rgb {
-    r: 140,
-    g: 140,
+    r: 120,
+    g: 120,
     b: 190,
 };
 const DAY_GREEN_0: Color = Color::Rgb {
@@ -78,9 +78,9 @@ const NIGHT_BLUE_1: Color = Color::Rgb {
     b: 130,
 };
 const NIGHT_BLUE_0: Color = Color::Rgb {
-    r: 90,
-    g: 100,
-    b: 150,
+    r: 75,
+    g: 85,
+    b: 135,
 };
 const NIGHT_GREEN_0: Color = Color::Rgb {
     r: 80,
