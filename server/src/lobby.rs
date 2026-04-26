@@ -12,7 +12,7 @@ use crate::{
     thread_pool::ThreadPool,
 };
 use common::{
-    C2S4L, GameId, L2S4C, LogE, MainPacket, r#const::MAX_LOBBY_PLAYERS, exports::client::PlayerE,
+    C2S4L, GameId, L2S4C, LogE, MainPacket, r#const::MAX_LOBBY_PLAYERS, exports::player::PlayerE,
 };
 
 struct ClientCh {
@@ -96,7 +96,7 @@ impl Lobby {
             self.listen_server(&mut main_rx, &mut running);
             self.listen_clients();
 
-            let dead_castles = self.game.step(&self.pool);
+            let dead_castles = self.game.step();
             for dead_castle in dead_castles.iter() {
                 if let Some((_, player)) = self
                     .players

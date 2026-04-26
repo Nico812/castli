@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use common::{
     GameId, Time,
-    exports::{client::PlayerE, game_object::GameObjE, owned_castle::OwnedCastleE, tile::TileE},
+    exports::{game_object::GameObjE, owned_castle::OwnedCastleE, player::PlayerE, tile::TileE},
 };
 
 use crate::r#const::LOGS_CAPACITY;

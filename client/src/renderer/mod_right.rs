@@ -9,8 +9,8 @@ use crate::renderer::ModRightTab;
 use crate::renderer::module_utility::draw_text_in_row;
 use crate::ui_state::UiState;
 use common::Time;
-use common::exports::client::PlayerE;
 use common::exports::owned_castle::OwnedCastleE;
+use common::exports::player::PlayerE;
 use common::exports::units::UnitType;
 
 pub struct ModRight {}

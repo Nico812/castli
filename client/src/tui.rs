@@ -7,7 +7,7 @@ use crate::{
 };
 use common::{
     GameCoord, GameId,
-    r#const::{MAX_LOBBIES, MAX_LOBBY_PLAYERS},
+    r#const::MAX_LOBBIES,
     exports::{game_object::GameObjE, units::UnitGroupE},
 };
 use crossterm::{

@@ -50,7 +50,7 @@ impl UnitType {
         }
     }
 
-    pub fn get_strength(&self) -> u8 {
+    pub fn get_strength(&self) -> u32 {
         match self {
             Self::Knight => KNIGHT_STR,
             Self::Mage => MAGE_STR,
@@ -65,5 +65,5 @@ impl UnitType {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UnitGroupE {
-    pub quantities: [u16; UnitType::COUNT],
+    pub quantities: [u32; UnitType::COUNT],
 }

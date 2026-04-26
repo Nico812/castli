@@ -61,7 +61,7 @@ impl Game {
         }
     }
 
-    pub fn step(&mut self, pool: &ThreadPool) -> Vec<GameId> {
+    pub fn step(&mut self) -> Vec<GameId> {
         // Manages finished path tasks
         let mut finished_path_tasks = Vec::new();
         for task in &mut self.pathfinding_tasks {

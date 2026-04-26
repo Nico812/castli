@@ -1,4 +1,5 @@
 mod castle;
+mod facilities;
 pub mod game;
 mod game_obj;
 mod map;

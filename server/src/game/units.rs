@@ -10,7 +10,7 @@ use common::{
 
 #[derive(Clone)]
 pub struct UnitGroup {
-    quantities: [u16; UnitType::COUNT],
+    quantities: [u32; UnitType::COUNT],
     present_mask: u8,
 }
 
@@ -29,12 +29,12 @@ impl UnitGroup {
     pub fn get_strength(&self) -> u32 {
         let mut str = 0;
         for (i, unit) in all_units_enum!().iter() {
-            str += self.quantities[*i] as u32 * unit.get_strength() as u32;
+            str += self.quantities[*i] * unit.get_strength();
         }
         str
     }
 
-    pub fn add_single_type(&mut self, unit: UnitType, count: u16) {
+    pub fn add_single_type(&mut self, unit: UnitType, count: u32) {
         let idx = unit.as_index();
         self.quantities[idx] = self.quantities[idx].saturating_add(count);
 
@@ -43,7 +43,7 @@ impl UnitGroup {
         }
     }
 
-    pub fn subtract_single_type(&mut self, unit: UnitType, count: u16) {
+    pub fn subtract_single_type(&mut self, unit: UnitType, count: u32) {
         let idx = unit.as_index();
         self.quantities[idx] = self.quantities[idx].saturating_sub(count);
 
@@ -87,7 +87,7 @@ impl UnitGroup {
         true
     }
 
-    pub fn iter_present(&self) -> impl Iterator<Item = (UnitType, u16)> + '_ {
+    pub fn iter_present(&self) -> impl Iterator<Item = (UnitType, u32)> + '_ {
         common::all_units!()
             .into_iter()
             .filter(move |u| self.contains(*u))

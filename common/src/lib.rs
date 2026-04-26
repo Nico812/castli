@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt};
 
 use crate::exports::{
-    client::PlayerE, game_object::GameObjE, owned_castle::OwnedCastleE, tile::TileE,
+    game_object::GameObjE, owned_castle::OwnedCastleE, player::PlayerE, tile::TileE,
     units::UnitGroupE,
 };
 
@@ -43,7 +43,7 @@ impl Time {
 
     pub fn tick(&mut self) {
         self.tick_cnt += 1;
-        if self.tick_cnt == 1 {
+        if self.tick_cnt == 64 {
             self.h += 1;
             if self.h == 24 {
                 self.h = 0;
