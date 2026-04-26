@@ -3,13 +3,13 @@ mod r#const;
 mod game;
 mod lobby;
 mod server;
+mod thread_pool;
 
 use server::Server;
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let mut server = Server::new();
     println!("Server started");
 
-    server.run().await;
+    server.run();
 }

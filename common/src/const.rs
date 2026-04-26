@@ -7,6 +7,7 @@ pub const MAP_COLS: usize = 896 / 2;
 
 pub const MAX_LOBBY_PLAYERS: usize = 15;
 pub const MAX_LOBBIES: usize = 2;
+pub const LOBBY_POOL_LEN: usize = 4;
 
 pub const ONLINE: bool = false;
 pub const IP_LOCAL: &str = "127.0.0.1:7878";

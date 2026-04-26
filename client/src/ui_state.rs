@@ -1,5 +1,5 @@
 use common::{
-    GameCoord, GameID,
+    GameCoord, GameId,
     exports::units::{UnitGroupE, UnitType},
 };
 
@@ -21,17 +21,17 @@ pub enum UiMode {
 
 pub struct Inspect {
     pub coord: GameCoord,
-    pub selection: Option<GameID>,
+    pub selection: Option<GameId>,
 }
 
 #[derive(Clone)]
 pub struct Interact {
-    pub obj_id: Option<GameID>,
+    pub obj_id: Option<GameId>,
     pub coord: GameCoord,
 }
 
 pub struct UnitSelection {
-    pub obj_id: Option<GameID>,
+    pub obj_id: Option<GameId>,
     pub coord: GameCoord,
     pub active_input: (UnitType, Option<String>),
     pub selected_units: UnitGroupE,

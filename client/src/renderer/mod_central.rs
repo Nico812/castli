@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use common::r#const::{MAP_COLS, MAP_ROWS};
 use common::exports::game_object::GameObjE;
 use common::exports::tile::TileE;
-use common::{GameCoord, GameID};
+use common::{GameCoord, GameId};
 
 use super::module_utility;
 use crate::assets::*;
@@ -41,13 +41,13 @@ impl ModCentral {
 
         match zoom_coord {
             Some(coord) => Self::add_objs_to_cells(
-                &game_state.client.castle_id,
+                &game_state.player.castle_id,
                 &mut cells,
                 &game_state.objs,
                 coord,
             ),
             None => Self::add_world_objs_to_cells(
-                &game_state.client.castle_id,
+                &game_state.player.castle_id,
                 &mut cells,
                 &game_state.objs,
             ),
@@ -92,9 +92,9 @@ impl ModCentral {
     }
 
     fn add_objs_to_cells(
-        castle_id: &Option<GameID>,
+        castle_id: &Option<GameId>,
         cells: &mut Vec<Vec<TermCell>>,
-        objs: &HashMap<GameID, GameObjE>,
+        objs: &HashMap<GameId, GameObjE>,
         zoom_coord: GameCoord,
     ) {
         for (id, obj) in objs.iter() {
@@ -118,9 +118,9 @@ impl ModCentral {
     }
 
     fn add_world_objs_to_cells(
-        castle_id: &Option<GameID>,
+        castle_id: &Option<GameId>,
         cells: &mut Vec<Vec<TermCell>>,
-        world_objs: &HashMap<GameID, GameObjE>,
+        world_objs: &HashMap<GameId, GameObjE>,
     ) {
         for (id, obj) in world_objs.iter() {
             let pos = obj.get_pos();

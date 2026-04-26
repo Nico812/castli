@@ -1,12 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use crate::GameID;
+use crate::GameId;
 
 // SHould i do ClientE that keeps Option<CastleE> here too?
-
 #[derive(Serialize, Deserialize, Debug)]
-pub struct ClientE {
+pub struct PlayerE {
     pub name: String,
-    pub castle_id: Option<GameID>,
+    pub castle_id: Option<GameId>,
     pub lobby: usize,
 }

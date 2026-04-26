@@ -1,4 +1,4 @@
-use common::GameID;
+use common::GameId;
 use common::exports::game_object::GameObjE;
 use common::exports::units::UnitType;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
@@ -71,7 +71,7 @@ impl InputHandler {
                     Self::toggle_inspect(ui_state);
                 }
                 (KeyCode::Enter, _) => {
-                    if game_state.client.castle_id.is_none() {
+                    if game_state.player.castle_id.is_none() {
                         return;
                     }
                     let looked_objs =
@@ -245,7 +245,7 @@ impl InputHandler {
         mut dy: isize,
         inspect: &mut Inspect,
         zoom: &Option<GameCoord>,
-        objs: &HashMap<GameID, GameObjE>,
+        objs: &HashMap<GameId, GameObjE>,
     ) {
         if let Some(ref mut selection) = inspect.selection {
             let looked_objs = Tui::get_looked_objs(inspect.coord, zoom, &objs);

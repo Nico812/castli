@@ -80,7 +80,14 @@ impl Client {
         // Authentication
         println!("Connection established. Please log in.");
         let name = Tui::login();
-        let _ = stream::send_msg_to_server(&mut writer, &C2S::Login(name)).await;
+        stream::send_msg_to_server(&mut writer, &C2S::Login(name))
+            .await
+            .unwrap();
+
+        let lobby = Tui::choose_lobby();
+        stream::send_msg_to_server(&mut writer, &C2S::Lobby(lobby))
+            .await
+            .unwrap();
 
         // Fetch initial state required for the TUI
         let mut connection = Connection {

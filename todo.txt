@@ -11,3 +11,13 @@ return slices in center module in the slice functions and not copies
 add discovery to the map as nathan suggested
 
 Decouple the game tick rate from the network update rate. This is crucial for performance. You can run the game simulation at a fixed rate (e.g., 60 ticks per second) and send network updates at a lower rate (e.g., 20 updates per second).
+
+
+
+refactor of server:
+Server has to listen new connections in an IO non blocking way and assigns the stream to a lobby -> async
+Server runs a bunch of Lobbies, each in it's own blocking thread -> spawn_blocking/multithread
+
+Authentication is done at the server level.
+Each lobby has the players saved data corresponding to that game.
+Lobby should have a job system for spawning blocking tasks such as path computing -> blocking CPU tasks (non spawn_blocking).

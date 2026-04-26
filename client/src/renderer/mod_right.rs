@@ -9,7 +9,7 @@ use crate::renderer::ModRightTab;
 use crate::renderer::module_utility::draw_text_in_row;
 use crate::ui_state::UiState;
 use common::Time;
-use common::exports::client::ClientE;
+use common::exports::client::PlayerE;
 use common::exports::owned_castle::OwnedCastleE;
 use common::exports::units::UnitType;
 
@@ -30,7 +30,7 @@ impl ModRight {
                 Self::add_castle_tab(&mut content, &game_state.castle, &game_state.time)
             }
             ModRightTab::Debug => {
-                Self::add_debug_tab(&mut content, frame_dt, &game_state.client, &game_state.time)
+                Self::add_debug_tab(&mut content, frame_dt, &game_state.player, &game_state.time)
             }
             ModRightTab::Logs => Self::add_logs_tab(&mut content, &game_state.logs),
         };
@@ -38,8 +38,8 @@ impl ModRight {
         content
     }
 
-    fn add_debug_tab(content: &mut [Vec<TermCell>], frame_dt: u64, client: &ClientE, time: &Time) {
-        let lobby_str = format!("Lobby {}", client.lobby);
+    fn add_debug_tab(content: &mut [Vec<TermCell>], frame_dt: u64, player: &PlayerE, time: &Time) {
+        let lobby_str = format!("Lobby {}", player.lobby);
         module_utility::draw_text_in_row(
             content,
             &lobby_str,
@@ -47,7 +47,7 @@ impl ModRight {
             Self::PADDING_HORI,
             Self::PADDING_HORI,
         );
-        let id_str = format!("Castle ID: {:?}", client.castle_id);
+        let id_str = format!("Castle ID: {:?}", player.castle_id);
         module_utility::draw_text_in_row(
             content,
             &id_str,

@@ -1,4 +1,4 @@
-use crate::{GameCoord, GameID};
+use crate::{GameCoord, GameId};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -39,6 +39,6 @@ pub enum StructureTypeE {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DeployedUnitsE {
-    pub owner_id: GameID,
+    pub owner_id: GameId,
     pub pos: GameCoord,
 }

@@ -1,246 +1,235 @@
-use std::sync::{Arc, Mutex};
-use tokio::{
-    io::BufReader,
-    net::{
-        TcpListener,
-        tcp::{OwnedReadHalf, OwnedWriteHalf},
-    },
-    sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
-    time,
+use std::{
+    collections::HashMap,
+    io::{BufRead, BufReader, Read, Write},
+    net::{TcpListener, TcpStream},
+    sync::mpsc::{self, Receiver, Sender},
 };
 
-use crate::lobby::Lobby;
+use crate::{lobby::Lobby, thread_pool::ThreadPool};
 use common::{
     C2S, C2S4L, L2S4C, S2C,
     r#const::{IP_LOCAL, MAX_LOBBIES},
-    stream::{self, StreamErr},
+    stream::StreamErr,
 };
 
 pub enum S2L {
-    IsFull(mpsc::Sender<bool>),
-    NewClient(
-        ClientID,
-        String,
-        UnboundedSender<L2S4C>,
-        UnboundedReceiver<C2S4L>,
-    ),
+    IsFull(Sender<bool>),
+    NewClient(Client, Sender<L2S4C>, Receiver<C2S4L>),
+    Disconnection(ClientId),
     Shutdown,
 }
 
 #[derive(Debug)]
 pub enum ServerErr {
-    ServerFull,
+    LobbyFull,
     AuthFailed,
 }
-pub type ClientID = usize;
 
-/// Manages the entire lifecycle of game lobbies.
-struct LobbyManager {
-    lobby_txs: Arc<Mutex<[Option<mpsc::UnboundedSender<S2L>>; MAX_LOBBIES]>>,
+pub type ClientId = usize;
+pub type ConnId = usize;
+
+#[derive(Clone)]
+pub struct Client {
+    pub id: ClientId,
+    pub name: String,
+    pub lobby: Option<usize>,
 }
 
-impl LobbyManager {
-    fn new() -> Self {
+impl Client {
+    pub fn new(id: ClientId, name: String) -> Self {
         Self {
-            lobby_txs: Arc::new(Mutex::new([const { None }; MAX_LOBBIES])),
+            id,
+            name,
+            lobby: None,
         }
-    }
-
-    async fn run_new_lobby(&self) -> Option<UnboundedSender<S2L>> {
-        let mut lobby_txs = self.lobby_txs.lock().unwrap();
-        for i in 0..MAX_LOBBIES {
-            if lobby_txs[i].is_none() {
-                let (new_lobby_tx, new_lobby_rx) = mpsc::unbounded_channel();
-
-                let lobby = Lobby::new(i);
-                tokio::spawn(lobby.run(new_lobby_rx));
-
-                lobby_txs[i] = Some(new_lobby_tx.clone());
-                return Some(new_lobby_tx);
-            }
-        }
-        None
-    }
-
-    /// Finds an available lobby or creates a new one for a client.
-    async fn assign_client_to_lobby(
-        &self,
-        client_id: ClientID,
-        player_name: String,
-    ) -> Result<(UnboundedSender<C2S4L>, UnboundedReceiver<L2S4C>), ServerErr> {
-        // First, check for an existing lobby with space
-        for i in 0..MAX_LOBBIES {
-            let lobby_tx = self.lobby_txs.lock().unwrap()[i].clone();
-
-            if let Some(tx) = lobby_tx {
-                let (resp_tx, mut resp_rx) = mpsc::channel(1);
-                let _ = tx.send(S2L::IsFull(resp_tx));
-
-                if let Some(is_full) = resp_rx.recv().await
-                    && !is_full
-                {
-                    let (c2s_tx, c2s_rx) = mpsc::unbounded_channel();
-                    let (s2c_tx, s2c_rx) = mpsc::unbounded_channel();
-                    let _ = tx.send(S2L::NewClient(client_id, player_name, s2c_tx, c2s_rx));
-                    return Ok((c2s_tx, s2c_rx));
-                }
-            }
-        }
-
-        // If no lobby has space, try to create a new one
-        if let Some(new_lobby_tx) = self.run_new_lobby().await {
-            let (c2s_tx, c2s_rx) = mpsc::unbounded_channel();
-            let (s2c_tx, s2c_rx) = mpsc::unbounded_channel();
-            let _ = new_lobby_tx.send(S2L::NewClient(client_id, player_name, s2c_tx, c2s_rx));
-            return Ok((c2s_tx, s2c_rx));
-        }
-
-        Err(ServerErr::ServerFull)
     }
 }
 
-/// Manages the connection and communication for a single authenticated client.
-struct ClientHandler {
-    client_id: ClientID,
-    reader: BufReader<OwnedReadHalf>,
-    writer: OwnedWriteHalf,
-    lobby_tx: UnboundedSender<C2S4L>,
-    lobby_rx: UnboundedReceiver<L2S4C>,
+struct Connection {
+    stream: TcpStream,
+    read_buffer: Vec<u8>,
+    lobby_link: Option<(Sender<C2S4L>, Receiver<L2S4C>)>,
+    client: Option<Client>,
+    id: ConnId,
 }
 
-impl ClientHandler {
-    /// Runs the main communication loop for the client.
-    async fn run(mut self) {
-        loop {
-            tokio::select! {
-                result = stream::get_msg_from_client(&mut self.reader) => {
-                    match result {
-                        Ok(C2S::C2S4L(msg)) => {
-                            if self.lobby_tx.send(msg).is_err() {
-                                println!("[server] Failed...");
-                            }
-                        },
-                        Ok(_) => {},
-                        Err(StreamErr::ConnectionEnded) => {
-                            eprintln!("[server] CLIENT (ID: {}) DISCONNECTED.", self.client_id);
-                            return;
-                        }
-                        Err(StreamErr::SerializationErr) => {
-                            eprintln!("[server] CLIENT (ID: {}) SERIALIZATION ERR.", self.client_id);
-                        }
-                    }
-                },
-                Some(msg) = self.lobby_rx.recv() => {
-                    let s2c_msg = S2C::L2S4C(msg);
-                    if stream::send_msg_to_client(&mut self.writer, &s2c_msg).await.is_err() {
-                            eprintln!("[server] CLIENT (ID: {}) ERR SENDING MSG", self.client_id);
-                    }
+impl Connection {
+    pub fn try_get_msg(&mut self) -> Result<Option<C2S>, StreamErr> {
+        let mut tmp_buf = [0u8; 1024];
+
+        match self.stream.read(&mut tmp_buf) {
+            Ok(0) => return Err(StreamErr::ConnectionEnded),
+            Ok(n) => {
+                self.read_buffer.extend(&tmp_buf[..n]);
+                if let Some(pos) = self.read_buffer.iter().position(|&b| b == b'\n') {
+                    let line = self.read_buffer[..pos].to_vec();
+
+                    self.read_buffer.drain(..=pos);
+
+                    let line_str = String::from_utf8_lossy(&line);
+                    return serde_json::from_str(&line_str)
+                        .map(Some)
+                        .map_err(|_| StreamErr::SerializationErr);
                 }
+                Ok(None)
             }
+            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => Ok(None),
+            Err(_) => Err(StreamErr::ConnectionEnded),
         }
     }
 }
 
 pub struct Server {
-    lobby_manager: Arc<LobbyManager>,
-    next_client_id: Arc<Mutex<ClientID>>,
+    _pool: ThreadPool,
+    txs: [Sender<S2L>; MAX_LOBBIES],
+    conns: Vec<Connection>,
+    conn_id_cnt: ConnId,
+    client_id_cnt: ClientId,
 }
 
 impl Server {
     pub fn new() -> Self {
-        Self {
-            lobby_manager: Arc::new(LobbyManager::new()),
-            next_client_id: Arc::new(Mutex::new(0)),
-        }
-    }
+        let pool = ThreadPool::new(MAX_LOBBIES);
+        let mut txs = Vec::with_capacity(MAX_LOBBIES);
 
-    pub async fn run(&mut self) {
-        let listener = TcpListener::bind(IP_LOCAL).await.unwrap();
-        println!("[server] Server started and listening on {}", IP_LOCAL);
+        for lobby_id in 0..MAX_LOBBIES {
+            let (tx, rx) = mpsc::channel();
+            txs.push(tx);
 
-        while let Ok((stream, socket_addr)) = listener.accept().await {
-            println!("[server] Connection established from: {}", socket_addr);
-
-            let lobby_manager_clone = Arc::clone(&self.lobby_manager);
-            let next_client_id_clone = Arc::clone(&self.next_client_id);
-
-            tokio::spawn(async move {
-                let (reader, mut writer) = stream.into_split();
-                let mut buf_reader = BufReader::new(reader);
-
-                // 1. Authenticate
-                let auth_result = Self::wait_authentication(&mut buf_reader).await;
-                let user_name = match auth_result {
-                    Ok(name) => {
-                        println!(
-                            "[server] [{}] Player '{}' authenticated.",
-                            socket_addr, name
-                        );
-                        name
-                    }
-                    Err(_) => {
-                        eprintln!("[server] [{}] Authentication failed.", socket_addr);
-                        let _ =
-                            stream::send_msg_to_client(&mut writer, &S2C::ConnectionFailed).await;
-                        return;
-                    }
-                };
-
-                // 2. Assign to Lobby
-                let client_id = {
-                    let mut id_guard = next_client_id_clone.lock().unwrap();
-                    let id = *id_guard;
-                    *id_guard += 1;
-                    id
-                };
-                let lobby_channels = lobby_manager_clone
-                    .assign_client_to_lobby(client_id, user_name)
-                    .await;
-
-                match lobby_channels {
-                    Ok((lobby_tx, lobby_rx)) => {
-                        // 3. Hand off to Client Handler
-                        let handler = ClientHandler {
-                            client_id,
-                            reader: buf_reader,
-                            writer,
-                            lobby_tx,
-                            lobby_rx,
-                        };
-                        handler.run().await;
-                    }
-                    Err(err) => {
-                        let msg = if let ServerErr::ServerFull = err {
-                            S2C::ServerFull
-                        } else {
-                            S2C::ConnectionFailed
-                        };
-                        let _ = stream::send_msg_to_client(&mut writer, &msg).await;
-                        eprintln!(
-                            "[server] [{}] Failed to assign to lobby: {:?}",
-                            socket_addr, err
-                        );
-                    }
-                }
+            pool.execute(move || {
+                let lobby = Lobby::new(lobby_id);
+                lobby.run(rx);
             });
         }
+
+        Self {
+            _pool: pool,
+            txs: txs.try_into().unwrap(),
+            conns: Vec::new(),
+            conn_id_cnt: 0,
+            client_id_cnt: 0,
+        }
     }
 
-    async fn wait_authentication(
-        buf_reader: &mut BufReader<OwnedReadHalf>,
-    ) -> Result<String, ServerErr> {
-        tokio::select! {
-            biased;
-            msg = stream::get_msg_from_client(buf_reader) => {
-                if let Ok(C2S::Login(name)) = msg {
-                    Ok(name)
-                } else {
-                    Err(ServerErr::AuthFailed)
+    pub fn run(&mut self) {
+        let listener = TcpListener::bind(IP_LOCAL).unwrap();
+        listener.set_nonblocking(true).unwrap();
+        println!("[server] Server started and listening on {}", IP_LOCAL);
+
+        loop {
+            let mut ended_conns = Vec::new();
+
+            // Checks if there are new connections and handles them
+            if let Ok((stream, socket_addr)) = listener.accept() {
+                stream.set_nonblocking(true).unwrap();
+                self.handle_connection(stream);
+                println!("A weirdo connceted with socket_addr: {}", socket_addr);
+            }
+
+            // Iters trough the connections and listens to them
+            for (i, ref mut conn) in self.conns.iter_mut().enumerate() {
+                match conn.try_get_msg() {
+                    Ok(Some(C2S::C2S4L(msg))) => {
+                        let Some(ref mut lobby_link) = conn.lobby_link else {
+                            continue;
+                        };
+                        if lobby_link.0.send(msg).is_err() {
+                            println!("[server] Failed...");
+                        }
+                    }
+                    Ok(Some(C2S::Login(user_name))) => {
+                        conn.client = Some(Client::new(conn.id, user_name));
+                        println!("User authenticated");
+                    }
+                    Ok(Some(C2S::Lobby(lobby_id))) => {
+                        let Some(ref mut client) = conn.client else {
+                            continue;
+                        };
+                        if lobby_id >= MAX_LOBBIES {
+                            continue;
+                        }
+                        match Self::assign_client_to_lobby(lobby_id, &self.txs[lobby_id], client) {
+                            Ok(link) => {
+                                conn.lobby_link = Some(link);
+                                println!("Client successfully assigned to lobby");
+                            }
+                            Err(ServerErr::LobbyFull) => {
+                                let _ = Self::send_msg_to_client(&mut conn.stream, &S2C::LobbyFull);
+                            }
+                            _ => {}
+                        }
+                    }
+                    Err(StreamErr::ConnectionEnded) => {
+                        eprintln!("[server] CLIENT (ID: {}) DISCONNECTED.", conn.id);
+                        if let Some(ref client) = conn.client
+                            && let Some(lobby) = client.lobby
+                        {
+                            let _ = self.txs[lobby].send(S2L::Disconnection(client.id));
+                        }
+                        ended_conns.push(i);
+                        continue;
+                    }
+                    Err(StreamErr::SerializationErr) => {
+                        eprintln!("[server] CLIENT (ID: {}) SERIALIZATION ERR.", conn.id);
+                    }
+                    Ok(None) => {}
                 }
-            },
-            _ = time::sleep(time::Duration::from_secs(100)) => {
-                Err(ServerErr::AuthFailed)
+
+                // Listen to associated lobby for updates to send to client
+                if let Some(ref lobby_link) = conn.lobby_link
+                    && let Ok(msg) = lobby_link.1.try_recv()
+                {
+                    let s2c_msg = S2C::L2S4C(msg);
+                    if Self::send_msg_to_client(&mut conn.stream, &s2c_msg).is_err() {
+                        eprintln!("[server] CLIENT (ID: {}) ERR SENDING MSG", conn.id);
+                    }
+                }
+            }
+
+            // Removing disconnected clients from the active connections
+            for i in ended_conns {
+                self.conns.remove(i);
             }
         }
+    }
+
+    fn handle_connection(&mut self, stream: TcpStream) {
+        let conn_id = self.conn_id_cnt;
+        self.conn_id_cnt += 1;
+
+        let conn = Connection {
+            stream,
+            lobby_link: None,
+            client: None,
+            id: conn_id,
+            read_buffer: Vec::new(),
+        };
+        self.conns.push(conn);
+    }
+
+    fn assign_client_to_lobby(
+        lobby_id: usize,
+        lobby_tx: &Sender<S2L>,
+        client: &mut Client,
+    ) -> Result<(Sender<C2S4L>, Receiver<L2S4C>), ServerErr> {
+        let (resp_tx, resp_rx) = mpsc::channel();
+        let _ = lobby_tx.send(S2L::IsFull(resp_tx));
+
+        if let Ok(false) = resp_rx.recv() {
+            let (c2s_tx, c2s_rx) = mpsc::channel();
+            let (s2c_tx, s2c_rx) = mpsc::channel();
+            let _ = lobby_tx.send(S2L::NewClient(client.clone(), s2c_tx, c2s_rx));
+            client.lobby = Some(lobby_id);
+            return Ok((c2s_tx, s2c_rx));
+        }
+        Err(ServerErr::LobbyFull)
+    }
+
+    pub fn send_msg_to_client(stream: &mut TcpStream, msg: &S2C) -> std::io::Result<()> {
+        let json = serde_json::to_string(msg).expect("Serialization failed");
+        stream.write_all(json.as_bytes())?;
+        stream.write_all(b"\n")?;
+        let _ = stream.flush();
+        Ok(())
     }
 }

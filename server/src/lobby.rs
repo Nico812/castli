@@ -1,137 +1,166 @@
-use std::collections::HashMap;
-use tokio::{sync::mpsc, time};
+use std::{
+    collections::HashMap,
+    sync::mpsc::{Receiver, Sender},
+    thread,
+    time::{Duration, Instant},
+};
 
 use crate::{
-    client::Client,
-    r#const::{CLIENT_COM_TICK, GAME_TICK, SERVER_COM_TICK},
+    r#const::GAME_TICK,
     game::game::Game,
-    server::{ClientID, S2L},
+    server::{Client, ClientId, S2L},
+    thread_pool::ThreadPool,
 };
-use common::{C2S4L, L2S4C, LogE, MainPacket, r#const::MAX_LOBBY_PLAYERS};
+use common::{
+    C2S4L, GameId, L2S4C, LogE, MainPacket,
+    r#const::{LOBBY_POOL_LEN, MAX_LOBBY_PLAYERS},
+    exports::client::PlayerE,
+};
 
 struct ClientCh {
-    tx: mpsc::UnboundedSender<L2S4C>,
-    rx: mpsc::UnboundedReceiver<C2S4L>,
+    tx: Sender<L2S4C>,
+    rx: Receiver<C2S4L>,
+}
+
+// Players are managed at the Lobby level. Theyr info is not needed for the game. Data is retrieved when he ocnnects (TODO)
+pub struct Player {
+    pub client: Client,
+    pub name: String,
+    pub castle_id: Option<GameId>,
+    pub lobby: usize,
+}
+
+impl Player {
+    pub fn new(lobby: usize, client: Client) -> Self {
+        let name = client.name.clone();
+
+        println!("New player joined with the name: {}", client.name);
+        Self {
+            client,
+            name,
+            castle_id: None,
+            lobby,
+        }
+    }
+
+    pub fn set_castle_id(&mut self, castle_id: common::GameId) {
+        self.castle_id = Some(castle_id);
+        println!(
+            "Client {} just got a new castle with GameId {}",
+            self.name, castle_id
+        );
+    }
+
+    pub fn export(&self) -> PlayerE {
+        PlayerE {
+            name: self.name.clone(),
+            castle_id: self.castle_id,
+            lobby: self.lobby,
+        }
+    }
 }
 
 pub struct Lobby {
     id: usize,
-    clients_ch: HashMap<ClientID, ClientCh>,
-    clients: HashMap<ClientID, Client>,
+    clients_ch: HashMap<ClientId, ClientCh>,
+    players: HashMap<ClientId, Player>,
     num_players: usize,
     game: Game,
+    pool: ThreadPool,
 }
 
 impl Lobby {
     pub fn new(id: usize) -> Self {
-        let clients = HashMap::new();
+        let players = HashMap::new();
         let clients_ch = HashMap::new();
         let num_players = 0;
         let game = Game::new();
+        let pool = ThreadPool::new(LOBBY_POOL_LEN);
 
         println!("New lobby initialized");
 
         Self {
             id,
-            clients,
+            players,
             clients_ch,
             num_players,
             game,
+            pool,
         }
     }
 
-    /// Lobby listens for messages from the server, listens and responds to messages from clients,
-    /// and periodically updates the game state.
-    pub async fn run(mut self, mut main_rx: mpsc::UnboundedReceiver<S2L>) {
-        let mut client_comunication_tick =
-            time::interval(time::Duration::from_millis(CLIENT_COM_TICK));
-        let mut server_comunication_tick =
-            time::interval(time::Duration::from_millis(SERVER_COM_TICK));
-        let mut game_tick = time::interval(time::Duration::from_millis(GAME_TICK));
-
+    pub fn run(mut self, mut main_rx: Receiver<S2L>) {
+        let tick_duration = Duration::from_millis(GAME_TICK);
+        let mut next_tick = Instant::now();
         let mut running = true;
 
         while running {
-            tokio::select! {
-                _ = server_comunication_tick.tick() => {
-                    self.listen_server(&mut main_rx, &mut running).await;
-                }
-                _ = client_comunication_tick.tick() => {
-                    self.listen_clients().await;
-                }
-                _ = game_tick.tick() => {
-                    let dead_castles = self.game.step().await;
-                    for dead_castle in dead_castles.iter(){
-                        if let Some((_, client)) = self.clients.iter_mut().find(|(_, client)|{ Some(*dead_castle) == client.castle_id}) {
-                            client.castle_id = None;
-                        }
-                    }
+            self.listen_server(&mut main_rx, &mut running);
+            self.listen_clients();
 
-                    self.send_updates().await;
+            let dead_castles = self.game.step(&self.pool);
+            for dead_castle in dead_castles.iter() {
+                if let Some((_, player)) = self
+                    .players
+                    .iter_mut()
+                    .find(|(_, player)| Some(*dead_castle) == player.castle_id)
+                {
+                    player.castle_id = None;
                 }
             }
+
+            self.send_updates();
+
+            next_tick += tick_duration;
+            thread::sleep(next_tick.saturating_duration_since(Instant::now()));
         }
     }
 
-    async fn add_client(
-        &mut self,
-        lobby_id: usize,
-        client_id: ClientID,
-        client_name: String,
-        client_ch: ClientCh,
-    ) -> Result<(), ()> {
-        if self.num_players >= MAX_LOBBY_PLAYERS {
-            Err(())
-        } else {
-            let client = Client::new(client_name, lobby_id);
-            self.num_players += 1;
-            println!("New player joined in a lobby, ID: {}", client_id);
+    fn add_player(&mut self, client: Client, client_ch: ClientCh) {
+        let client_id = client.id;
+        let player = Player::new(self.id, client);
+        self.num_players += 1;
+        println!("New player joined in a lobby, ID: {}", client_id);
 
-            Self::send_map(&client_ch, &self.game).await;
-            Self::send_main_packet(&client_ch, &client, &self.game).await;
-            println!("Sent initial data to client");
+        Self::send_map(&client_ch, &self.game);
+        Self::send_main_packet(&client_ch, &player, &self.game);
+        println!("Sent initial data to client");
 
-            self.clients_ch.insert(client_id, client_ch);
-            self.clients.insert(client_id, client);
-            Ok(())
-        }
+        self.clients_ch.insert(client_id, client_ch);
+        self.players.insert(client_id, player);
     }
 
-    async fn listen_server(
-        &mut self,
-        main_rx: &mut mpsc::UnboundedReceiver<S2L>,
-        running: &mut bool,
-    ) {
+    fn listen_server(&mut self, main_rx: &mut Receiver<S2L>, running: &mut bool) {
         if let Ok(msg) = main_rx.try_recv() {
             match msg {
                 S2L::IsFull(temp_tx) => {
-                    let _ = temp_tx.send(self.is_full()).await;
+                    let _ = temp_tx.send(self.is_full());
                 }
-                S2L::NewClient(client_id, client_name, client_tx, client_rx) => {
-                    let _ = self
-                        .add_client(
-                            self.id,
-                            client_id,
-                            client_name,
-                            ClientCh {
-                                tx: client_tx,
-                                rx: client_rx,
-                            },
-                        )
-                        .await
-                        .inspect_err(|err| eprintln!("LOBBY ERROR: {:?}", err));
+                S2L::NewClient(client, client_tx, client_rx) => {
+                    let _ = self.add_player(
+                        client,
+                        ClientCh {
+                            tx: client_tx,
+                            rx: client_rx,
+                        },
+                    );
                 }
                 S2L::Shutdown => {
                     println!("Lobby shutting down");
                     *running = false;
                 }
+                S2L::Disconnection(client_id) => {
+                    println!("Removed client from lobby");
+                    self.clients_ch.remove_entry(&client_id);
+                    self.players.remove_entry(&client_id);
+                }
             };
         }
     }
 
-    async fn listen_clients(&mut self) {
+    fn listen_clients(&mut self) {
         for (client_id, client_ch) in self.clients_ch.iter_mut() {
-            let Some(client) = self.clients.get_mut(client_id) else {
+            let Some(player) = self.players.get_mut(client_id) else {
                 continue;
             };
 
@@ -140,29 +169,35 @@ impl Lobby {
                 match msg {
                     C2S4L::NewCastle(pos) => {
                         println!("Client ({}) requested to build a new castle", client_id);
-                        if client.castle_id.is_none()
+                        if player.castle_id.is_none()
                             && let Some(castle_id) =
-                                self.game.add_player_castle(client.name.clone(), pos)
+                                self.game.add_player_castle(player.name.clone(), pos)
                         {
-                            client.set_castle_id(castle_id);
+                            player.set_castle_id(castle_id);
                         } else {
                             log = Some(LogE::CastleCreationErr);
                         }
                     }
                     C2S4L::AttackCastle(target_id, unit_group_e) => {
-                        if let Some(castle_id) = client.castle_id {
-                            if !self.game.attack_castle(castle_id, target_id, unit_group_e) {
+                        if let Some(castle_id) = player.castle_id {
+                            if !self.game.attack_castle(
+                                castle_id,
+                                target_id,
+                                unit_group_e,
+                                &self.pool,
+                            ) {
                                 log = Some(LogE::AttackDeployErr);
                             }
                         }
                     }
                     C2S4L::SendUnits(target_pos, unit_group_e) => {
-                        if let Some(castle_id) = client.castle_id {
+                        if let Some(castle_id) = player.castle_id {
                             if !self.game.request_send_units(
                                 castle_id,
                                 target_pos,
                                 unit_group_e,
                                 None,
+                                &self.pool,
                             ) {
                                 log = Some(LogE::UnitDeployErr);
                             }
@@ -176,22 +211,22 @@ impl Lobby {
         }
     }
 
-    async fn send_updates(&mut self) {
+    fn send_updates(&mut self) {
         for (client_id, client_ch) in self.clients_ch.iter_mut() {
-            let Some(client) = self.clients.get_mut(client_id) else {
+            let Some(player) = self.players.get_mut(client_id) else {
                 continue;
             };
 
-            Self::send_main_packet(client_ch, &client, &self.game).await
+            Self::send_main_packet(client_ch, &player, &self.game);
         }
     }
 
-    async fn send_map(client_ch: &ClientCh, game: &Game) {
+    fn send_map(client_ch: &ClientCh, game: &Game) {
         let _ = client_ch.tx.send(L2S4C::Map(game.export_map()));
     }
 
-    async fn send_main_packet(client_ch: &ClientCh, client: &Client, game: &Game) {
-        let castle = if let Some(castle_id) = client.castle_id {
+    fn send_main_packet(client_ch: &ClientCh, player: &Player, game: &Game) {
+        let castle = if let Some(castle_id) = player.castle_id {
             game.export_owned_castle(castle_id)
         } else {
             None
@@ -200,7 +235,7 @@ impl Lobby {
         let packet = MainPacket {
             time: game.time,
             objs: game.export_objs(),
-            client: client.export(),
+            player: player.export(),
             castle,
         };
 

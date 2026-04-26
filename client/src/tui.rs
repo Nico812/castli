@@ -6,7 +6,8 @@ use crate::{
     ui_state::UiState,
 };
 use common::{
-    GameCoord, GameID,
+    GameCoord, GameId,
+    r#const::{MAX_LOBBIES, MAX_LOBBY_PLAYERS},
     exports::{game_object::GameObjE, units::UnitGroupE},
 };
 use crossterm::{
@@ -30,7 +31,7 @@ use tokio::{
 /// Messages sent from the TUI to the client's network task.
 pub enum T2C {
     NewCastle(GameCoord),
-    AttackCastle(GameID, UnitGroupE),
+    AttackCastle(GameId, UnitGroupE),
     SendUnits(GameCoord, UnitGroupE),
 }
 
@@ -103,9 +104,9 @@ impl Tui {
     pub fn get_looked_objs<'a>(
         coord: GameCoord,
         zoom: &Option<GameCoord>,
-        game_objs: &'a HashMap<GameID, GameObjE>,
-    ) -> Vec<(GameID, &'a GameObjE)> {
-        let mut looked_objs: Vec<(GameID, &GameObjE)> = game_objs
+        game_objs: &'a HashMap<GameId, GameObjE>,
+    ) -> Vec<(GameId, &'a GameObjE)> {
+        let mut looked_objs: Vec<(GameId, &GameObjE)> = game_objs
             .iter()
             .filter_map(|(game_id, game_obj)| {
                 if (zoom.is_some() && game_obj.get_pos() == coord)
@@ -132,10 +133,19 @@ impl Tui {
     }
 
     pub fn login() -> String {
-        let mut input = String::new();
         println!("Login:");
+
+        let mut input = String::new();
         std::io::stdin().read_line(&mut input).unwrap();
         input.trim().to_string()
+    }
+
+    pub fn choose_lobby() -> usize {
+        println!("Choose lobby (0..{}):", MAX_LOBBIES - 1);
+
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        input.trim().parse::<usize>().expect("Invalid lobby number")
     }
 
     fn clear_screen() {

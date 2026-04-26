@@ -6,12 +6,12 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt};
 
 use crate::exports::{
-    client::ClientE, game_object::GameObjE, owned_castle::OwnedCastleE, tile::TileE,
+    client::PlayerE, game_object::GameObjE, owned_castle::OwnedCastleE, tile::TileE,
     units::UnitGroupE,
 };
 
 /// Global IDs for game objects
-pub type GameID = usize;
+pub type GameId = usize;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GameCoord {
@@ -61,7 +61,7 @@ impl Time {
 #[derive(Serialize, Deserialize)]
 pub enum S2C {
     LobbyFound,
-    ServerFull,
+    LobbyFull,
     ConnectionFailed,
     ServerShutdown,
     L2S4C(L2S4C),
@@ -70,8 +70,8 @@ pub enum S2C {
 #[derive(Serialize, Deserialize)]
 pub struct MainPacket {
     pub time: Time,
-    pub objs: HashMap<GameID, GameObjE>,
-    pub client: ClientE,
+    pub objs: HashMap<GameId, GameObjE>,
+    pub player: PlayerE,
     pub castle: Option<OwnedCastleE>,
 }
 
@@ -96,12 +96,13 @@ pub enum L2S4C {
 pub enum C2S {
     C2S4L(C2S4L),
     Login(String),
+    Lobby(usize),
 }
 
 /// Represents messages sent from a Client, to the Server, for the Lobby (C2S4L).
 #[derive(Serialize, Deserialize, Debug)]
 pub enum C2S4L {
     NewCastle(GameCoord),
-    AttackCastle(GameID, UnitGroupE),
+    AttackCastle(GameId, UnitGroupE),
     SendUnits(GameCoord, UnitGroupE),
 }

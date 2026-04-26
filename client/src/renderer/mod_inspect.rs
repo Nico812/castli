@@ -11,7 +11,7 @@ use crate::{
     ui_state::{UiMode, UiState},
 };
 use common::{
-    GameID,
+    GameId,
     exports::{game_object::GameObjE, tile::TileE},
 };
 
@@ -42,7 +42,7 @@ impl ModInspect {
 
             if !looked_objs.is_empty() {
                 let mut objs_comp = Self::create_objs_component(
-                    &game_state.client.castle_id,
+                    &game_state.player.castle_id,
                     selected_id,
                     looked_objs,
                 );
@@ -64,9 +64,9 @@ impl ModInspect {
     }
 
     fn create_objs_component(
-        owned_castle: &Option<GameID>,
-        selected_id: Option<GameID>,
-        objs: Vec<(GameID, &GameObjE)>,
+        owned_castle: &Option<GameId>,
+        selected_id: Option<GameId>,
+        objs: Vec<(GameId, &GameObjE)>,
     ) -> Vec<Vec<TermCell>> {
         let mut castles_component = Vec::new();
         let mut units_component = Vec::new();

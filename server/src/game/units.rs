@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use common::{
-    GameCoord, GameID, all_units, all_units_enum,
+    GameCoord, GameId, all_units, all_units_enum,
     exports::{
         game_object::DeployedUnitsE,
         units::{UnitGroupE, UnitType},
@@ -120,8 +120,8 @@ impl UnitGroup {
 }
 
 pub struct DeployedUnits {
-    pub owner_id: GameID,
-    pub target_id: Option<GameID>,
+    pub owner_id: GameId,
+    pub target_id: Option<GameId>,
     pub returning: bool,
     path: Option<VecDeque<GameCoord>>,
     path_index: usize,
@@ -131,8 +131,8 @@ pub struct DeployedUnits {
 
 impl DeployedUnits {
     pub fn new(
-        owner_id: GameID,
-        target_id: Option<GameID>,
+        owner_id: GameId,
+        target_id: Option<GameId>,
         path: Option<VecDeque<GameCoord>>,
         unit_group: UnitGroup,
     ) -> Self {
