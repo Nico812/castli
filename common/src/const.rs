@@ -2,12 +2,12 @@
 //!
 //! This module defines constants that are shared across both the `server` and `client` crates.
 
-pub const MAP_ROWS: usize = 896 / 2;
-pub const MAP_COLS: usize = 896 / 2;
+// Max map rows/cols is 896 or it will break
+pub const MAP_ROWS: usize = 896 / 4;
+pub const MAP_COLS: usize = 896 / 4;
 
 pub const MAX_LOBBY_PLAYERS: usize = 15;
-pub const MAX_LOBBIES: usize = 2;
-pub const LOBBY_POOL_LEN: usize = 4;
+pub const MAX_LOBBIES: usize = 10;
 
 pub const ONLINE: bool = false;
 pub const IP_LOCAL: &str = "127.0.0.1:7878";

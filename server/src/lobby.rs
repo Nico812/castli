@@ -6,15 +6,13 @@ use std::{
 };
 
 use crate::{
-    r#const::GAME_TICK,
+    r#const::{GAME_TICK, LOBBY_POOL_LEN},
     game::game::Game,
     server::{Client, ClientId, S2L},
     thread_pool::ThreadPool,
 };
 use common::{
-    C2S4L, GameId, L2S4C, LogE, MainPacket,
-    r#const::{LOBBY_POOL_LEN, MAX_LOBBY_PLAYERS},
-    exports::client::PlayerE,
+    C2S4L, GameId, L2S4C, LogE, MainPacket, r#const::MAX_LOBBY_PLAYERS, exports::client::PlayerE,
 };
 
 struct ClientCh {

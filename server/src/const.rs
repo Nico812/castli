@@ -1,6 +1,7 @@
 // Lobby constants
 
 pub const GAME_TICK: u64 = 1000;
+pub const LOBBY_POOL_LEN: usize = 4;
 
 // Map initialization constants
 
