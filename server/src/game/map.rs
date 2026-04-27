@@ -10,11 +10,11 @@ use crate::r#const::{
 use common::{
     GameCoord,
     r#const::{MAP_COLS, MAP_ROWS},
-    exports::tile::TileE,
+    map::Tile,
 };
 
 pub struct Map {
-    pub tiles: Vec<Vec<TileE>>,
+    pub tiles: Vec<Vec<Tile>>,
     pub obstacles: Vec<Vec<bool>>,
 }
 
@@ -25,7 +25,7 @@ impl Map {
         let mut obstacles = vec![vec![false; MAP_COLS]; MAP_ROWS];
         for (r, row) in tiles.iter().enumerate() {
             for (c, tile) in row.iter().enumerate() {
-                if *tile == TileE::Water {
+                if *tile == Tile::Water {
                     obstacles[r][c] = true;
                 }
             }
@@ -38,22 +38,17 @@ impl Map {
         self.obstacles[coord.y][coord.x]
     }
 
-    pub fn export(&self) -> Vec<Vec<TileE>> {
+    pub fn export(&self) -> Vec<Vec<Tile>> {
         self.tiles.clone()
     }
 
-    fn cellular_automata() -> Vec<Vec<TileE>> {
-        let mut tiles = vec![vec![TileE::Grass; MAP_COLS]; MAP_ROWS];
+    fn cellular_automata() -> Vec<Vec<Tile>> {
+        let mut tiles = vec![vec![Tile::Grass; MAP_COLS]; MAP_ROWS];
 
         // Creating oceans
         let mut before_add_random = tiles.clone();
-        let water_spreads_on = [TileE::Grass];
-        Self::add_random(
-            &mut tiles,
-            TileE::Water,
-            &water_spreads_on,
-            PERCENT_IS_WATER,
-        );
+        let water_spreads_on = [Tile::Grass];
+        Self::add_random(&mut tiles, Tile::Water, &water_spreads_on, PERCENT_IS_WATER);
 
         let mut temp_tiles = tiles.clone();
         for _ in 0..CA_ITER_WATER {
@@ -61,7 +56,7 @@ impl Map {
                 &tiles,
                 &mut temp_tiles,
                 &before_add_random,
-                TileE::Water,
+                Tile::Water,
                 &water_spreads_on,
                 COUNTS_TO_SPREAD_WATER,
                 COUNTS_TO_SURVIVE_WATER,
@@ -71,13 +66,8 @@ impl Map {
 
         // Creating woodlands
         before_add_random.clone_from(&tiles);
-        let woods_spreads_on = [TileE::Grass];
-        Self::add_random(
-            &mut tiles,
-            TileE::Woods,
-            &woods_spreads_on,
-            PERCENT_IS_WOODS,
-        );
+        let woods_spreads_on = [Tile::Grass];
+        Self::add_random(&mut tiles, Tile::Woods, &woods_spreads_on, PERCENT_IS_WOODS);
 
         let mut temp_tiles = tiles.clone();
         for _ in 0..CA_ITER_WOODS {
@@ -85,7 +75,7 @@ impl Map {
                 &tiles,
                 &mut temp_tiles,
                 &before_add_random,
-                TileE::Woods,
+                Tile::Woods,
                 &woods_spreads_on,
                 COUNTS_TO_SPREAD_WOODS,
                 COUNTS_TO_SURVIVE_WOODS,
@@ -95,10 +85,10 @@ impl Map {
 
         // Creating mountains
         before_add_random = tiles.clone();
-        let mountains_spreads_on = [TileE::Grass, TileE::Woods];
+        let mountains_spreads_on = [Tile::Grass, Tile::Woods];
         Self::add_random(
             &mut tiles,
-            TileE::Mountain,
+            Tile::Mountain,
             &mountains_spreads_on,
             PERCENT_IS_MOUNTAINS,
         );
@@ -109,7 +99,7 @@ impl Map {
                 &tiles,
                 &mut temp_tiles,
                 &before_add_random,
-                TileE::Mountain,
+                Tile::Mountain,
                 &mountains_spreads_on,
                 COUNTS_TO_SPREAD_MOUNTAINS,
                 COUNTS_TO_SURVIVE_MOUNTAINS,
@@ -119,10 +109,10 @@ impl Map {
 
         // Creating high mountains
         before_add_random = tiles.clone();
-        let high_mountains_spreads_on = [TileE::Mountain];
+        let high_mountains_spreads_on = [Tile::Mountain];
         Self::add_random(
             &mut tiles,
-            TileE::HighMountain,
+            Tile::HighMountain,
             &high_mountains_spreads_on,
             PERCENT_IS_HIGH_MOUNTAINS,
         );
@@ -133,7 +123,7 @@ impl Map {
                 &tiles,
                 &mut temp_tiles,
                 &before_add_random,
-                TileE::HighMountain,
+                Tile::HighMountain,
                 &high_mountains_spreads_on,
                 COUNTS_TO_SPREAD_HIGH_MOUNTAINS,
                 COUNTS_TO_SURVIVE_HIGH_MOUNTAINS,
@@ -143,7 +133,7 @@ impl Map {
         tiles
     }
 
-    fn add_random(tiles: &mut [Vec<TileE>], add_type: TileE, add_on: &[TileE], percent: u8) {
+    fn add_random(tiles: &mut [Vec<Tile>], add_type: Tile, add_on: &[Tile], percent: u8) {
         let mut rng = rand::rng();
 
         for row in 0..MAP_ROWS {
@@ -160,11 +150,11 @@ impl Map {
     }
 
     fn step_life(
-        tiles: &[Vec<TileE>],
-        temp_tiles: &mut [Vec<TileE>],
-        before_add_random: &[Vec<TileE>],
-        spreading_type: TileE,
-        spreads_on: &[TileE],
+        tiles: &[Vec<Tile>],
+        temp_tiles: &mut [Vec<Tile>],
+        before_add_random: &[Vec<Tile>],
+        spreading_type: Tile,
+        spreads_on: &[Tile],
         counts_to_spread: u8,
         counts_to_survive: u8,
     ) {

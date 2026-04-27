@@ -1,6 +1,6 @@
-use common::exports::game_object::CastleE;
-use common::exports::game_object::DeployedUnitsE;
-use common::exports::game_object::GameObjE;
+use common::game_objs::CastleE;
+use common::game_objs::DeployedUnitsE;
+use common::game_objs::GameObjE;
 
 use crate::ansi::*;
 use crate::assets::*;

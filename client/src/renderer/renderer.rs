@@ -1,7 +1,7 @@
 use std::io::Stdout;
 use std::io::Write;
 
-use common::exports::tile::TileE;
+use common::map::Tile;
 use crossterm::cursor;
 use crossterm::queue;
 use crossterm::style::PrintStyledContent;
@@ -33,7 +33,7 @@ impl Renderer {
     pub const FOV_COLS: usize = MOD_CENTRAL_COLS - 2;
     pub const ZOOM_FACTOR: usize = 8;
 
-    pub fn new(map_tiles: Vec<Vec<TileE>>) -> Result<Self, ()> {
+    pub fn new(map_tiles: Vec<Vec<Tile>>) -> Result<Self, ()> {
         let canvas_pos = if let Ok((w, h)) = terminal::size()
             && (h as usize) >= CANVAS_ROWS
             && (w as usize) >= CANVAS_COLS

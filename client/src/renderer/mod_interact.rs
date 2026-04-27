@@ -1,7 +1,4 @@
-use common::{
-    all_units,
-    exports::{game_object::GameObjE, units::UnitType},
-};
+use common::{all_units, game_objs::GameObjE};
 
 use crate::{
     ansi::BLACK,

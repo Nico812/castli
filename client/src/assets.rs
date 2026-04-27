@@ -5,7 +5,7 @@
 
 #![allow(dead_code)]
 
-use common::exports::tile::TileE;
+use common::map::Tile;
 use crossterm::style::{Color, StyledContent, Stylize};
 
 use crate::ansi::*;
@@ -35,44 +35,44 @@ pub struct TileAsset {
 }
 
 impl TileAsset {
-    pub fn get_asset(tile: TileE, night: bool) -> Self {
+    pub fn get_asset(tile: Tile, night: bool) -> Self {
         match tile {
-            TileE::Grass => {
+            Tile::Grass => {
                 if night {
                     NIGHT_GRASS
                 } else {
                     DAY_GRASS
                 }
             }
-            TileE::Water => {
+            Tile::Water => {
                 if night {
                     NIGHT_WATER
                 } else {
                     DAY_WATER
                 }
             }
-            TileE::Woods => {
+            Tile::Woods => {
                 if night {
                     NIGHT_WOODS
                 } else {
                     DAY_WOODS
                 }
             }
-            TileE::Mountain => {
+            Tile::Mountain => {
                 if night {
                     NIGHT_MOUNTAIN
                 } else {
                     DAY_MOUNTAIN
                 }
             }
-            TileE::HighMountain => {
+            Tile::HighMountain => {
                 if night {
                     NIGHT_HIGH_MOUNTAIN
                 } else {
                     DAY_HIGH_MOUNTAIN
                 }
             }
-            TileE::Err => ERR,
+            Tile::Err => ERR,
         }
     }
 }

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use common::{
-    C2S, C2S4L, L2S4C, LogE, S2C,
+    packets::{C2S, C2S4L, L2S4C, LogE, S2C},
     stream::{StreamErr, get_msg_from_server, send_msg_to_server},
 };
 use tokio::{

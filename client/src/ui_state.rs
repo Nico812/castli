@@ -1,6 +1,6 @@
 use common::{
     GameCoord, GameId,
-    exports::units::{UnitGroupE, UnitType},
+    units::{UnitGroup, UnitType},
 };
 
 use crate::renderer::ModRightTab;
@@ -34,7 +34,7 @@ pub struct UnitSelection {
     pub obj_id: Option<GameId>,
     pub coord: GameCoord,
     pub active_input: (UnitType, Option<String>),
-    pub selected_units: UnitGroupE,
+    pub selected_units: UnitGroup,
 }
 
 impl UnitSelection {
@@ -43,9 +43,7 @@ impl UnitSelection {
             obj_id: interact.obj_id,
             coord: interact.coord,
             active_input: (UnitType::form_index(0), None),
-            selected_units: UnitGroupE {
-                quantities: [0, 0, 0],
-            },
+            selected_units: UnitGroup::new(),
         }
     }
 }

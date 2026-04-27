@@ -1,5 +1,6 @@
-use crate::{GameCoord, GameId};
 use serde::{Deserialize, Serialize};
+
+use crate::{GameCoord, GameId, units::UnitGroup};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum GameObjE {
@@ -28,12 +29,12 @@ pub struct CastleE {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct StructureE {
     pub name: String,
-    pub r#type: StructureTypeE,
+    pub r#type: StructureType,
     pub pos: GameCoord,
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
-pub enum StructureTypeE {
+pub enum StructureType {
     Farm,
 }
 
@@ -41,4 +42,13 @@ pub enum StructureTypeE {
 pub struct DeployedUnitsE {
     pub owner_id: GameId,
     pub pos: GameCoord,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct OwnedCastleE {
+    pub alive: bool,
+    pub name: String,
+    pub pos: GameCoord,
+    pub units: UnitGroup,
+    pub peasants: u32,
 }

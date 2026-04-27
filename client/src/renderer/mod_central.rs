@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use common::r#const::{MAP_COLS, MAP_ROWS};
-use common::exports::game_object::GameObjE;
-use common::exports::tile::TileE;
+use common::game_objs::GameObjE;
+use common::map::Tile;
 use common::{GameCoord, GameId};
 
 use super::module_utility;
@@ -58,7 +58,7 @@ impl ModCentral {
         cells
     }
 
-    fn tiles_to_cells(tiles: &[Vec<TileE>], wind: &[Vec<bool>], night: bool) -> Vec<Vec<TermCell>> {
+    fn tiles_to_cells(tiles: &[Vec<Tile>], wind: &[Vec<bool>], night: bool) -> Vec<Vec<TermCell>> {
         tiles
             .iter()
             .step_by(2)
@@ -153,7 +153,7 @@ impl ModCentral {
         }
     }
 
-    fn get_map_slice(tiles: &[Vec<TileE>], zoom: GameCoord) -> Vec<Vec<TileE>> {
+    fn get_map_slice(tiles: &[Vec<Tile>], zoom: GameCoord) -> Vec<Vec<Tile>> {
         tiles[zoom.y..(zoom.y + Renderer::FOV_ROWS * 2).min(MAP_ROWS)]
             .iter()
             .map(|row| row[zoom.x..(zoom.x + Renderer::FOV_COLS).min(MAP_COLS)].to_vec())

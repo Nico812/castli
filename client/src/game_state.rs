@@ -2,7 +2,9 @@ use std::collections::{HashMap, VecDeque};
 
 use common::{
     GameId, Time,
-    exports::{game_object::GameObjE, owned_castle::OwnedCastleE, player::PlayerE, tile::TileE},
+    game_objs::{GameObjE, OwnedCastleE},
+    map::Tile,
+    player::PlayerE,
 };
 
 use crate::r#const::LOGS_CAPACITY;
@@ -30,7 +32,7 @@ impl Logs {
 
 pub struct GameState {
     pub time: Time,
-    pub map: Vec<Vec<TileE>>,
+    pub map: Vec<Vec<Tile>>,
     pub player: PlayerE,
     pub castle: Option<OwnedCastleE>,
     pub objs: HashMap<GameId, GameObjE>,
@@ -41,7 +43,7 @@ impl GameState {
     pub fn new(
         time: Time,
         objs: HashMap<usize, GameObjE>,
-        map: Vec<Vec<TileE>>,
+        map: Vec<Vec<Tile>>,
         player: PlayerE,
         castle: Option<OwnedCastleE>,
     ) -> Self {

@@ -10,10 +10,7 @@ use crate::{
     tui::Tui,
     ui_state::{UiMode, UiState},
 };
-use common::{
-    GameId,
-    exports::{game_object::GameObjE, tile::TileE},
-};
+use common::{GameId, game_objs::GameObjE, map::Tile};
 
 pub struct ModInspect {}
 
@@ -148,7 +145,7 @@ impl ModInspect {
         renderable
     }
 
-    fn create_tile_component(tile: TileE, night: bool) -> Vec<Vec<TermCell>> {
+    fn create_tile_component(tile: Tile, night: bool) -> Vec<Vec<TermCell>> {
         let mut tile_component = Vec::new();
         Self::push_row_with_text(&mut tile_component, &format!(" : {:?}", tile));
         tile_component.last_mut().unwrap()[Self::PADDING_HORI] =

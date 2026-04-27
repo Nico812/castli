@@ -1,11 +1,11 @@
 use common::{
     GameCoord,
-    exports::game_object::{StructureE, StructureTypeE},
+    game_objs::{StructureE, StructureType},
 };
 
 pub struct Structure {
     name: String,
-    r#type: StructureTypeE,
+    r#type: StructureType,
     pos: GameCoord,
 }
 

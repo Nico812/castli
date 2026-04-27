@@ -5,11 +5,7 @@ use crate::{
     renderer::renderer::Renderer,
     ui_state::UiState,
 };
-use common::{
-    GameCoord, GameId,
-    r#const::MAX_LOBBIES,
-    exports::{game_object::GameObjE, units::UnitGroupE},
-};
+use common::{GameCoord, GameId, r#const::MAX_LOBBIES, game_objs::GameObjE, units::UnitGroup};
 use crossterm::{
     ExecutableCommand, cursor,
     event::{Event, poll, read},
@@ -31,8 +27,8 @@ use tokio::{
 /// Messages sent from the TUI to the client's network task.
 pub enum T2C {
     NewCastle(GameCoord),
-    AttackCastle(GameId, UnitGroupE),
-    SendUnits(GameCoord, UnitGroupE),
+    AttackCastle(GameId, UnitGroup),
+    SendUnits(GameCoord, UnitGroup),
 }
 
 pub struct Tui;

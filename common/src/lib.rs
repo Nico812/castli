@@ -1,14 +1,14 @@
 pub mod r#const;
-pub mod exports;
+pub mod courtyard;
+pub mod game_objs;
+pub mod map;
+pub mod packets;
+pub mod player;
 pub mod stream;
+pub mod units;
 
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt};
-
-use crate::exports::{
-    game_object::GameObjE, owned_castle::OwnedCastleE, player::PlayerE, tile::TileE,
-    units::UnitGroupE,
-};
+use std::fmt;
 
 /// Global IDs for game objects
 pub type GameId = usize;
@@ -17,6 +17,12 @@ pub type GameId = usize;
 pub struct GameCoord {
     pub x: usize,
     pub y: usize,
+}
+
+impl GameCoord {
+    pub const fn new(y: usize, x: usize) -> Self {
+        Self { y, x }
+    }
 }
 
 impl fmt::Display for GameCoord {
@@ -57,52 +63,32 @@ impl Time {
     }
 }
 
-/// Represents messages sent from the Server to the Client (S2C).
-#[derive(Serialize, Deserialize)]
-pub enum S2C {
-    LobbyFound,
-    LobbyFull,
-    ConnectionFailed,
-    ServerShutdown,
-    L2S4C(L2S4C),
+pub struct Resources {
+    pub wood: u32,
+    pub stone: u32,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct MainPacket {
-    pub time: Time,
-    pub objs: HashMap<GameId, GameObjE>,
-    pub player: PlayerE,
-    pub castle: Option<OwnedCastleE>,
-}
+impl Resources {
+    pub const fn new(wood: u32, stone: u32) -> Self {
+        Self { wood, stone }
+    }
 
-#[derive(Serialize, Deserialize)]
-pub enum LogE {
-    CastleCreationErr,
-    UnitDeployErr,
-    AttackDeployErr,
-}
+    pub fn saturating_add(&mut self, other: &Self) {
+        let _ = self.wood.saturating_add(other.wood);
+        let _ = self.stone.saturating_add(other.stone);
+    }
 
-/// Represents messages sent from a Lobby, to the Server, for a Client (L2S4C).
-/// These are game-specific messages.
-#[derive(Serialize, Deserialize)]
-pub enum L2S4C {
-    MainPacket(MainPacket),
-    Map(Vec<Vec<TileE>>),
-    Log(LogE),
-}
+    pub fn saturating_sub(&mut self, other: &Self) {
+        let _ = self.wood.saturating_sub(other.wood);
+        let _ = self.stone.saturating_sub(other.stone);
+    }
 
-/// Represents messages sent from the Client to the Server (C2S).
-#[derive(Serialize, Deserialize, Debug)]
-pub enum C2S {
-    C2S4L(C2S4L),
-    Login(String),
-    Lobby(usize),
-}
-
-/// Represents messages sent from a Client, to the Server, for the Lobby (C2S4L).
-#[derive(Serialize, Deserialize, Debug)]
-pub enum C2S4L {
-    NewCastle(GameCoord),
-    AttackCastle(GameId, UnitGroupE),
-    SendUnits(GameCoord, UnitGroupE),
+    pub fn subtract_if_enough(&mut self, other: &Self) -> bool {
+        if self.wood >= other.wood && self.stone >= other.stone {
+            self.saturating_sub(other);
+            true
+        } else {
+            false
+        }
+    }
 }

@@ -1,6 +1,6 @@
 use common::GameId;
-use common::exports::game_object::GameObjE;
-use common::exports::units::UnitType;
+use common::game_objs::GameObjE;
+use common::units::UnitType;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::collections::HashMap;
 use tokio::sync::mpsc::UnboundedSender;

@@ -1,25 +1,10 @@
 use common::{
-    GameCoord,
-    exports::{game_object::CastleE, owned_castle::OwnedCastleE, units::UnitType},
+    GameCoord, Resources,
+    game_objs::{CastleE, OwnedCastleE},
+    units::{UnitGroup, UnitType},
 };
 
-use crate::game::{facilities::Facilities, units::UnitGroup};
-
-pub struct Resources {
-    pub wood: u32,
-    pub stone: u32,
-}
-
-impl Resources {
-    pub fn new(wood: u32, stone: u32) -> Self {
-        Self { wood, stone }
-    }
-
-    pub fn add(&mut self, other: Self) {
-        self.wood += other.wood;
-        self.stone += other.stone;
-    }
-}
+use crate::game::courtyard::Courtyard;
 
 pub struct Castle {
     pub name: String,
@@ -27,8 +12,8 @@ pub struct Castle {
     pub alive: bool,
     pub peasants: u32,
     pub units: UnitGroup,
-    pub facilities: Facilities,
     pub resources: Resources,
+    pub courtyard: Courtyard,
 }
 
 impl Castle {
@@ -39,10 +24,10 @@ impl Castle {
         let mut resources = Resources::new(10, 10);
 
         if name == "gabbiano" {
-            resources.add(Resources::new(100, 100));
+            resources.saturating_add(&Resources::new(100, 100));
             units.add_single_type(UnitType::Knight, 100);
         } else if name == "pellicano" {
-            resources.add(Resources::new(1000, 1000));
+            resources.saturating_add(&Resources::new(1000, 1000));
             units.add_single_type(UnitType::Knight, 1000);
             units.add_single_type(UnitType::Mage, 1000);
             units.add_single_type(UnitType::Dragon, 1000);
@@ -56,7 +41,7 @@ impl Castle {
             units,
             peasants,
             alive,
-            facilities: Facilities::new(),
+            courtyard: Courtyard::new(),
             resources: Resources::new(10, 10),
         }
     }
@@ -74,7 +59,7 @@ impl Castle {
             alive: self.alive,
             name: self.name.clone(),
             pos: self.pos,
-            units: self.units.export(),
+            units: self.units.clone(),
             peasants: self.peasants,
         }
     }

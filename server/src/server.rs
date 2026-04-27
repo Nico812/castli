@@ -6,8 +6,8 @@ use std::{
 
 use crate::{lobby::Lobby, thread_pool::ThreadPool};
 use common::{
-    C2S, C2S4L, L2S4C, S2C,
     r#const::{IP_LOCAL, MAX_LOBBIES},
+    packets::{C2S, C2S4L, L2S4C, S2C},
     stream::StreamErr,
 };
 

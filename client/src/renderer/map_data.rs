@@ -1,15 +1,15 @@
 use common::{
     GameCoord,
     r#const::{MAP_COLS, MAP_ROWS},
-    exports::tile::TileE,
+    map::Tile,
 };
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 
 use crate::renderer::renderer::Renderer;
 
 pub struct MapData {
-    pub tiles: Vec<Vec<TileE>>,
-    pub tiles_wor: Vec<Vec<TileE>>,
+    pub tiles: Vec<Vec<Tile>>,
+    pub tiles_wor: Vec<Vec<Tile>>,
     pub wind: Vec<Vec<bool>>,
     rng: SmallRng,
 }
@@ -18,7 +18,7 @@ impl MapData {
     pub const WIND_ROWS: usize = MAP_ROWS / 2;
     pub const WIND_COLS: usize = MAP_COLS;
 
-    pub fn new(tiles: Vec<Vec<TileE>>) -> Self {
+    pub fn new(tiles: Vec<Vec<Tile>>) -> Self {
         let mut rng = SmallRng::seed_from_u64(1);
 
         let tiles_wor = (0..MAP_ROWS / Renderer::ZOOM_FACTOR)
@@ -38,16 +38,16 @@ impl MapData {
                         for row in tiles.iter().take(bottom_right_row + 1).skip(top_left_row) {
                             for tile in row.iter().take(bottom_right_col + 1).skip(top_left_col) {
                                 match tile {
-                                    TileE::Grass => grass_count += 1,
-                                    TileE::Water => water_count += 1,
+                                    Tile::Grass => grass_count += 1,
+                                    Tile::Water => water_count += 1,
                                     _ => {}
                                 }
                             }
                         }
                         if grass_count >= water_count {
-                            TileE::Grass
+                            Tile::Grass
                         } else {
-                            TileE::Water
+                            Tile::Water
                         }
                     })
                     .collect()
@@ -109,11 +109,11 @@ impl MapData {
         self.wind = tmp_wind;
     }
 
-    pub fn get_tile(&self, coord: GameCoord) -> TileE {
+    pub fn get_tile(&self, coord: GameCoord) -> Tile {
         self.tiles
             .get(coord.y)
             .and_then(|row| row.get(coord.x))
             .copied()
-            .unwrap_or(TileE::Err)
+            .unwrap_or(Tile::Err)
     }
 }

@@ -1,7 +1,9 @@
-use crate::{C2S, S2C};
+// TODO: put these in client crate
 use serde_json;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
+
+use crate::packets::{C2S, S2C};
 
 pub enum StreamErr {
     ConnectionEnded,

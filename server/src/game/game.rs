@@ -4,18 +4,14 @@ use std::{
 };
 
 use crate::{
-    game::{
-        castle::Castle,
-        game_obj::GameObj,
-        map::Map,
-        pathfinding,
-        units::{DeployedUnits, UnitGroup},
-    },
+    game::{castle::Castle, game_obj::GameObj, map::Map, pathfinding, units::DeployedUnits},
     thread_pool::ThreadPool,
 };
 use common::{
     GameCoord, GameId, Time,
-    exports::{game_object::GameObjE, owned_castle::OwnedCastleE, tile::TileE, units::UnitGroupE},
+    game_objs::{GameObjE, OwnedCastleE},
+    map::Tile,
+    units::UnitGroup,
 };
 
 struct PathTask {
@@ -120,7 +116,7 @@ impl Game {
         &mut self,
         attacker_id: GameId,
         target_id: GameId,
-        unit_group_e: UnitGroupE,
+        unit_group_e: UnitGroup,
         pool: &ThreadPool,
     ) -> bool {
         let target_pos = match self.game_objs.get(&target_id) {
@@ -134,7 +130,7 @@ impl Game {
         &mut self,
         attacker_id: GameId,
         target_pos: GameCoord,
-        unit_group_e: UnitGroupE,
+        unit_group: UnitGroup,
         target_id: Option<GameId>,
         pool: &ThreadPool,
     ) -> bool {
@@ -144,7 +140,6 @@ impl Game {
                 return false;
             }
         };
-        let unit_group = UnitGroup::from_export(unit_group_e);
 
         if unit_group.is_empty() {
             return false;
@@ -231,7 +226,7 @@ impl Game {
         Some(id)
     }
 
-    pub fn export_map(&self) -> Vec<Vec<TileE>> {
+    pub fn export_map(&self) -> Vec<Vec<Tile>> {
         self.map.export()
     }
 

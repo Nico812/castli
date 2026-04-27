@@ -11,8 +11,8 @@ use tokio::{
 use crate::connection::Connection;
 use crate::tui::Tui;
 use common::{
-    C2S,
     r#const::{IP_LOCAL, ONLINE},
+    packets::C2S,
     stream,
 };
 
