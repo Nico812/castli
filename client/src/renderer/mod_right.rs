@@ -9,9 +9,9 @@ use crate::renderer::ModRightTab;
 use crate::renderer::module_utility::draw_text_in_row;
 use crate::ui_state::UiState;
 use common::Time;
+use common::all_units;
 use common::game_objs::OwnedCastleE;
 use common::player::PlayerE;
-use common::units::UnitType;
 
 pub struct ModRight {}
 
@@ -104,38 +104,29 @@ impl ModRight {
         let pos_str = format!("{}", castle.pos);
         let time_str = format!("Time: {}", time.h);
         let peasants_str = format!("Peasants: {}", castle.peasants);
-        let knights_str = format!(
-            "Knights: {}",
-            castle.units.quantities[UnitType::Knight.as_index()]
-        );
-        let mages_str = format!(
-            "Mages: {}",
-            castle.units.quantities[UnitType::Mage.as_index()]
-        );
-        let dragons_str = format!(
-            "Dragons: {}",
-            castle.units.quantities[UnitType::Dragon.as_index()]
-        );
 
-        let infos_to_print = [
-            (&castle.name, Self::PADDING_VERT),
-            (&alive_str.to_string(), Self::PADDING_VERT + 1),
-            (&pos_str, Self::PADDING_VERT + 2),
-            (&time_str, Self::PADDING_VERT + 3),
-            (&peasants_str, Self::PADDING_VERT + 5),
-            (&knights_str, Self::PADDING_VERT + 6),
-            (&mages_str, Self::PADDING_VERT + 7),
-            (&dragons_str, Self::PADDING_VERT + 8),
+        let mut unit_strings = Vec::new();
+
+        for unit_type in all_units!() {
+            let count = castle.units.quantities[unit_type.as_index()];
+            let s = format!("{:?}: {}", unit_type, count);
+            unit_strings.push(s);
+        }
+
+        let mut infos_to_print = vec![
+            (castle.name.as_str(), Self::PADDING_VERT),
+            (alive_str, Self::PADDING_VERT + 1),
+            (pos_str.as_str(), Self::PADDING_VERT + 2),
+            (time_str.as_str(), Self::PADDING_VERT + 3),
+            (peasants_str.as_str(), Self::PADDING_VERT + 5),
         ];
 
-        for info_to_print in infos_to_print {
-            draw_text_in_row(
-                content,
-                info_to_print.0,
-                info_to_print.1,
-                Self::PADDING_HORI,
-                Self::PADDING_HORI,
-            );
+        for (i, unit_str) in unit_strings.iter().enumerate() {
+            infos_to_print.push((unit_str.as_str(), Self::PADDING_VERT + 6 + i));
+        }
+
+        for (text, row) in infos_to_print {
+            draw_text_in_row(content, text, row, Self::PADDING_HORI, Self::PADDING_HORI);
         }
     }
 

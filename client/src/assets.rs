@@ -170,14 +170,8 @@ pub const ERR: TileAsset = TileAsset {
 
 // Game elements
 
-pub const MY_CASTLE_FG: Color = WHITE;
-pub const MY_CASTLE_BG: Color = BLACK;
 pub const MY_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', GREEN, BLACK)]];
-pub const CASTLE_FG: Color = BLACK;
-pub const CASTLE_BG: Color = WHITE;
 pub const CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', WHITE, BLACK)]];
-pub const DEAD_CASTLE_FG: Color = BLACK;
-pub const DEAD_CASTLE_BG: Color = WHITE;
 pub const DEAD_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('X', RED, BLACK)]];
 pub const CASTLE_ART_SIZE: (usize, usize) = (CASTLE_ART.len(), CASTLE_ART[0].len());
 
@@ -188,6 +182,129 @@ pub const DEPLOYED_UNITS_ART_SIZE: (usize, usize) =
 
 pub const ERR_ART: &[&[TermCell]] = &[&[ERR.std]];
 pub const ERR_ART_SIZE: (usize, usize) = (ERR_ART.len(), ERR_ART[0].len());
+
+// Facilities
+
+// +++++++++
+// +▓▒▓▓░░▒+
+// +░▓░▓░▓▓+
+// +▒░▒▒▓▓░+
+// +++++++++
+pub const DAY_FARM_PLOT: &[&[TermCell]] = &[
+    &[
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+    ],
+    &[
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('▓', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('▒', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('▓', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('▓', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('░', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('░', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('▒', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+    ],
+    &[
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('░', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('▓', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('░', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('▓', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('░', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('▓', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('▓', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+    ],
+    &[
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('▒', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('░', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('▒', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('▒', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('▓', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('▓', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('░', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+    ],
+    &[
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+        TermCell::new('+', DAY_GREEN_0, DAY_GREEN_1),
+    ],
+];
+
+pub const NIGHT_FARM_PLOT: &[&[TermCell]] = &[
+    &[
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+    ],
+    &[
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('▓', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('▒', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('▓', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('▓', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('░', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('░', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('▒', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+    ],
+    &[
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('░', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('▓', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('░', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('▓', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('░', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('▓', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('▓', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+    ],
+    &[
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('▒', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('░', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('▒', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('▒', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('▓', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('▓', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('░', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+    ],
+    &[
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+        TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+    ],
+];
 
 // Old assets
 //

@@ -22,33 +22,11 @@ macro_rules! all_units {
     };
 }
 
-#[macro_export]
-macro_rules! all_units_enumerate {
-    () => {{
-        const ALL_UNITS: [$crate::units::UnitType; $crate::units::UnitType::COUNT] =
-            $crate::all_units!();
-
-        let mut result = [(0, $crate::units::UnitType::Knight); $crate::units::UnitType::COUNT];
-
-        let mut i = 0;
-        for unit in ALL_UNITS {
-            result[i] = (i, unit);
-            i += 1;
-        }
-        result
-    }};
-}
-
 impl UnitType {
     pub const COUNT: usize = 4;
 
     pub fn as_index(&self) -> usize {
-        match self {
-            Self::Knight => 0,
-            Self::Mage => 1,
-            Self::Dragon => 2,
-            Self::Ship => 3,
-        }
+        *self as usize
     }
 
     pub fn form_index(i: usize) -> Self {
@@ -95,8 +73,8 @@ impl UnitGroup {
     //TODO: maybe client doesnt need to know the strength
     pub fn get_strength(&self) -> u32 {
         let mut str = 0;
-        for (i, unit) in all_units_enumerate!().iter() {
-            str += self.quantities[*i] * unit.get_strength();
+        for unit in all_units!().iter() {
+            str += self.quantities[unit.as_index()] * unit.get_strength();
         }
         str
     }
