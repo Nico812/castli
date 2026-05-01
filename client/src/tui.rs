@@ -99,14 +99,14 @@ impl Tui {
 
     pub fn get_looked_objs<'a>(
         coord: GameCoord,
-        zoom: &Option<GameCoord>,
         game_objs: &'a HashMap<GameId, GameObjE>,
+        in_world_map: bool,
     ) -> Vec<(GameId, &'a GameObjE)> {
         let mut looked_objs: Vec<(GameId, &GameObjE)> = game_objs
             .iter()
             .filter_map(|(game_id, game_obj)| {
-                if (zoom.is_some() && game_obj.get_pos() == coord)
-                    || (zoom.is_none()
+                if (!in_world_map && game_obj.get_pos() == coord)
+                    || (in_world_map
                         && game_obj.get_pos().y >= coord.y
                         && game_obj.get_pos().x >= coord.x
                         && game_obj.get_pos().y < coord.y + Renderer::ZOOM_FACTOR

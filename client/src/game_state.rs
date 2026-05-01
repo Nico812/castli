@@ -2,6 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use common::{
     GameId, Time,
+    courtyard::{Facility, FacilityType},
     game_objs::{GameObjE, OwnedCastleE},
     map::Tile,
     player::PlayerE,
@@ -35,6 +36,7 @@ pub struct GameState {
     pub map: Vec<Vec<Tile>>,
     pub player: PlayerE,
     pub castle: Option<OwnedCastleE>,
+    pub facilities: Option<[Vec<Facility>; FacilityType::COUNT]>,
     pub objs: HashMap<GameId, GameObjE>,
     pub logs: Logs,
 }
@@ -52,6 +54,7 @@ impl GameState {
             map,
             player,
             castle,
+            facilities: None,
             objs,
             logs: Logs::new(LOGS_CAPACITY),
         }

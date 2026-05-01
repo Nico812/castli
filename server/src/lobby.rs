@@ -8,7 +8,7 @@ use std::{
 use common::{
     GameId,
     r#const::MAX_LOBBY_PLAYERS,
-    packets::{C2S4L, L2S4C, LogE, MainPacket},
+    packets::{C2S4L, CourtyardPacket, L2S4C, LogE, MainPacket},
     player::PlayerE,
 };
 
@@ -30,6 +30,7 @@ pub struct Player {
     pub name: String,
     pub castle_id: Option<GameId>,
     pub lobby: usize,
+    pub in_courtyard: bool,
 }
 
 impl Player {
@@ -42,6 +43,7 @@ impl Player {
             name,
             castle_id: None,
             lobby,
+            in_courtyard: false,
         }
     }
 
@@ -205,6 +207,12 @@ impl Lobby {
                             }
                         }
                     }
+                    C2S4L::InCourtyard => {
+                        player.in_courtyard = true;
+                    }
+                    C2S4L::OutCourtyard => {
+                        player.in_courtyard = false;
+                    }
                 }
                 if let Some(log) = log {
                     let _ = client_ch.tx.send(L2S4C::Log(log));
@@ -219,7 +227,10 @@ impl Lobby {
                 continue;
             };
 
-            Self::send_main_packet(client_ch, &player, &self.game);
+            match player.in_courtyard {
+                false => Self::send_main_packet(client_ch, &player, &self.game),
+                true => Self::send_courtyard_packet(client_ch, &player, &self.game),
+            }
         }
     }
 
@@ -228,20 +239,39 @@ impl Lobby {
     }
 
     fn send_main_packet(client_ch: &ClientCh, player: &Player, game: &Game) {
-        let castle = if let Some(castle_id) = player.castle_id {
-            game.export_owned_castle(castle_id)
-        } else {
-            None
+        let Some(castle_id) = player.castle_id else {
+            return;
         };
+        let castle_export = game
+            .get_castle(castle_id)
+            .map(|castle| castle.export_owned());
 
         let packet = MainPacket {
             time: game.time,
             objs: game.export_objs(),
             player: player.export(),
-            castle,
+            castle: castle_export,
         };
 
         let _ = client_ch.tx.send(L2S4C::MainPacket(packet));
+    }
+
+    fn send_courtyard_packet(client_ch: &ClientCh, player: &Player, game: &Game) {
+        let Some(castle_id) = player.castle_id else {
+            return;
+        };
+        let Some(castle) = game.get_castle(castle_id) else {
+            return;
+        };
+
+        let packet = CourtyardPacket {
+            time: game.time,
+            player: player.export(),
+            castle: castle.export_owned(),
+            facilities: castle.courtyard.export(),
+        };
+
+        let _ = client_ch.tx.send(L2S4C::CourtyardPacket(packet));
     }
 
     pub fn is_full(&self) -> bool {

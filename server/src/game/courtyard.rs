@@ -51,6 +51,10 @@ impl Courtyard {
         true
     }
 
+    pub fn export(&self) -> [Vec<Facility>; FacilityType::COUNT] {
+        self.facilities.clone()
+    }
+
     fn is_position_valid(&self, pos: GameCoord, size: GameCoord) -> bool {
         if pos.x < 0 || pos.y < 0 {
             return false;

@@ -1,9 +1,11 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{GameCoord, Resources};
 
 pub const COURTYARD_ROWS: usize = 64;
 pub const COURTYARD_COLS: usize = 64;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FacilityType {
     FarmPlot,
     Sawmill,
@@ -66,7 +68,7 @@ impl FacilityType {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Facility {
     pub lv: u32,
     pub pos: GameCoord,

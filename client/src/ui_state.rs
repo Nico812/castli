@@ -7,9 +7,18 @@ use crate::renderer::ModRightTab;
 
 // State shared between input handler and renderer
 pub struct UiState {
-    pub zoom: Option<GameCoord>,
+    pub camera_map: GameCoord,
+    pub camera_courtyard: GameCoord,
+    pub camera_location: CameraLocation,
     pub tab: ModRightTab,
     pub mode: UiMode,
+}
+
+#[derive(PartialEq, Copy, Clone)]
+pub enum CameraLocation {
+    Map,
+    WorldMap,
+    Courtyard,
 }
 
 pub enum UiMode {
@@ -52,6 +61,7 @@ impl UiState {
     pub fn new() -> Self {
         Self {
             zoom: Some(GameCoord { x: 0, y: 0 }),
+            c_zoom: None,
             tab: ModRightTab::Castle,
             mode: UiMode::Std,
         }

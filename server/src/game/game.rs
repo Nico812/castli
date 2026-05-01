@@ -9,6 +9,7 @@ use crate::{
 };
 use common::{
     GameCoord, GameId, Time,
+    courtyard::{Facility, FacilityType},
     game_objs::{GameObjE, OwnedCastleE},
     map::Tile,
     units::UnitGroup,
@@ -226,6 +227,19 @@ impl Game {
         Some(id)
     }
 
+    pub fn get_castle(&self, castle_id: GameId) -> Option<&Castle> {
+        self.game_objs
+            .iter()
+            .find(|obj| *obj.0 == castle_id)
+            .and_then(|obj| {
+                if let GameObj::Castle(castle) = obj.1 {
+                    Some(castle)
+                } else {
+                    None
+                }
+            })
+    }
+
     pub fn export_map(&self) -> Vec<Vec<Tile>> {
         self.map.export()
     }
@@ -238,19 +252,6 @@ impl Game {
                 (id, obj_e)
             })
             .collect()
-    }
-
-    pub fn export_owned_castle(&self, castle_id: GameId) -> Option<OwnedCastleE> {
-        self.game_objs
-            .iter()
-            .find(|obj| *obj.0 == castle_id)
-            .and_then(|obj| {
-                if let GameObj::Castle(castle) = obj.1 {
-                    Some(castle.export_owned())
-                } else {
-                    None
-                }
-            })
     }
 
     // TODO: Manage max amount of objects

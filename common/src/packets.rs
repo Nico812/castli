@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     GameCoord, GameId, Time,
+    courtyard::{Facility, FacilityType},
     game_objs::{GameObjE, OwnedCastleE},
     map::Tile,
     player::PlayerE,
@@ -23,9 +24,17 @@ pub enum S2C {
 #[derive(Serialize, Deserialize)]
 pub struct MainPacket {
     pub time: Time,
-    pub objs: HashMap<GameId, GameObjE>,
     pub player: PlayerE,
     pub castle: Option<OwnedCastleE>,
+    pub objs: HashMap<GameId, GameObjE>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CourtyardPacket {
+    pub time: Time,
+    pub player: PlayerE,
+    pub castle: OwnedCastleE,
+    pub facilities: [Vec<Facility>; FacilityType::COUNT],
 }
 
 // TODO: Change this name to Feedback or something similar
@@ -40,6 +49,7 @@ pub enum LogE {
 #[derive(Serialize, Deserialize)]
 pub enum L2S4C {
     MainPacket(MainPacket),
+    CourtyardPacket(CourtyardPacket),
     Map(Vec<Vec<Tile>>),
     Log(LogE),
 }
@@ -58,4 +68,6 @@ pub enum C2S4L {
     NewCastle(GameCoord),
     AttackCastle(GameId, UnitGroup),
     SendUnits(GameCoord, UnitGroup),
+    InCourtyard,
+    OutCourtyard,
 }
