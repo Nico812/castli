@@ -239,12 +239,13 @@ impl Lobby {
     }
 
     fn send_main_packet(client_ch: &ClientCh, player: &Player, game: &Game) {
-        let Some(castle_id) = player.castle_id else {
-            return;
-        };
-        let castle_export = game
-            .get_castle(castle_id)
-            .map(|castle| castle.export_owned());
+        let castle_export = player
+            .castle_id
+            .map(|castle_id| {
+                game.get_castle(castle_id)
+                    .map(|castle| castle.export_owned())
+            })
+            .flatten();
 
         let packet = MainPacket {
             time: game.time,

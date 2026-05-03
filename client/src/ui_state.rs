@@ -1,15 +1,15 @@
 use common::{
     GameCoord, GameId,
+    r#const::{MAP_COLS, MAP_ROWS},
+    courtyard::{COURTYARD_COLS, COURTYARD_ROWS},
     units::{UnitGroup, UnitType},
 };
 
-use crate::renderer::ModRightTab;
+use crate::renderer::{ModRightTab, renderer::Renderer};
 
 // State shared between input handler and renderer
 pub struct UiState {
-    pub camera_map: GameCoord,
-    pub camera_courtyard: GameCoord,
-    pub camera_location: CameraLocation,
+    pub camera: Camera,
     pub tab: ModRightTab,
     pub mode: UiMode,
 }
@@ -19,6 +19,40 @@ pub enum CameraLocation {
     Map,
     WorldMap,
     Courtyard,
+}
+
+pub struct Camera {
+    pub location: CameraLocation,
+    pub map: GameCoord,
+    pub courtyard: GameCoord,
+}
+
+impl Camera {
+    pub fn get_pos(&self) -> GameCoord {
+        match self.location {
+            CameraLocation::Map => self.map,
+            CameraLocation::WorldMap => GameCoord::new(0, 0),
+            CameraLocation::Courtyard => self.courtyard,
+        }
+    }
+
+    pub fn move_camera(&mut self, dx: isize, dy: isize) {
+        let (bound_rows, bound_cols, ref mut camera_pos) = match self.location {
+            CameraLocation::Map => (MAP_ROWS, MAP_COLS, self.map),
+            CameraLocation::Courtyard => (COURTYARD_ROWS, COURTYARD_COLS, self.courtyard),
+            CameraLocation::WorldMap => {
+                return;
+            }
+        };
+
+        camera_pos.x = (camera_pos.x as isize + 2 * dx)
+            .max(0)
+            .min(bound_cols as isize - Renderer::FOV_COLS as isize) as usize;
+        camera_pos.y = (camera_pos.y as isize + 2 * dy)
+            .max(0)
+            .min((bound_rows) as isize - (Renderer::FOV_ROWS * 2) as isize)
+            as usize;
+    }
 }
 
 pub enum UiMode {
@@ -60,8 +94,11 @@ impl UnitSelection {
 impl UiState {
     pub fn new() -> Self {
         Self {
-            zoom: Some(GameCoord { x: 0, y: 0 }),
-            c_zoom: None,
+            camera: Camera {
+                map: GameCoord::new(0, 0),
+                courtyard: GameCoord::new(0, 0),
+                location: CameraLocation::Map,
+            },
             tab: ModRightTab::Castle,
             mode: UiMode::Std,
         }

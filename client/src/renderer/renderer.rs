@@ -17,6 +17,7 @@ use crate::renderer::map_data::MapData;
 use crate::renderer::mod_inspect::ModInspect;
 use crate::renderer::mod_interact::ModInteract;
 use crate::renderer::{mod_central::ModCentral, mod_right::ModRight};
+use crate::ui_state::CameraLocation;
 use crate::ui_state::UiMode;
 use crate::ui_state::UiState;
 
@@ -61,11 +62,12 @@ impl Renderer {
     pub fn render(
         &mut self,
         stdout: &mut Stdout,
-        game_state: &GameState,
+        game_state: &mut GameState,
         ui_state: &UiState,
         frame_dt: u64,
     ) {
-        self.map_data.update_wind(self.render_count, ui_state.zoom);
+        self.map_data
+            .update_wind(self.render_count, &ui_state.camera);
 
         // Right module
         let mut new_frame: Vec<Vec<assets::TermCell>> =
@@ -117,7 +119,7 @@ impl Renderer {
 
         // Adding the cursor
         if let UiMode::Inspect(ref inspect) = ui_state.mode
-            && let Some(term_coord) = TermCoord::from_game_coord(inspect.coord, ui_state.zoom)
+            && let Some(term_coord) = TermCoord::from_game_coord(inspect.coord, &ui_state.camera)
         {
             // Checks if the cursor is inside the central module
             let is_inside_fov = term_coord.y > MOD_CENTRAL_POS.0
@@ -126,9 +128,13 @@ impl Renderer {
                 && term_coord.x <= (MOD_CENTRAL_POS.1 + Self::FOV_COLS);
 
             if is_inside_fov {
-                let cursor_asset = match (ui_state.zoom, inspect.coord.y) {
-                    (Some(_), y) if y % 2 == 0 => CURSOR_UP,
-                    (None, y) if y % (2 * Renderer::ZOOM_FACTOR) < 8 => CURSOR_UP,
+                let cursor_asset = match (ui_state.camera.location, inspect.coord.y) {
+                    (CameraLocation::Map, y) | (CameraLocation::Courtyard, y) if y % 2 == 0 => {
+                        CURSOR_UP
+                    }
+                    (CameraLocation::WorldMap, y) if y % (2 * Renderer::ZOOM_FACTOR) < 8 => {
+                        CURSOR_UP
+                    }
                     _ => CURSOR_DOWN,
                 };
                 new_frame[term_coord.y][term_coord.x - 1] = cursor_asset;

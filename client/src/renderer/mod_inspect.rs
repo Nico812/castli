@@ -8,7 +8,7 @@ use crate::{
         module_utility::{WithArt, add_frame, draw_text_in_row},
     },
     tui::Tui,
-    ui_state::{UiMode, UiState},
+    ui_state::{CameraLocation, UiMode, UiState},
 };
 use common::{GameId, game_objs::GameObjE, map::Tile};
 
@@ -25,36 +25,43 @@ impl ModInspect {
         map_data: &MapData,
     ) -> Option<Vec<Vec<TermCell>>> {
         if let UiMode::Inspect(ref inspect) = ui_state.mode {
-            let night = game_state.time.night;
-            let looked_tile = map_data.get_tile(inspect.coord);
+            match ui_state.camera.location {
+                CameraLocation::Map | CameraLocation::WorldMap => {
+                    let is_world_map = ui_state.camera.location == CameraLocation::WorldMap;
+                    let night = game_state.time.night;
+                    let looked_tile = map_data.get_tile(inspect.coord);
 
-            let mut renderable = Vec::new();
+                    let mut renderable = Vec::new();
 
-            for _ in 0..Self::PADDING_VERT {
-                Self::push_empty_row(&mut renderable);
+                    for _ in 0..Self::PADDING_VERT {
+                        Self::push_empty_row(&mut renderable);
+                    }
+
+                    let looked_objs =
+                        Tui::get_looked_objs(inspect.coord, &game_state.objs, is_world_map);
+                    let selected_id = inspect.selection;
+
+                    if !looked_objs.is_empty() {
+                        let mut objs_comp = Self::create_objs_component(
+                            &game_state.player.castle_id,
+                            selected_id,
+                            looked_objs,
+                        );
+                        renderable.append(&mut objs_comp);
+                    }
+
+                    let mut tile_comp = Self::create_tile_component(looked_tile, night);
+                    renderable.append(&mut tile_comp);
+
+                    for _ in 0..Self::PADDING_VERT {
+                        Self::push_empty_row(&mut renderable);
+                    }
+
+                    add_frame(&format!("inspect: {}", inspect.coord), &mut renderable);
+                    Some(renderable)
+                }
+                CameraLocation::Courtyard => None,
             }
-
-            let looked_objs = Tui::get_looked_objs(inspect.coord, &ui_state.zoom, &game_state.objs);
-            let selected_id = inspect.selection;
-
-            if !looked_objs.is_empty() {
-                let mut objs_comp = Self::create_objs_component(
-                    &game_state.player.castle_id,
-                    selected_id,
-                    looked_objs,
-                );
-                renderable.append(&mut objs_comp);
-            }
-
-            let mut tile_comp = Self::create_tile_component(looked_tile, night);
-            renderable.append(&mut tile_comp);
-
-            for _ in 0..Self::PADDING_VERT {
-                Self::push_empty_row(&mut renderable);
-            }
-
-            add_frame(&format!("inspect: {}", inspect.coord), &mut renderable);
-            Some(renderable)
         } else {
             None
         }

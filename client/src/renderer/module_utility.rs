@@ -57,6 +57,9 @@ impl WithArt for DeployedUnitsE {
 }
 
 pub fn add_frame(title: &str, renderable: &mut Vec<Vec<TermCell>>) {
+    if renderable.is_empty() {
+        return;
+    };
     let renderable_rows = renderable.len();
     let renderable_cols = renderable[0].len();
 

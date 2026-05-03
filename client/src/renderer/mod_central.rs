@@ -11,50 +11,52 @@ use crate::game_state::GameState;
 use crate::renderer::map_data::MapData;
 use crate::renderer::module_utility::WithArt;
 use crate::renderer::renderer::Renderer;
-use crate::ui_state::UiState;
+use crate::ui_state::{CameraLocation, UiState};
 
 pub struct ModCentral;
 
 impl ModCentral {
     pub fn update(
-        game_state: &GameState,
+        game_state: &mut GameState,
         ui_state: &UiState,
         map_data: &MapData,
     ) -> Vec<Vec<TermCell>> {
-        let (tiles, zoom_coord, frame_title) = match ui_state.zoom {
-            Some(coord) => {
-                let tiles = Self::get_map_slice(&map_data.tiles, coord);
-                let title = format!("Castli | zoom: {}", coord);
-                (tiles, Some(coord), title)
+        let camera_coord = ui_state.camera.get_pos();
+
+        let (mut cells, frame_title) = match ui_state.camera.location {
+            CameraLocation::Map => {
+                let tiles = Self::get_map_slice(&map_data.tiles, camera_coord);
+                let title = format!("Castli | map {}", camera_coord);
+                let cut_wind = Self::get_wind_slice(&map_data.wind, camera_coord);
+
+                let mut cells = Self::tiles_to_cells(&tiles, &cut_wind, game_state.time.night);
+                Self::add_objs_to_cells(
+                    &game_state.player.castle_id,
+                    &mut cells,
+                    &game_state.objs,
+                    camera_coord,
+                );
+                (cells, title)
             }
-            None => {
+            CameraLocation::WorldMap => {
                 let tiles = map_data.tiles_wor.clone();
                 let title = "Castli | world map".to_string();
-                (tiles, None, title)
+                let cut_wind = Self::get_wind_slice(&map_data.wind, camera_coord);
+
+                let mut cells = Self::tiles_to_cells(&tiles, &cut_wind, game_state.time.night);
+                Self::add_world_objs_to_cells(
+                    &game_state.player.castle_id,
+                    &mut cells,
+                    &game_state.objs,
+                );
+                (cells, title)
+            }
+            CameraLocation::Courtyard => {
+                (Vec::new(), format!("Castli | courtyard {}", camera_coord))
             }
         };
 
-        let wind_pos = zoom_coord.unwrap_or(GameCoord { x: 0, y: 0 });
-        let cut_wind = Self::get_wind_slice(&map_data.wind, wind_pos);
-
-        let mut cells = Self::tiles_to_cells(&tiles, &cut_wind, game_state.time.night);
-
-        match zoom_coord {
-            Some(coord) => Self::add_objs_to_cells(
-                &game_state.player.castle_id,
-                &mut cells,
-                &game_state.objs,
-                coord,
-            ),
-            None => Self::add_world_objs_to_cells(
-                &game_state.player.castle_id,
-                &mut cells,
-                &game_state.objs,
-            ),
-        }
-
         module_utility::add_frame(&frame_title, &mut cells);
-
         cells
     }
 

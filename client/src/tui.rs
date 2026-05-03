@@ -87,7 +87,7 @@ impl Tui {
             };
             last_frame = now;
 
-            renderer.render(&mut stdout, &game_state, &mut ui_state, frame_dt);
+            renderer.render(&mut stdout, game_state, &mut ui_state, frame_dt);
 
             render_tick.tick().await;
         }

@@ -5,7 +5,10 @@ use common::{
 };
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 
-use crate::renderer::renderer::Renderer;
+use crate::{
+    renderer::renderer::Renderer,
+    ui_state::{Camera, UiState},
+};
 
 pub struct MapData {
     pub tiles: Vec<Vec<Tile>>,
@@ -67,16 +70,16 @@ impl MapData {
         }
     }
 
-    pub fn update_wind(&mut self, render_count: u32, zoom_coord: Option<GameCoord>) {
+    pub fn update_wind(&mut self, render_count: u32, camera: &Camera) {
+        let camera_pos = camera.get_pos();
+
         if !render_count.is_multiple_of(10) {
             return;
         }
 
         let mut tmp_wind = self.wind.clone();
 
-        let (row_start, col_start) = zoom_coord
-            .map(|coord| (coord.y / 2, coord.x))
-            .unwrap_or((0, 0));
+        let (row_start, col_start) = (camera_pos.y / 2, camera_pos.x);
         let row_end = (row_start + Renderer::FOV_ROWS - 1).min(Self::WIND_ROWS);
         let col_end = (col_start + Renderer::FOV_COLS - 1).min(Self::WIND_COLS);
 

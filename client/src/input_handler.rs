@@ -10,7 +10,7 @@ use crate::client::{ShutdownChannel, ShutdownReason};
 use crate::game_state::GameState;
 use crate::renderer::renderer::Renderer;
 use crate::tui::{T2C, Tui};
-use crate::ui_state::{CameraLocation, Inspect, Interact, UiMode, UiState, UnitSelection};
+use crate::ui_state::{Camera, CameraLocation, Inspect, Interact, UiMode, UiState, UnitSelection};
 use common::GameCoord;
 use common::r#const::{MAP_COLS, MAP_ROWS};
 
@@ -44,21 +44,21 @@ impl InputHandler {
             UiMode::Std => match (key.code, key.modifiers) {
                 (KeyCode::Char('M'), _) => {
                     Self::change_camera_location(
-                        &ui_state.camera_location,
+                        &mut ui_state.camera.location,
                         CameraLocation::WorldMap,
                         None,
                     );
                 }
                 (KeyCode::Char('m'), _) => {
                     Self::change_camera_location(
-                        &ui_state.camera_location,
+                        &mut ui_state.camera.location,
                         CameraLocation::Map,
                         None,
                     );
                 }
-                (KeyCode::Char('c'), _) => {
+                (KeyCode::Char('k'), _) => {
                     Self::change_camera_location(
-                        &ui_state.camera_location,
+                        &mut ui_state.camera.location,
                         CameraLocation::Courtyard,
                         None,
                     );
@@ -66,62 +66,14 @@ impl InputHandler {
                 (KeyCode::Char('l'), _) => {
                     Self::toggle_inspect(ui_state);
                 }
-                (KeyCode::Up, KeyModifiers::NONE) => Self::move_camera(
-                    0,
-                    -1,
-                    &mut ui_state.camera_map,
-                    &mut ui_state.camera_courtyard,
-                    ui_state.camera_location,
-                ),
-                (KeyCode::Down, KeyModifiers::NONE) => Self::move_camera(
-                    0,
-                    1,
-                    &mut ui_state.camera_map,
-                    &mut ui_state.camera_courtyard,
-                    ui_state.camera_location,
-                ),
-                (KeyCode::Right, KeyModifiers::NONE) => Self::move_camera(
-                    1,
-                    0,
-                    &mut ui_state.camera_map,
-                    &mut ui_state.camera_courtyard,
-                    ui_state.camera_location,
-                ),
-                (KeyCode::Left, KeyModifiers::NONE) => Self::move_camera(
-                    -1,
-                    0,
-                    &mut ui_state.camera_map,
-                    &mut ui_state.camera_courtyard,
-                    ui_state.camera_location,
-                ),
-                (KeyCode::Up, KeyModifiers::CONTROL) => Self::move_camera(
-                    0,
-                    -8,
-                    &mut ui_state.camera_map,
-                    &mut ui_state.camera_courtyard,
-                    ui_state.camera_location,
-                ),
-                (KeyCode::Down, KeyModifiers::CONTROL) => Self::move_camera(
-                    0,
-                    8,
-                    &mut ui_state.camera_map,
-                    &mut ui_state.camera_courtyard,
-                    ui_state.camera_location,
-                ),
-                (KeyCode::Right, KeyModifiers::CONTROL) => Self::move_camera(
-                    8,
-                    0,
-                    &mut ui_state.camera_map,
-                    &mut ui_state.camera_courtyard,
-                    ui_state.camera_location,
-                ),
-                (KeyCode::Left, KeyModifiers::CONTROL) => Self::move_camera(
-                    -8,
-                    0,
-                    &mut ui_state.camera_map,
-                    &mut ui_state.camera_courtyard,
-                    ui_state.camera_location,
-                ),
+                (KeyCode::Up, KeyModifiers::NONE) => ui_state.camera.move_camera(0, -1),
+                (KeyCode::Down, KeyModifiers::NONE) => ui_state.camera.move_camera(0, 1),
+                (KeyCode::Right, KeyModifiers::NONE) => ui_state.camera.move_camera(1, 0),
+                (KeyCode::Left, KeyModifiers::NONE) => ui_state.camera.move_camera(-1, 0),
+                (KeyCode::Up, KeyModifiers::CONTROL) => ui_state.camera.move_camera(0, -8),
+                (KeyCode::Down, KeyModifiers::CONTROL) => ui_state.camera.move_camera(0, 8),
+                (KeyCode::Right, KeyModifiers::CONTROL) => ui_state.camera.move_camera(8, 0),
+                (KeyCode::Left, KeyModifiers::CONTROL) => ui_state.camera.move_camera(-8, 0),
                 _ => {}
             },
             UiMode::Inspect(ref mut inspect) => match (key.code, key.modifiers) {
@@ -129,21 +81,21 @@ impl InputHandler {
                 (KeyCode::Char('n'), _) => Self::handle_new_castle(&tx, inspect),
                 (KeyCode::Char('M'), _) => {
                     Self::change_camera_location(
-                        &mut ui_state.camera_location,
+                        &mut ui_state.camera.location,
                         CameraLocation::WorldMap,
                         Some(inspect),
                     );
                 }
                 (KeyCode::Char('m'), _) => {
                     Self::change_camera_location(
-                        &mut ui_state.camera_location,
+                        &mut ui_state.camera.location,
                         CameraLocation::Map,
                         Some(inspect),
                     );
                 }
-                (KeyCode::Char('c'), _) => {
+                (KeyCode::Char('k'), _) => {
                     Self::change_camera_location(
-                        &mut ui_state.camera_location,
+                        &mut ui_state.camera.location,
                         CameraLocation::Courtyard,
                         Some(inspect),
                     );
@@ -156,7 +108,7 @@ impl InputHandler {
                         return;
                     }
                     // FIX
-                    let in_world_map = ui_state.camera_location == CameraLocation::WorldMap;
+                    let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
                     let looked_objs =
                         Tui::get_looked_objs(inspect.coord, &game_state.objs, in_world_map);
 
@@ -184,35 +136,35 @@ impl InputHandler {
                     }
                 }
                 (KeyCode::Up, KeyModifiers::NONE) => {
-                    let in_world_map = ui_state.camera_location == CameraLocation::WorldMap;
+                    let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
                     Self::move_inspect(0, -1, inspect, &game_state.objs, in_world_map)
                 }
                 (KeyCode::Down, KeyModifiers::NONE) => {
-                    let in_world_map = ui_state.camera_location == CameraLocation::WorldMap;
+                    let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
                     Self::move_inspect(0, 1, inspect, &game_state.objs, in_world_map)
                 }
                 (KeyCode::Right, KeyModifiers::NONE) => {
-                    let in_world_map = ui_state.camera_location == CameraLocation::WorldMap;
+                    let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
                     Self::move_inspect(1, 0, inspect, &game_state.objs, in_world_map)
                 }
                 (KeyCode::Left, KeyModifiers::NONE) => {
-                    let in_world_map = ui_state.camera_location == CameraLocation::WorldMap;
+                    let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
                     Self::move_inspect(-1, 0, inspect, &game_state.objs, in_world_map)
                 }
                 (KeyCode::Up, KeyModifiers::CONTROL) => {
-                    let in_world_map = ui_state.camera_location == CameraLocation::WorldMap;
+                    let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
                     Self::move_inspect(0, -8, inspect, &game_state.objs, in_world_map)
                 }
                 (KeyCode::Down, KeyModifiers::CONTROL) => {
-                    let in_world_map = ui_state.camera_location == CameraLocation::WorldMap;
+                    let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
                     Self::move_inspect(0, 8, inspect, &game_state.objs, in_world_map)
                 }
                 (KeyCode::Right, KeyModifiers::CONTROL) => {
-                    let in_world_map = ui_state.camera_location == CameraLocation::WorldMap;
+                    let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
                     Self::move_inspect(8, 0, inspect, &game_state.objs, in_world_map)
                 }
                 (KeyCode::Left, KeyModifiers::CONTROL) => {
-                    let in_world_map = ui_state.camera_location == CameraLocation::WorldMap;
+                    let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
                     Self::move_inspect(-8, 0, inspect, &game_state.objs, in_world_map)
                 }
                 _ => {}
@@ -278,7 +230,7 @@ impl InputHandler {
     }
 
     fn change_camera_location(
-        curr: &CameraLocation,
+        curr: &mut CameraLocation,
         new: CameraLocation,
         mut inspect: Option<&mut Inspect>,
     ) {
@@ -297,14 +249,15 @@ impl InputHandler {
             inspect.coord.y -= inspect.coord.y % Renderer::ZOOM_FACTOR;
             inspect.coord.x -= inspect.coord.x % Renderer::ZOOM_FACTOR;
         }
+        *curr = new;
     }
 
     fn toggle_inspect(ui_state: &mut UiState) {
         if let UiMode::Std = ui_state.mode {
-            let coord = match ui_state.camera_location {
+            let coord = match ui_state.camera.location {
                 CameraLocation::WorldMap => GameCoord { x: 0, y: 0 },
-                CameraLocation::Map => ui_state.camera_map,
-                CameraLocation::Courtyard => ui_state.camera_courtyard,
+                CameraLocation::Map => ui_state.camera.map,
+                CameraLocation::Courtyard => ui_state.camera.courtyard,
             };
             ui_state.mode = UiMode::Inspect(Inspect {
                 coord,
@@ -327,30 +280,6 @@ impl InputHandler {
                 ));
             }
         };
-    }
-
-    fn move_camera(
-        dx: isize,
-        dy: isize,
-        camera_map: &mut GameCoord,
-        camera_couryard: &mut GameCoord,
-        camera_location: CameraLocation,
-    ) {
-        let (BOUND_ROWS, BOUND_COLS, camera) = match camera_location {
-            CameraLocation::Map => (MAP_ROWS, MAP_COLS, camera_map),
-            CameraLocation::Courtyard => (COURTYARD_ROWS, COURTYARD_COLS, camera_couryard),
-            CameraLocation::WorldMap => {
-                return;
-            }
-        };
-
-        camera.x = (camera.x as isize + 2 * dx)
-            .max(0)
-            .min(BOUND_COLS as isize - Renderer::FOV_COLS as isize) as usize;
-        camera.y = (camera.y as isize + 2 * dy)
-            .max(0)
-            .min((BOUND_ROWS) as isize - (Renderer::FOV_ROWS * 2) as isize)
-            as usize;
     }
 
     fn move_inspect(

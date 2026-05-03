@@ -179,6 +179,7 @@ impl Server {
                     && let Ok(msg) = lobby_link.1.try_recv()
                 {
                     let s2c_msg = S2C::L2S4C(msg);
+                    println!("Sending msg to client---------------------------");
                     if Self::send_msg_to_client(&mut conn.stream, &s2c_msg).is_err() {
                         eprintln!("[server] CLIENT (ID: {}) ERR SENDING MSG", conn.id);
                     }

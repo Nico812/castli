@@ -101,6 +101,7 @@ impl Connection {
                 return Err(());
             }
         };
+        println!("Received map");
 
         let (time, objs, client, castle) = match get_msg_from_server(&mut self.reader).await {
             Ok(S2C::L2S4C(L2S4C::MainPacket(packet))) => {
@@ -111,6 +112,7 @@ impl Connection {
                 return Err(());
             }
         };
+        println!("Received main packet");
 
         Ok(GameState::new(time, objs, map, client, castle))
     }
