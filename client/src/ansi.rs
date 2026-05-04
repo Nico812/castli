@@ -7,6 +7,12 @@ pub const WHITE: Color = Color::White;
 pub const GREEN: Color = Color::Green;
 
 // DAY PALETTE
+pub const DAY_BROWN: Color = Color::Rgb {
+    r: 150,
+    g: 100,
+    b: 50,
+};
+
 pub const DAY_BLUE_1: Color = Color::Rgb {
     r: 70,
     g: 110,
@@ -58,7 +64,13 @@ pub const DAY_WHITE: Color = Color::Rgb {
     b: 235,
 };
 
-// NIGHT PALETTE (più fredda, notturna, mantenendo luminosità)
+// NIGHT PALETTE
+pub const NIGHT_BROWN: Color = Color::Rgb {
+    r: 105,
+    g: 75,
+    b: 55,
+};
+
 pub const NIGHT_BLUE_1: Color = Color::Rgb {
     r: 80,
     g: 90,

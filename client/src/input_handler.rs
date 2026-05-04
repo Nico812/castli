@@ -1,4 +1,5 @@
 use common::GameId;
+use common::courtyard::FacilityType;
 use common::game_objs::GameObjE;
 use common::units::UnitType;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
@@ -9,7 +10,9 @@ use crate::client::{ShutdownChannel, ShutdownReason};
 use crate::game_state::GameState;
 use crate::renderer::renderer::Renderer;
 use crate::tui::{T2C, Tui};
-use crate::ui_state::{Camera, CameraLocation, Inspect, Interact, UiMode, UiState, UnitSelection};
+use crate::ui_state::{
+    Camera, CameraLocation, Inspect, InteractTarget, UiMode, UiState, UnitSelection,
+};
 use common::GameCoord;
 use common::r#const::{MAP_COLS, MAP_ROWS};
 
@@ -112,32 +115,36 @@ impl InputHandler {
                     if game_state.player.castle_id.is_none() {
                         return;
                     }
-                    // FIX
-                    let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
-                    let looked_objs =
-                        Tui::get_looked_objs(inspect.coord, &game_state.objs, in_world_map);
+                    match ui_state.camera.location {
+                        CameraLocation::Map | CameraLocation::WorldMap => {
+                            let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
+                            let looked_objs =
+                                Tui::get_looked_objs(inspect.coord, &game_state.objs, in_world_map);
 
-                    if looked_objs.len() > 1 && inspect.selection.is_none() {
-                        inspect.selection = Some(looked_objs[0].0);
-                    } else {
-                        let (obj_id, coord) = match looked_objs.len() {
-                            0 => (None, inspect.coord),
-                            1 => {
-                                let obj = looked_objs[0];
-                                (Some(obj.0), obj.1.get_pos())
-                            }
-                            _ => {
-                                let selected_id = inspect.selection.unwrap();
-                                let pos = looked_objs
-                                    .iter()
-                                    .find(|(id, _)| *id == selected_id)
-                                    .map(|(_, obj)| obj.get_pos())
-                                    .unwrap();
-                                (Some(selected_id), pos)
-                            }
-                        };
+                            if looked_objs.len() > 1 && inspect.selection.is_none() {
+                                inspect.selection = Some(looked_objs[0].0);
+                            } else {
+                                let interact_target = match looked_objs.len() {
+                                    0 => InteractTarget::MapPos(inspect.coord),
+                                    1 => InteractTarget::GameObj(looked_objs[0].0),
+                                    _ => InteractTarget::GameObj(inspect.selection.unwrap()),
+                                };
 
-                        ui_state.mode = UiMode::Interact(Interact { obj_id, coord });
+                                ui_state.mode = UiMode::Interact(interact_target);
+                            }
+                        }
+                        CameraLocation::Courtyard => {
+                            let looked_facility =
+                                Tui::get_looked_facility(inspect.coord, &game_state.facilities);
+                            if let Some(looked_facility) = looked_facility {
+                                ui_state.mode = UiMode::Interact(InteractTarget::Facility(
+                                    looked_facility.clone(),
+                                ));
+                            } else {
+                                ui_state.mode =
+                                    UiMode::Interact(InteractTarget::CourtyardPos(inspect.coord));
+                            }
+                        }
                     }
                 }
                 (KeyCode::Up, KeyModifiers::NONE) => {
@@ -174,11 +181,24 @@ impl InputHandler {
                 }
                 _ => {}
             },
-            UiMode::Interact(ref mut interact) => match (key.code, key.modifiers) {
+            UiMode::Interact(ref mut interact_target) => match (key.code, key.modifiers) {
                 (KeyCode::Esc, _) => ui_state.mode = UiMode::Std,
-                (KeyCode::Char('a'), _) => {
-                    ui_state.mode =
-                        UiMode::UnitSelection(UnitSelection::from_interact(interact.clone()))
+                (KeyCode::Char('a'), _) => match interact_target {
+                    InteractTarget::MapPos(_) | InteractTarget::GameObj(_) => {
+                        ui_state.mode = UiMode::UnitSelection(UnitSelection::from_interact(
+                            interact_target.clone(),
+                        ))
+                    }
+                    _ => {}
+                },
+                (KeyCode::Char('n'), _) => {
+                    if let InteractTarget::CourtyardPos(pos) = interact_target {
+                        let _ = tx.send(T2C::NewFacility((*pos, FacilityType::FarmPlot)));
+                        ui_state.mode = UiMode::Inspect(Inspect {
+                            coord: *pos,
+                            selection: None,
+                        })
+                    }
                 }
                 _ => {}
             },
@@ -284,16 +304,14 @@ impl InputHandler {
     }
 
     fn handle_unit_deploy(tx: &tokio::sync::mpsc::UnboundedSender<T2C>, selection: &UnitSelection) {
-        match selection.obj_id {
-            Some(obj_id) => {
+        match selection.interact_target {
+            InteractTarget::GameObj(obj_id) => {
                 let _ = tx.send(T2C::AttackCastle(obj_id, selection.selected_units.clone()));
             }
-            None => {
-                let _ = tx.send(T2C::SendUnits(
-                    selection.coord,
-                    selection.selected_units.clone(),
-                ));
+            InteractTarget::MapPos(pos) => {
+                let _ = tx.send(T2C::SendUnits(pos, selection.selected_units.clone()));
             }
+            _ => {}
         };
     }
 

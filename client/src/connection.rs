@@ -48,6 +48,9 @@ impl Connection {
                             C2S::C2S4L(C2S4L::InCourtyard)},
                         T2C::OutCourtyard => {
                             C2S::C2S4L(C2S4L::OutCourtyard)},
+                        T2C::NewFacility((pos, fac_type)) => {
+                            C2S::C2S4L(C2S4L::NewFacility((pos, fac_type)))
+                        }
                     };
                     let _ = send_msg_to_server(&mut self.writer, &msg).await;
                 },
@@ -77,7 +80,6 @@ impl Connection {
                             game_state.time = packet.time;
                         }
                         S2C::L2S4C(L2S4C::CourtyardPacket(packet)) => {
-                            game_state.add_log("Received some facilities");
                             game_state.facilities = Some(packet.facilities);
                             game_state.castle = Some(packet.castle);
                             game_state.player = packet.player;
@@ -91,6 +93,7 @@ impl Connection {
                                 LogE::CastleCreationErr => {"Could not create castle".to_string()},
                                 LogE::UnitDeployErr => {"Could not deploy units".to_string()},
                                 LogE::AttackDeployErr => {"Could not attack ziocan".to_string()},
+                                LogE::FacilityCreationErr => {"Could not create new facility".to_string()}
                             };
                             game_state.add_log(string);
                         }

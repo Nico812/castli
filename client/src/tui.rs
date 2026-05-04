@@ -5,7 +5,13 @@ use crate::{
     renderer::renderer::Renderer,
     ui_state::UiState,
 };
-use common::{GameCoord, GameId, r#const::MAX_LOBBIES, game_objs::GameObjE, units::UnitGroup};
+use common::{
+    GameCoord, GameId,
+    r#const::MAX_LOBBIES,
+    courtyard::{Facility, FacilityType},
+    game_objs::GameObjE,
+    units::UnitGroup,
+};
 use crossterm::{
     ExecutableCommand, cursor,
     event::{Event, poll, read},
@@ -31,6 +37,7 @@ pub enum T2C {
     SendUnits(GameCoord, UnitGroup),
     InCourtyard,
     OutCourtyard,
+    NewFacility((GameCoord, FacilityType)),
 }
 
 pub struct Tui;
@@ -128,6 +135,20 @@ impl Tui {
             GameObjE::DeployedUnits(_) => 2,
         });
         looked_objs
+    }
+
+    pub fn get_looked_facility(
+        coord: GameCoord,
+        facilities: &Option<[Vec<Facility>; FacilityType::COUNT]>,
+    ) -> Option<&Facility> {
+        let Some(facilities) = facilities else {
+            return None;
+        };
+
+        facilities
+            .iter()
+            .flat_map(|facility_vec| facility_vec.iter())
+            .find(|facility| facility.pos == coord)
     }
 
     pub fn login() -> String {

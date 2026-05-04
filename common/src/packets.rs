@@ -43,6 +43,7 @@ pub enum LogE {
     CastleCreationErr,
     UnitDeployErr,
     AttackDeployErr,
+    FacilityCreationErr,
 }
 
 // Represents messages sent from a Lobby, to the Server, for a Client (L2S4C).
@@ -65,9 +66,12 @@ pub enum C2S {
 // Represents messages sent from a Client, to the Server, for the Lobby (C2S4L).
 #[derive(Serialize, Deserialize)]
 pub enum C2S4L {
+    // Map actions
     NewCastle(GameCoord),
     AttackCastle(GameId, UnitGroup),
     SendUnits(GameCoord, UnitGroup),
+    // Courtyard actions
     InCourtyard,
     OutCourtyard,
+    NewFacility((GameCoord, FacilityType)),
 }

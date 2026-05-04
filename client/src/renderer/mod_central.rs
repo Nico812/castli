@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use common::r#const::{FARM_PLOT_COLS, MAP_COLS, MAP_ROWS};
-use common::courtyard::{COURTYARD_COLS, COURTYARD_ROWS, Facility, FacilityType};
+use common::r#const::{COURTYARD_COLS, COURTYARD_ROWS};
+use common::courtyard::{Facility, FacilityType};
 use common::game_objs::GameObjE;
 use common::map::Tile;
 use common::{GameCoord, GameId};

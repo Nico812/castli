@@ -63,6 +63,7 @@ impl Time {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Resources {
     pub wood: u32,
     pub stone: u32,
@@ -74,13 +75,13 @@ impl Resources {
     }
 
     pub fn saturating_add(&mut self, other: &Self) {
-        let _ = self.wood.saturating_add(other.wood);
-        let _ = self.stone.saturating_add(other.stone);
+        self.wood = self.wood.saturating_add(other.wood);
+        self.stone = self.stone.saturating_add(other.stone);
     }
 
     pub fn saturating_sub(&mut self, other: &Self) {
-        let _ = self.wood.saturating_sub(other.wood);
-        let _ = self.stone.saturating_sub(other.stone);
+        self.wood = self.wood.saturating_sub(other.wood);
+        self.stone = self.stone.saturating_sub(other.stone);
     }
 
     pub fn subtract_if_enough(&mut self, other: &Self) -> bool {

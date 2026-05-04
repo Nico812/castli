@@ -9,7 +9,7 @@ use crate::{
         map_data::MapData,
         module_utility::{self, draw_text_in_row},
     },
-    ui_state::{UiMode, UiState},
+    ui_state::{InteractTarget, UiMode, UiState},
 };
 
 pub struct ModInteract;
@@ -29,27 +29,46 @@ impl ModInteract {
         };
 
         match ui_state.mode {
-            UiMode::Interact(ref interact) => {
-                let tile = map_data.get_tile(interact.coord);
-                let obj = interact
-                    .obj_id
-                    .and_then(|obj_id| game_state.objs.get(&obj_id));
+            UiMode::Interact(ref interact_target) => {
                 let mut renderable = Vec::new();
 
                 for _ in 0..Self::PADDING_VERT {
                     Self::push_empty_row(&mut renderable);
                 }
 
-                match obj {
-                    Some(GameObjE::Castle(castle)) => {
-                        Self::push_row_with_text(&mut renderable, &castle.name);
-                        Self::push_row_with_text(&mut renderable, "a: attack");
+                match interact_target {
+                    InteractTarget::GameObj(obj_id) => {
+                        let obj = game_state.objs.get(&obj_id);
+
+                        match obj {
+                            Some(GameObjE::Castle(castle)) => {
+                                Self::push_row_with_text(&mut renderable, &castle.name);
+                                Self::push_row_with_text(&mut renderable, "a: attack");
+                            }
+                            Some(GameObjE::Structure(_)) => {}
+                            Some(GameObjE::DeployedUnits(_)) => {}
+                            None => {
+                                Self::push_row_with_text(
+                                    &mut renderable,
+                                    "The object doesn't exist anymore",
+                                );
+                            }
+                        }
                     }
-                    Some(GameObjE::Structure(_)) => {}
-                    Some(GameObjE::DeployedUnits(_)) => {}
-                    None => {
+                    InteractTarget::MapPos(pos) => {
+                        let tile = map_data.get_tile(*pos);
                         Self::push_row_with_text(&mut renderable, &format!("{:?}", tile));
                         Self::push_row_with_text(&mut renderable, "a: send troops");
+                    }
+                    InteractTarget::Facility(facility) => {
+                        Self::push_row_with_text(
+                            &mut renderable,
+                            &format!("{:?}", facility.r#type),
+                        );
+                        Self::push_row_with_text(&mut renderable, &format!("lv {}", facility.lv));
+                    }
+                    InteractTarget::CourtyardPos(_) => {
+                        Self::push_row_with_text(&mut renderable, "n: build");
                     }
                 }
 

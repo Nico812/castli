@@ -1,7 +1,7 @@
 use common::{
     GameCoord, GameId,
-    r#const::{MAP_COLS, MAP_ROWS},
-    courtyard::{COURTYARD_COLS, COURTYARD_ROWS},
+    r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS},
+    courtyard::Facility,
     units::{UnitGroup, UnitType},
 };
 
@@ -58,7 +58,7 @@ impl Camera {
 
 pub enum UiMode {
     Std,
-    Interact(Interact),
+    Interact(InteractTarget),
     Inspect(Inspect),
     UnitSelection(UnitSelection),
 }
@@ -69,23 +69,24 @@ pub struct Inspect {
 }
 
 #[derive(Clone)]
-pub struct Interact {
-    pub obj_id: Option<GameId>,
-    pub coord: GameCoord,
+pub enum InteractTarget {
+    MapPos(GameCoord),
+    CourtyardPos(GameCoord),
+    GameObj(GameId),
+    // TODO: change this to take a facility id.
+    Facility(Facility),
 }
 
 pub struct UnitSelection {
-    pub obj_id: Option<GameId>,
-    pub coord: GameCoord,
+    pub interact_target: InteractTarget,
     pub active_input: (UnitType, Option<String>),
     pub selected_units: UnitGroup,
 }
 
 impl UnitSelection {
-    pub fn from_interact(interact: Interact) -> Self {
+    pub fn from_interact(interact_target: InteractTarget) -> Self {
         Self {
-            obj_id: interact.obj_id,
-            coord: interact.coord,
+            interact_target,
             active_input: (UnitType::form_index(0), None),
             selected_units: UnitGroup::new(),
         }

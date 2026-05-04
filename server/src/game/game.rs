@@ -240,6 +240,19 @@ impl Game {
             })
     }
 
+    pub fn get_castle_mut(&mut self, castle_id: GameId) -> Option<&mut Castle> {
+        self.game_objs
+            .iter_mut()
+            .find(|obj| *obj.0 == castle_id)
+            .and_then(|obj| {
+                if let GameObj::Castle(castle) = obj.1 {
+                    Some(castle)
+                } else {
+                    None
+                }
+            })
+    }
+
     pub fn export_map(&self) -> Vec<Vec<Tile>> {
         self.map.export()
     }

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{GameCoord, GameId, units::UnitGroup};
+use crate::{GameCoord, GameId, Resources, units::UnitGroup};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum GameObjE {
@@ -51,4 +51,5 @@ pub struct OwnedCastleE {
     pub pos: GameCoord,
     pub units: UnitGroup,
     pub peasants: u32,
+    pub resources: Resources,
 }

@@ -61,6 +61,7 @@ impl Castle {
             pos: self.pos,
             units: self.units.clone(),
             peasants: self.peasants,
+            resources: self.resources.clone(),
         }
     }
 }

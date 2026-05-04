@@ -1,6 +1,6 @@
 use crate::{
     ansi::BLACK,
-    assets::{SELECTION_TERMCELL, TermCell, TileAsset},
+    assets::{FacilityAsset, SELECTION_TERMCELL, TermCell, TileAsset},
     game_state::GameState,
     renderer::{
         r#const::MOD_INSPECT_COLS,
@@ -10,7 +10,7 @@ use crate::{
     tui::Tui,
     ui_state::{CameraLocation, UiMode, UiState},
 };
-use common::{GameId, game_objs::GameObjE, map::Tile};
+use common::{GameId, courtyard::Facility, game_objs::GameObjE, map::Tile};
 
 pub struct ModInspect {}
 
@@ -60,7 +60,27 @@ impl ModInspect {
                     add_frame(&format!("inspect: {}", inspect.coord), &mut renderable);
                     Some(renderable)
                 }
-                CameraLocation::Courtyard => None,
+                CameraLocation::Courtyard => {
+                    let mut renderable = Vec::new();
+
+                    for _ in 0..Self::PADDING_VERT {
+                        Self::push_empty_row(&mut renderable);
+                    }
+
+                    if let Some(looked_facility) =
+                        Tui::get_looked_facility(inspect.coord, &game_state.facilities)
+                    {
+                        let mut facility_comp = Self::create_facility_component(looked_facility);
+                        renderable.append(&mut facility_comp);
+                    };
+
+                    for _ in 0..Self::PADDING_VERT {
+                        Self::push_empty_row(&mut renderable);
+                    }
+
+                    add_frame(&format!("inspect: {}", inspect.coord), &mut renderable);
+                    Some(renderable)
+                }
             }
         } else {
             None
@@ -158,6 +178,13 @@ impl ModInspect {
         tile_component.last_mut().unwrap()[Self::PADDING_HORI] =
             TileAsset::get_asset(tile, night).std;
         tile_component
+    }
+
+    fn create_facility_component(facility: &Facility) -> Vec<Vec<TermCell>> {
+        let mut component = Vec::new();
+        Self::push_row_with_text(&mut component, &format!("{:?}", facility.r#type));
+        Self::push_row_with_text(&mut component, &format!("lv {}", facility.lv));
+        component
     }
 
     fn push_empty_row(renderable: &mut Vec<Vec<TermCell>>) {

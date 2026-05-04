@@ -8,6 +8,7 @@ use std::{
 use common::{
     GameId,
     r#const::MAX_LOBBY_PLAYERS,
+    courtyard::Facility,
     packets::{C2S4L, CourtyardPacket, L2S4C, LogE, MainPacket},
     player::PlayerE,
 };
@@ -212,6 +213,21 @@ impl Lobby {
                     }
                     C2S4L::OutCourtyard => {
                         player.in_courtyard = false;
+                    }
+                    C2S4L::NewFacility((pos, facility_type)) => {
+                        let Some(castle_id) = player.castle_id else {
+                            continue;
+                        };
+                        let Some(castle) = self.game.get_castle_mut(castle_id) else {
+                            continue;
+                        };
+
+                        if !castle
+                            .courtyard
+                            .add(&mut castle.resources, Facility::new(facility_type, 1, pos))
+                        {
+                            log = Some(LogE::FacilityCreationErr);
+                        }
                     }
                 }
                 if let Some(log) = log {

@@ -85,14 +85,14 @@ impl ModRight {
             );
             draw_text_in_row(
                 content,
-                "Press \"l\" to move",
+                "Press \"l\" then arrowkeys to move",
                 Self::PADDING_VERT + 2,
                 Self::PADDING_HORI,
                 Self::PADDING_HORI,
             );
             draw_text_in_row(
                 content,
-                "Press \"a\" to create your castle :)",
+                "Press \"n\" to create your castle :)",
                 Self::PADDING_VERT + 3,
                 Self::PADDING_HORI,
                 Self::PADDING_HORI,
@@ -104,9 +104,10 @@ impl ModRight {
         let pos_str = format!("{}", castle.pos);
         let time_str = format!("Time: {}", time.h);
         let peasants_str = format!("Peasants: {}", castle.peasants);
+        let wood_str = format!("Wood: {}", castle.resources.wood);
+        let stone_str = format!("Stone: {}", castle.resources.stone);
 
         let mut unit_strings = Vec::new();
-
         for unit_type in all_units!() {
             let count = castle.units.quantities[unit_type.as_index()];
             let s = format!("{:?}: {}", unit_type, count);
@@ -119,10 +120,12 @@ impl ModRight {
             (pos_str.as_str(), Self::PADDING_VERT + 2),
             (time_str.as_str(), Self::PADDING_VERT + 3),
             (peasants_str.as_str(), Self::PADDING_VERT + 5),
+            (wood_str.as_str(), Self::PADDING_VERT + 7),
+            (stone_str.as_str(), Self::PADDING_VERT + 8),
         ];
 
         for (i, unit_str) in unit_strings.iter().enumerate() {
-            infos_to_print.push((unit_str.as_str(), Self::PADDING_VERT + 6 + i));
+            infos_to_print.push((unit_str.as_str(), Self::PADDING_VERT + 10 + i));
         }
 
         for (text, row) in infos_to_print {

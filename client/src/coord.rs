@@ -1,7 +1,6 @@
 use common::{
     GameCoord,
-    r#const::{MAP_COLS, MAP_ROWS},
-    courtyard::{COURTYARD_COLS, COURTYARD_ROWS},
+    r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS},
 };
 
 use crate::{

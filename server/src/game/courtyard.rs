@@ -1,7 +1,8 @@
 use crate::game::castle::Castle;
 use common::{
     GameCoord, Resources,
-    courtyard::{COURTYARD_COLS, COURTYARD_ROWS, Facility, FacilityType},
+    r#const::{COURTYARD_COLS, COURTYARD_ROWS},
+    courtyard::{Facility, FacilityType},
     units::UnitType,
 };
 
@@ -56,9 +57,6 @@ impl Courtyard {
     }
 
     fn is_position_valid(&self, pos: GameCoord, size: GameCoord) -> bool {
-        if pos.x < 0 || pos.y < 0 {
-            return false;
-        }
         if pos.x + size.x > COURTYARD_COLS || pos.y + size.y > COURTYARD_ROWS {
             return false;
         }
@@ -111,9 +109,5 @@ impl Courtyard {
         for facility in self.facilities[FacilityType::Shipyard.index()].iter() {
             castle.units.add_single_type(UnitType::Ship, facility.lv);
         }
-    }
-
-    pub fn get_facilities(&self, r#type: FacilityType) -> &[Facility] {
-        &self.facilities[r#type.index()]
     }
 }
