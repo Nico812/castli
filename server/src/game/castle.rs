@@ -42,7 +42,7 @@ impl Castle {
             peasants,
             alive,
             courtyard: Courtyard::new(),
-            resources: Resources::new(10, 10),
+            resources,
         }
     }
 

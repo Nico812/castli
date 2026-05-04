@@ -13,16 +13,8 @@ pub struct Courtyard {
 
 impl Courtyard {
     pub fn new() -> Self {
-        let mut facilities = [Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new()];
-        let start_pos = GameCoord { x: 5, y: 5 };
-        facilities[FacilityType::FarmPlot.index()].push(Facility::new(
-            FacilityType::FarmPlot,
-            1,
-            start_pos,
-        ));
-
-        let mut occupied = [[false; COURTYARD_COLS]; COURTYARD_ROWS];
-        Self::mark_occupied(&mut occupied, start_pos, FacilityType::FarmPlot.size());
+        let facilities = [Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new()];
+        let occupied = [[false; COURTYARD_COLS]; COURTYARD_ROWS];
 
         Self {
             occupied,
@@ -31,7 +23,7 @@ impl Courtyard {
     }
 
     pub fn add(&mut self, resources: &mut Resources, facility: Facility) -> bool {
-        let type_idx = facility.r#type.index();
+        let type_idx = facility.r#type.as_index();
         let max_count = facility.r#type.max_count();
 
         if self.facilities[type_idx].len() >= max_count {
@@ -84,19 +76,19 @@ impl Courtyard {
     }
 
     pub fn update(&self, castle: &mut Castle) {
-        for facility in self.facilities[FacilityType::FarmPlot.index()].iter() {
+        for facility in self.facilities[FacilityType::FarmPlot.as_index()].iter() {
             castle.peasants = castle.peasants.saturating_add(1 * facility.lv);
         }
 
-        for facility in self.facilities[FacilityType::Sawmill.index()].iter() {
+        for facility in self.facilities[FacilityType::Sawmill.as_index()].iter() {
             castle.resources.wood = castle.resources.wood.saturating_add(facility.lv * 10);
         }
 
-        for facility in self.facilities[FacilityType::Mines.index()].iter() {
+        for facility in self.facilities[FacilityType::Mines.as_index()].iter() {
             castle.resources.stone = castle.resources.stone.saturating_add(facility.lv * 10);
         }
 
-        for facility in self.facilities[FacilityType::Barracks.index()].iter() {
+        for facility in self.facilities[FacilityType::Barracks.as_index()].iter() {
             let knights_to_add = facility.lv * 5;
             if castle.peasants > knights_to_add {
                 castle.peasants -= knights_to_add;
@@ -106,7 +98,7 @@ impl Courtyard {
             }
         }
 
-        for facility in self.facilities[FacilityType::Shipyard.index()].iter() {
+        for facility in self.facilities[FacilityType::Shipyard.as_index()].iter() {
             castle.units.add_single_type(UnitType::Ship, facility.lv);
         }
     }

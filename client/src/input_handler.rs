@@ -11,7 +11,8 @@ use crate::game_state::GameState;
 use crate::renderer::renderer::Renderer;
 use crate::tui::{T2C, Tui};
 use crate::ui_state::{
-    Camera, CameraLocation, Inspect, InteractTarget, UiMode, UiState, UnitSelection,
+    Camera, CameraLocation, FacilitySelection, Inspect, InteractTarget, UiMode, UiState,
+    UnitSelection,
 };
 use common::GameCoord;
 use common::r#const::{MAP_COLS, MAP_ROWS};
@@ -193,11 +194,7 @@ impl InputHandler {
                 },
                 (KeyCode::Char('n'), _) => {
                     if let InteractTarget::CourtyardPos(pos) = interact_target {
-                        let _ = tx.send(T2C::NewFacility((*pos, FacilityType::FarmPlot)));
-                        ui_state.mode = UiMode::Inspect(Inspect {
-                            coord: *pos,
-                            selection: None,
-                        })
+                        ui_state.mode = UiMode::FacilitySelection(FacilitySelection::new(*pos));
                     }
                 }
                 _ => {}
@@ -243,6 +240,28 @@ impl InputHandler {
                     }
                     (KeyCode::Down, KeyModifiers::CONTROL) => {
                         Self::move_unit_selection(8, selection)
+                    }
+                    _ => {}
+                }
+            }
+            UiMode::FacilitySelection(ref mut selection) => {
+                let Some(ref castle) = game_state.castle else {
+                    return;
+                };
+                match (key.code, key.modifiers) {
+                    (KeyCode::Esc, _) => ui_state.mode = UiMode::Std,
+                    (KeyCode::Enter, _) => {
+                        let _ = tx.send(T2C::NewFacility((selection.pos, selection.active)));
+                        ui_state.mode = UiMode::Inspect(Inspect {
+                            coord: selection.pos,
+                            selection: None,
+                        });
+                    }
+                    (KeyCode::Up, KeyModifiers::NONE) => {
+                        Self::move_facility_selection(-1, selection)
+                    }
+                    (KeyCode::Down, KeyModifiers::NONE) => {
+                        Self::move_facility_selection(1, selection)
                     }
                     _ => {}
                 }
@@ -365,11 +384,26 @@ impl InputHandler {
             dy if dy > 0 => {
                 let new_unit_index =
                     (selection.active_input.0.as_index() + 1).min(UnitType::COUNT - 1);
-                selection.active_input.0 = UnitType::form_index(new_unit_index);
+                selection.active_input.0 = UnitType::from_index(new_unit_index);
             }
             dy if dy < 0 => {
                 let new_unit_index = selection.active_input.0.as_index().saturating_sub(1);
-                selection.active_input.0 = UnitType::form_index(new_unit_index);
+                selection.active_input.0 = UnitType::from_index(new_unit_index);
+            }
+            _ => {}
+        }
+    }
+
+    fn move_facility_selection(dy: isize, selection: &mut FacilitySelection) {
+        match dy {
+            dy if dy > 0 => {
+                let new_facility_index =
+                    (selection.active.as_index() + 1).min(FacilityType::COUNT - 1);
+                selection.active = FacilityType::from_index(new_facility_index);
+            }
+            dy if dy < 0 => {
+                let new_facility_index = selection.active.as_index().saturating_sub(1);
+                selection.active = FacilityType::from_index(new_facility_index);
             }
             _ => {}
         }

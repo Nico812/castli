@@ -1,7 +1,7 @@
 pub const MAP_ROWS: usize = 896 / 4;
 pub const MAP_COLS: usize = 896 / 4;
 
-pub const COURTYARD_ROWS: usize = 30;
+pub const COURTYARD_ROWS: usize = 60;
 pub const COURTYARD_COLS: usize = 60;
 
 pub const MAX_LOBBY_PLAYERS: usize = 15;

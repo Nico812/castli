@@ -1,7 +1,7 @@
 use common::{
-    GameCoord, GameId,
+    GameCoord, GameId, all_facilities,
     r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS},
-    courtyard::Facility,
+    courtyard::{Facility, FacilityType},
     units::{UnitGroup, UnitType},
 };
 
@@ -61,6 +61,7 @@ pub enum UiMode {
     Interact(InteractTarget),
     Inspect(Inspect),
     UnitSelection(UnitSelection),
+    FacilitySelection(FacilitySelection),
 }
 
 pub struct Inspect {
@@ -89,6 +90,20 @@ impl UnitSelection {
             interact_target,
             active_input: (UnitType::form_index(0), None),
             selected_units: UnitGroup::new(),
+        }
+    }
+}
+
+pub struct FacilitySelection {
+    pub pos: GameCoord,
+    pub active: FacilityType,
+}
+
+impl FacilitySelection {
+    pub fn new(pos: GameCoord) -> Self {
+        Self {
+            pos,
+            active: all_facilities!()[0],
         }
     }
 }

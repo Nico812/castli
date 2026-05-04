@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{GameCoord, Resources};
+use crate::{
+    GameCoord, Resources,
+    r#const::{FARM_PLOT_COLS, FARM_PLOT_ROWS},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FacilityType {
@@ -11,18 +14,21 @@ pub enum FacilityType {
     Shipyard,
 }
 
+#[macro_export]
+macro_rules! all_facilities {
+    () => {
+        [
+            $crate::courtyard::FacilityType::FarmPlot,
+            $crate::courtyard::FacilityType::Sawmill,
+            $crate::courtyard::FacilityType::Mines,
+            $crate::courtyard::FacilityType::Barracks,
+            $crate::courtyard::FacilityType::Shipyard,
+        ]
+    };
+}
+
 impl FacilityType {
     pub const COUNT: usize = 5;
-
-    pub const fn all() -> [FacilityType; Self::COUNT] {
-        [
-            FacilityType::FarmPlot,
-            FacilityType::Sawmill,
-            FacilityType::Mines,
-            FacilityType::Barracks,
-            FacilityType::Shipyard,
-        ]
-    }
 
     pub fn max_count(&self) -> usize {
         match self {
@@ -46,7 +52,7 @@ impl FacilityType {
 
     pub fn size(&self) -> GameCoord {
         match self {
-            FacilityType::FarmPlot => GameCoord::new(5, 5),
+            FacilityType::FarmPlot => GameCoord::new(FARM_PLOT_ROWS, FARM_PLOT_COLS),
             FacilityType::Sawmill => GameCoord::new(5, 5),
             FacilityType::Mines => GameCoord::new(5, 5),
             FacilityType::Barracks => GameCoord::new(5, 5),
@@ -54,14 +60,12 @@ impl FacilityType {
         }
     }
 
-    pub fn index(&self) -> usize {
-        match self {
-            FacilityType::FarmPlot => 0,
-            FacilityType::Sawmill => 1,
-            FacilityType::Mines => 2,
-            FacilityType::Barracks => 3,
-            FacilityType::Shipyard => 4,
-        }
+    pub fn as_index(&self) -> usize {
+        *self as usize
+    }
+
+    pub fn from_index(i: usize) -> Self {
+        all_facilities!()[i]
     }
 }
 

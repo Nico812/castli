@@ -25,6 +25,10 @@ macro_rules! all_units {
 impl UnitType {
     pub const COUNT: usize = 4;
 
+    pub fn from_index(i: usize) -> Self {
+        all_units!()[i]
+    }
+
     pub fn as_index(&self) -> usize {
         *self as usize
     }

@@ -1,4 +1,4 @@
-use common::{all_units, game_objs::GameObjE};
+use common::{all_facilities, all_units, game_objs::GameObjE};
 
 use crate::{
     ansi::BLACK,
@@ -24,10 +24,6 @@ impl ModInteract {
         ui_state: &UiState,
         map_data: &MapData,
     ) -> Option<Vec<Vec<TermCell>>> {
-        let Some(ref castle) = game_state.castle else {
-            return None;
-        };
-
         match ui_state.mode {
             UiMode::Interact(ref interact_target) => {
                 let mut renderable = Vec::new();
@@ -81,6 +77,9 @@ impl ModInteract {
                 Some(renderable)
             }
             UiMode::UnitSelection(ref selection) => {
+                let Some(ref castle) = game_state.castle else {
+                    return None;
+                };
                 let all_units = all_units!();
                 let mut renderable = Vec::new();
 
@@ -101,8 +100,8 @@ impl ModInteract {
                         };
 
                     let text = format!("{:?}: {}", unit, display_quantities);
-                    Self::push_row_with_text(&mut renderable, &text);
 
+                    Self::push_row_with_text(&mut renderable, &text);
                     if is_active {
                         let marker_pos = Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1);
                         renderable.last_mut().unwrap()[marker_pos] = SELECTION_TERMCELL;
@@ -117,6 +116,49 @@ impl ModInteract {
                 }
 
                 module_utility::add_frame("units selection", &mut renderable);
+
+                Some(renderable)
+            }
+            UiMode::FacilitySelection(ref selection) => {
+                let Some(ref facilities) = game_state.facilities else {
+                    return None;
+                };
+                let all_facilities = all_facilities!();
+                let mut renderable = Vec::new();
+
+                for _ in 0..Self::PADDING_VERT {
+                    Self::push_empty_row(&mut renderable);
+                }
+
+                for (i, facility) in all_facilities.iter().enumerate() {
+                    let total = facility.max_count();
+                    let owned = facilities[i].len();
+                    let is_active = selection.active == *facility;
+
+                    let display_quantities = format!("{}/{}", owned, total);
+                    let quantities_text = format!("{:?}: {}", facility, display_quantities);
+                    let price_text = format!(
+                        "Wood: {}, Stone: {}",
+                        facility.base_cost().wood,
+                        facility.base_cost().stone
+                    );
+
+                    Self::push_row_with_text(&mut renderable, &quantities_text);
+                    if is_active {
+                        let marker_pos = Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1);
+                        renderable.last_mut().unwrap()[marker_pos] = SELECTION_TERMCELL;
+                    }
+                    Self::push_row_with_text(&mut renderable, &price_text);
+                    Self::push_empty_row(&mut renderable);
+                }
+                Self::push_empty_row(&mut renderable);
+                Self::push_row_with_text(&mut renderable, "enter: build");
+
+                for _ in 0..Self::PADDING_VERT {
+                    Self::push_empty_row(&mut renderable);
+                }
+
+                module_utility::add_frame("facility selection", &mut renderable);
 
                 Some(renderable)
             }
