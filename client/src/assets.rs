@@ -3,9 +3,10 @@
 // Each asset has two version. One is used as a standard, the other as the cell where wind is present.
 // This will proably change in the future.
 
-#![allow(dead_code)]
-
-use common::map::Tile;
+use common::{
+    courtyard::{Facility, FacilityType},
+    map::Tile,
+};
 use crossterm::style::{Color, StyledContent, Stylize};
 
 use crate::ansi::*;
@@ -18,6 +19,12 @@ pub struct TermCell {
 }
 
 impl TermCell {
+    pub const ERR: Self = Self {
+        fg: MAGENTA,
+        bg: BLACK,
+        ch: '?',
+    };
+
     pub const fn new(ch: char, fg: Color, bg: Color) -> Self {
         Self { ch, fg, bg }
     }
@@ -35,6 +42,13 @@ pub struct TileAsset {
 }
 
 impl TileAsset {
+    pub const ERR: TileAsset = TileAsset {
+        fg: MAGENTA,
+        bg: MAGENTA,
+        std: TermCell::ERR,
+        wind: TermCell::new('!', WHITE, MAGENTA),
+    };
+
     pub fn get_asset(tile: Tile, night: bool) -> Self {
         match tile {
             Tile::Grass => {
@@ -72,12 +86,30 @@ impl TileAsset {
                     DAY_HIGH_MOUNTAIN
                 }
             }
-            Tile::Err => ERR,
+            Tile::Err => Self::ERR,
+        }
+    }
+}
+
+pub struct FacilityAsset;
+
+impl FacilityAsset {
+    pub fn get_asset(facility: &Facility, night: bool) -> &[&[TermCell]] {
+        match facility.r#type {
+            FacilityType::FarmPlot => {
+                if night {
+                    NIGHT_FARM_PLOT
+                } else {
+                    DAY_FARM_PLOT
+                }
+            }
+            _ => ERR_ART,
         }
     }
 }
 
 // Misc
+
 pub const BLOCK: char = '▀';
 
 pub const CURSOR_UP: TermCell = TermCell::new('\u{21B1}', WHITE, BLACK);
@@ -85,8 +117,6 @@ pub const CURSOR_DOWN: TermCell = TermCell::new('\u{21B3}', WHITE, BLACK);
 
 pub const SELECTION_TERMCELL: TermCell = TermCell::new('<', BLACK, WHITE);
 
-pub const BKG_FG: Color = BLACK;
-pub const BKG_BG: Color = BLACK;
 pub const BKG_EL: TermCell = TermCell::new('.', RED, BLACK);
 
 // Tiles
@@ -161,13 +191,6 @@ pub const NIGHT_HIGH_MOUNTAIN: TileAsset = TileAsset {
     wind: TermCell::new('^', NIGHT_BLUE_0, NIGHT_WHITE),
 };
 
-pub const ERR: TileAsset = TileAsset {
-    fg: MAGENTA,
-    bg: MAGENTA,
-    std: TermCell::new('?', WHITE, MAGENTA),
-    wind: TermCell::new('!', WHITE, MAGENTA),
-};
-
 // Game elements
 
 pub const MY_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', GREEN, BLACK)]];
@@ -180,7 +203,7 @@ pub const DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', WHITE, BLA
 pub const DEPLOYED_UNITS_ART_SIZE: (usize, usize) =
     (DEPLOYED_UNITS_ART.len(), DEPLOYED_UNITS_ART[0].len());
 
-pub const ERR_ART: &[&[TermCell]] = &[&[ERR.std]];
+pub const ERR_ART: &[&[TermCell]] = &[&[TermCell::ERR]];
 pub const ERR_ART_SIZE: (usize, usize) = (ERR_ART.len(), ERR_ART[0].len());
 
 // Facilities

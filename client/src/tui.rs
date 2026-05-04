@@ -29,6 +29,8 @@ pub enum T2C {
     NewCastle(GameCoord),
     AttackCastle(GameId, UnitGroup),
     SendUnits(GameCoord, UnitGroup),
+    InCourtyard,
+    OutCourtyard,
 }
 
 pub struct Tui;

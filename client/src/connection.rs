@@ -44,6 +44,10 @@ impl Connection {
                         T2C::SendUnits(target_pos, unit_group_e) => {
                             C2S::C2S4L(C2S4L::SendUnits(target_pos, unit_group_e))
                         }
+                        T2C::InCourtyard => {
+                            C2S::C2S4L(C2S4L::InCourtyard)},
+                        T2C::OutCourtyard => {
+                            C2S::C2S4L(C2S4L::OutCourtyard)},
                     };
                     let _ = send_msg_to_server(&mut self.writer, &msg).await;
                 },
@@ -72,6 +76,13 @@ impl Connection {
                             game_state.objs = packet.objs;
                             game_state.time = packet.time;
                         }
+                        S2C::L2S4C(L2S4C::CourtyardPacket(packet)) => {
+                            game_state.add_log("Received some facilities");
+                            game_state.facilities = Some(packet.facilities);
+                            game_state.castle = Some(packet.castle);
+                            game_state.player = packet.player;
+                            game_state.time = packet.time;
+                        },
                         S2C::L2S4C(L2S4C::Map(map)) => {
                             game_state.map = map;
                         }
@@ -86,7 +97,16 @@ impl Connection {
                         S2C::ServerShutdown => {
                             shutdown.shutdown(ShutdownReason::ServerShutdown);
                         }
-                        _ => {}
+                        S2C::LobbyFound => {
+                            game_state.add_log("Lobby found");
+                        }
+                        S2C::LobbyFull => {
+                            game_state.add_log("Lobby full");
+                        }
+                        S2C::ConnectionFailed => {
+                            game_state.add_log("Connection failed");
+                        }
+
                     }
                 }
             }

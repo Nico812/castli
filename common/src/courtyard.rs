@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{GameCoord, Resources};
 
-pub const COURTYARD_ROWS: usize = 64;
-pub const COURTYARD_COLS: usize = 64;
+pub const COURTYARD_ROWS: usize = 300;
+pub const COURTYARD_COLS: usize = 300;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FacilityType {

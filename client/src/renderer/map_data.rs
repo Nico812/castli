@@ -7,7 +7,7 @@ use rand::{Rng, SeedableRng, rngs::SmallRng};
 
 use crate::{
     renderer::renderer::Renderer,
-    ui_state::{Camera, UiState},
+    ui_state::{Camera, CameraLocation, UiState},
 };
 
 pub struct MapData {
@@ -71,6 +71,9 @@ impl MapData {
     }
 
     pub fn update_wind(&mut self, render_count: u32, camera: &Camera) {
+        if camera.location == CameraLocation::Courtyard {
+            return;
+        };
         let camera_pos = camera.get_pos();
 
         if !render_count.is_multiple_of(10) {

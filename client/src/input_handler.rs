@@ -1,5 +1,4 @@
 use common::GameId;
-use common::courtyard::{COURTYARD_COLS, COURTYARD_ROWS};
 use common::game_objs::GameObjE;
 use common::units::UnitType;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
@@ -47,6 +46,7 @@ impl InputHandler {
                         &mut ui_state.camera.location,
                         CameraLocation::WorldMap,
                         None,
+                        tx,
                     );
                 }
                 (KeyCode::Char('m'), _) => {
@@ -54,6 +54,7 @@ impl InputHandler {
                         &mut ui_state.camera.location,
                         CameraLocation::Map,
                         None,
+                        tx,
                     );
                 }
                 (KeyCode::Char('k'), _) => {
@@ -61,6 +62,7 @@ impl InputHandler {
                         &mut ui_state.camera.location,
                         CameraLocation::Courtyard,
                         None,
+                        tx,
                     );
                 }
                 (KeyCode::Char('l'), _) => {
@@ -84,6 +86,7 @@ impl InputHandler {
                         &mut ui_state.camera.location,
                         CameraLocation::WorldMap,
                         Some(inspect),
+                        tx,
                     );
                 }
                 (KeyCode::Char('m'), _) => {
@@ -91,6 +94,7 @@ impl InputHandler {
                         &mut ui_state.camera.location,
                         CameraLocation::Map,
                         Some(inspect),
+                        tx,
                     );
                 }
                 (KeyCode::Char('k'), _) => {
@@ -98,6 +102,7 @@ impl InputHandler {
                         &mut ui_state.camera.location,
                         CameraLocation::Courtyard,
                         Some(inspect),
+                        tx,
                     );
                 }
                 (KeyCode::Char('l'), _) => {
@@ -233,10 +238,20 @@ impl InputHandler {
         curr: &mut CameraLocation,
         new: CameraLocation,
         mut inspect: Option<&mut Inspect>,
+        tx: &UnboundedSender<T2C>,
     ) {
         if *curr == new {
             return;
         }
+
+        if new == CameraLocation::Courtyard {
+            let _ = tx.send(T2C::InCourtyard);
+        };
+
+        if *curr == CameraLocation::Courtyard {
+            let _ = tx.send(T2C::OutCourtyard);
+        };
+
         if new == CameraLocation::Courtyard
             && let Some(ref mut inspect) = inspect
         {

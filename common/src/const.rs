@@ -13,3 +13,6 @@ pub const KNIGHT_STR: u32 = 1;
 pub const MAGE_STR: u32 = 3;
 pub const DRAGON_STR: u32 = 10;
 pub const SHIP_STR: u32 = 0;
+
+pub const FARM_PLOT_ROWS: usize = 5;
+pub const FARM_PLOT_COLS: usize = 9;

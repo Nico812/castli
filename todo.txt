@@ -1,3 +1,5 @@
+CRUCIAL: yo uare saving the map both in MapData and in GameState.
+
 CRUCIAL: refactor modules. I dont want to allways write the logic to create the renderable and to set paddings! PUS EMPTY ROW IS DUPLICATED CODE
 
 implementa che il client rileva quando la connessione col server è interrotta.

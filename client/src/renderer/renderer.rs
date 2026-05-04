@@ -47,7 +47,7 @@ impl Renderer {
             return Err(());
         };
 
-        let prev_frame = vec![vec![assets::ERR.std; CANVAS_COLS]; CANVAS_ROWS];
+        let prev_frame = vec![vec![assets::TermCell::ERR; CANVAS_COLS]; CANVAS_ROWS];
         let map_data = MapData::new(map_tiles);
 
         Ok(Self {
@@ -119,7 +119,8 @@ impl Renderer {
 
         // Adding the cursor
         if let UiMode::Inspect(ref inspect) = ui_state.mode
-            && let Some(term_coord) = TermCoord::from_game_coord(inspect.coord, &ui_state.camera)
+            && let Some(term_coord) =
+                TermCoord::from_game_coord(inspect.coord, &ui_state.camera, false)
         {
             // Checks if the cursor is inside the central module
             let is_inside_fov = term_coord.y > MOD_CENTRAL_POS.0

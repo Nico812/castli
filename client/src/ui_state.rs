@@ -37,9 +37,9 @@ impl Camera {
     }
 
     pub fn move_camera(&mut self, dx: isize, dy: isize) {
-        let (bound_rows, bound_cols, ref mut camera_pos) = match self.location {
-            CameraLocation::Map => (MAP_ROWS, MAP_COLS, self.map),
-            CameraLocation::Courtyard => (COURTYARD_ROWS, COURTYARD_COLS, self.courtyard),
+        let (bound_rows, bound_cols, camera_pos) = match self.location {
+            CameraLocation::Map => (MAP_ROWS, MAP_COLS, &mut self.map),
+            CameraLocation::Courtyard => (COURTYARD_ROWS, COURTYARD_COLS, &mut self.courtyard),
             CameraLocation::WorldMap => {
                 return;
             }
@@ -47,10 +47,11 @@ impl Camera {
 
         camera_pos.x = (camera_pos.x as isize + 2 * dx)
             .max(0)
-            .min(bound_cols as isize - Renderer::FOV_COLS as isize) as usize;
+            .min(bound_cols.saturating_sub(Renderer::FOV_COLS) as isize)
+            as usize;
         camera_pos.y = (camera_pos.y as isize + 2 * dy)
             .max(0)
-            .min((bound_rows) as isize - (Renderer::FOV_ROWS * 2) as isize)
+            .min(bound_rows.saturating_sub(Renderer::FOV_ROWS * 2) as isize)
             as usize;
     }
 }
