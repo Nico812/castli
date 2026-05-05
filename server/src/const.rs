@@ -1,3 +1,6 @@
+// Server constants
+pub const SERVER_TICK: u64 = 30;
+
 // Lobby constants
 
 pub const GAME_TICK: u64 = 1000;

@@ -5,7 +5,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::{lobby::Lobby, thread_pool::ThreadPool};
+use crate::{r#const::SERVER_TICK, lobby::Lobby, thread_pool::ThreadPool};
 use common::{
     r#const::{IP_LOCAL, MAX_LOBBIES},
     packets::{C2S, C2S4L, L2S4C, S2C},
@@ -117,7 +117,7 @@ impl Server {
         println!("[server] Server started and listening on {}", IP_LOCAL);
 
         // Performance tracking
-        let tick_duration = Duration::from_millis(10);
+        let tick_duration = Duration::from_millis(SERVER_TICK);
         let mut loop_count = 0;
         let mut total_loop_time = Duration::new(0, 0);
 
