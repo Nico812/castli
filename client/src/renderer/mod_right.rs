@@ -26,9 +26,7 @@ impl ModRight {
             vec![vec![TermCell::new(' ', BLACK, BLACK); Self::CONTENT_COLS]; Self::CONTENT_ROWS];
 
         match ui_state.tab {
-            ModRightTab::Castle => {
-                Self::add_castle_tab(&mut content, &game_state.castle, &game_state.time)
-            }
+            ModRightTab::Castle => Self::add_castle_tab(&mut content, &game_state),
             ModRightTab::Debug => {
                 Self::add_debug_tab(&mut content, frame_dt, &game_state.player, &game_state.time)
             }
@@ -74,8 +72,8 @@ impl ModRight {
         );
     }
 
-    fn add_castle_tab(content: &mut [Vec<TermCell>], castle: &Option<OwnedCastleE>, time: &Time) {
-        let Some(castle) = castle else {
+    fn add_castle_tab(content: &mut [Vec<TermCell>], game_state: &GameState) {
+        let Some(ref castle) = game_state.castle else {
             draw_text_in_row(
                 content,
                 "Welcome to Castli!",
@@ -102,8 +100,7 @@ impl ModRight {
 
         let alive_str = if castle.alive { "Alive :)" } else { "Dead x|" };
         let pos_str = format!("{}", castle.pos);
-        let time_str = format!("Time: {}", time.h);
-        let peasants_str = format!("Peasants: {}", castle.peasants);
+        let time_str = format!("Time: {}", game_state.time.h);
         let wood_str = format!("Wood: {}", castle.resources.wood);
         let stone_str = format!("Stone: {}", castle.resources.stone);
 
@@ -119,7 +116,6 @@ impl ModRight {
             (alive_str, Self::PADDING_VERT + 1),
             (pos_str.as_str(), Self::PADDING_VERT + 2),
             (time_str.as_str(), Self::PADDING_VERT + 3),
-            (peasants_str.as_str(), Self::PADDING_VERT + 5),
             (wood_str.as_str(), Self::PADDING_VERT + 7),
             (stone_str.as_str(), Self::PADDING_VERT + 8),
         ];

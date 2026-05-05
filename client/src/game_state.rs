@@ -36,7 +36,7 @@ pub struct GameState {
     pub map: Vec<Vec<Tile>>,
     pub player: PlayerE,
     pub castle: Option<OwnedCastleE>,
-    pub facilities: HashMap<GameId, Facility>,
+    pub facilities: HashMap<u8, Facility>,
     pub objs: HashMap<GameId, GameObjE>,
     pub logs: Logs,
 }
@@ -72,7 +72,7 @@ impl GameState {
             .unwrap_or(Tile::Err)
     }
 
-    pub fn get_facility(&self, facility_id: GameId) -> Option<&Facility> {
+    pub fn get_facility(&self, facility_id: u8) -> Option<&Facility> {
         self.facilities.get(&facility_id)
     }
 }

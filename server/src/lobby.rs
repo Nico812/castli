@@ -276,7 +276,7 @@ impl Lobby {
             .flatten();
 
         let packet = MainPacket {
-            time: game.time,
+            time: game.get_time(),
             objs: game.export_objs(),
             player: player.export(),
             castle: castle_export,
@@ -294,10 +294,10 @@ impl Lobby {
         };
 
         let packet = CourtyardPacket {
-            time: game.time,
+            time: game.get_time(),
             player: player.export(),
             castle: castle.export_owned(),
-            facilities: castle.courtyard.export(),
+            facilities: castle.export_courtyard(),
         };
 
         let _ = client_ch.tx.send(L2S4C::CourtyardPacket(packet));

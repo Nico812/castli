@@ -60,18 +60,13 @@ impl UnitType {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct UnitGroup {
     pub quantities: [u32; UnitType::COUNT],
-    present_mask: u8,
 }
 
 impl UnitGroup {
     pub fn new() -> Self {
         let quantities = [0; UnitType::COUNT];
-        let present_mask = 0;
 
-        Self {
-            quantities,
-            present_mask,
-        }
+        Self { quantities }
     }
 
     //TODO: maybe client doesnt need to know the strength
@@ -86,19 +81,11 @@ impl UnitGroup {
     pub fn add_single_type(&mut self, unit: UnitType, count: u32) {
         let idx = unit.as_index();
         self.quantities[idx] = self.quantities[idx].saturating_add(count);
-
-        if self.quantities[idx] > 0 {
-            self.present_mask |= unit.as_mask();
-        }
     }
 
     pub fn subtract_single_type(&mut self, unit: UnitType, count: u32) {
         let idx = unit.as_index();
         self.quantities[idx] = self.quantities[idx].saturating_sub(count);
-
-        if self.quantities[idx] == 0 {
-            self.present_mask &= !unit.as_mask();
-        }
     }
 
     pub fn subtract_if_enough(&mut self, other: &Self) -> bool {
@@ -121,10 +108,6 @@ impl UnitGroup {
         for (i, quantity) in other.quantities.iter().enumerate() {
             self.add_single_type(UnitType::form_index(i), *quantity);
         }
-    }
-
-    pub fn contains(&self, unit: UnitType) -> bool {
-        self.present_mask & unit.as_mask() != 0
     }
 
     pub fn is_subset(&self, other: &Self) -> bool {
@@ -150,5 +133,9 @@ impl UnitGroup {
             }
         }
         true
+    }
+
+    pub fn contains(&self, unit: UnitType) -> bool {
+        self.quantities[unit as usize] > 0
     }
 }

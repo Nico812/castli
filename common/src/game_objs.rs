@@ -50,6 +50,5 @@ pub struct OwnedCastleE {
     pub name: String,
     pub pos: GameCoord,
     pub units: UnitGroup,
-    pub peasants: u32,
     pub resources: Resources,
 }

@@ -92,4 +92,8 @@ impl Resources {
             false
         }
     }
+
+    pub fn contains(&self, other: &Self)->bool {
+        self.wood >= other.wood && self.stone >= other.stone
+    }
 }

@@ -2,14 +2,20 @@ use std::collections::VecDeque;
 
 use common::{GameCoord, GameId, game_objs::DeployedUnitsE, units::UnitGroup};
 
+pub enum DeployedUnitsEvent {
+    AtDest,
+    AtHome,
+}
+
+#[derive(Clone)]
 pub struct DeployedUnits {
-    pub owner_id: GameId,
-    pub target_id: Option<GameId>,
-    pub returning: bool,
+    unit_group: UnitGroup,
+    owner_id: GameId,
+    target_id: Option<GameId>,
+    returning: bool,
     path: Option<VecDeque<GameCoord>>,
     path_index: usize,
     path_size: usize,
-    pub unit_group: UnitGroup,
 }
 
 impl DeployedUnits {
@@ -19,10 +25,8 @@ impl DeployedUnits {
         path: Option<VecDeque<GameCoord>>,
         unit_group: UnitGroup,
     ) -> Self {
-        let path_size = match path {
-            Some(ref path) => path.len(),
-            None => 0,
-        };
+        let path_size = path.as_ref().map(|path| path.len()).unwrap_or(0);
+
         Self {
             owner_id,
             target_id,
@@ -38,35 +42,26 @@ impl DeployedUnits {
         self.path.as_ref().map(|path| path[self.path_index])
     }
 
-    pub fn move_along_path(&mut self) {
-        if let Some(ref path) = self.path {
-            let next_index: usize = match self.returning {
-                true => self.path_index.saturating_sub(1),
-                false => (self.path_index + 1).min(self.path_size - 1),
-            };
+    pub fn step(&mut self) -> Option<DeployedUnitsEvent> {
+        if self.path.is_none() {
+            return None;
+        };
 
-            if path.get(next_index).is_some() {
-                self.path_index = next_index;
-            }
-        }
-    }
+        self.path_index = match self.returning {
+            true => self.path_index - 1,
+            false => self.path_index + 1,
+        };
 
-    pub fn pending(&self) -> bool {
-        if self.path_index == 0 && self.returning {
-            return true;
-        }
-        if self.path_index >= self.path_size.saturating_sub(1) && !self.returning {
-            return true;
-        }
-        false
-    }
+        if self.path_index == self.path_size - 1 {
+            self.returning = true;
+            return Some(DeployedUnitsEvent::AtDest);
+        };
 
-    pub fn arrived_home(&self) -> bool {
-        self.pending() && self.returning
-    }
+        if self.path_index == 0 {
+            return Some(DeployedUnitsEvent::AtHome);
+        };
 
-    pub fn arrived_target(&self) -> bool {
-        self.pending() && !self.returning
+        None
     }
 
     // This needs to be fully rethinked because i want dynamic battles!
@@ -74,19 +69,31 @@ impl DeployedUnits {
         self.unit_group.get_strength()
     }
 
-    pub fn r#return(&mut self) {
-        self.returning = true;
-    }
-
     pub fn set_path(&mut self, path: VecDeque<GameCoord>) {
         self.path_size = path.len();
         self.path = Some(path);
     }
 
-    pub fn export(&self) -> DeployedUnitsE {
-        DeployedUnitsE {
+    pub fn get_owner_id(&self) -> GameId {
+        self.owner_id
+    }
+
+    pub fn get_unit_group(&self) -> &UnitGroup {
+        &self.unit_group
+    }
+
+    pub fn get_target(&self) -> Option<GameId> {
+        self.target_id
+    }
+
+    pub fn export(&self) -> Option<DeployedUnitsE> {
+        let Some(pos) = self.get_pos() else {
+            return None;
+        };
+
+        Some(DeployedUnitsE {
             owner_id: self.owner_id,
-            pos: self.get_pos().unwrap(),
-        }
+            pos,
+        })
     }
 }

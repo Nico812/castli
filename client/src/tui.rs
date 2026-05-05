@@ -139,8 +139,8 @@ impl Tui {
 
     pub fn get_looked_facility(
         coord: GameCoord,
-        facilities: &HashMap<GameId, Facility>,
-    ) -> Option<(&GameId, &Facility)> {
+        facilities: &HashMap<u8, Facility>,
+    ) -> Option<(&u8, &Facility)> {
         facilities.iter().find(|facility| facility.1.pos == coord)
     }
 

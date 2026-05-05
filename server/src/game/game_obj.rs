@@ -9,11 +9,17 @@ pub enum GameObj {
 }
 
 impl GameObj {
-    pub fn export(&self) -> GameObjE {
+    pub fn export(&self) -> Option<GameObjE> {
         match self {
-            Self::Castle(castle) => GameObjE::Castle(castle.export()),
-            Self::Structure(structure) => GameObjE::Structure(structure.export()),
-            Self::DeployedUnits(deployed_units) => GameObjE::DeployedUnits(deployed_units.export()),
+            Self::Castle(castle) => Some(GameObjE::Castle(castle.export())),
+            Self::Structure(structure) => Some(GameObjE::Structure(structure.export())),
+            Self::DeployedUnits(deployed_units) => {
+                if let Some(export) = deployed_units.export() {
+                    return Some(GameObjE::DeployedUnits(export));
+                } else {
+                    None
+                }
+            }
         }
     }
 }

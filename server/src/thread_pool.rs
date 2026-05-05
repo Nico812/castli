@@ -43,7 +43,7 @@ impl ThreadPool {
         self.sender.as_ref().unwrap().send(job).unwrap();
     }
 
-    pub fn execute_tiwh_result<F, T>(&self, f: F) -> mpsc::Receiver<T>
+    pub fn execute_with_result<F, T>(&self, f: F) -> mpsc::Receiver<T>
     where
         F: FnOnce() -> T + Send + 'static,
         T: Send + 'static,

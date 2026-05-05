@@ -142,10 +142,10 @@ impl ModCentral {
                 };
 
                 let tile_top = tiles_wor
-                    .get(term_coord.y)
+                    .get(term_coord.y * 2)
                     .and_then(|tile_row| tile_row.get(term_coord.x));
                 let tile_bot = tiles_wor
-                    .get(term_coord.y + 1)
+                    .get(term_coord.y * 2 + 1)
                     .and_then(|tile_row| tile_row.get(term_coord.x));
 
                 if let (Some(tile_top_), Some(tile_bot_)) = (tile_top, tile_bot) {
@@ -231,7 +231,7 @@ impl ModCentral {
 
     fn add_facilities_to_courtyard(
         cells: &mut Vec<Vec<TermCell>>,
-        facilities: &HashMap<GameId, Facility>,
+        facilities: &HashMap<u8, Facility>,
         camera: &Camera,
         night: bool,
     ) {

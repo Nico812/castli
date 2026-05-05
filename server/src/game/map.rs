@@ -14,15 +14,15 @@ use common::{
 };
 
 pub struct Map {
-    pub tiles: Vec<Vec<Tile>>,
-    pub obstacles: Vec<Vec<bool>>,
+    tiles: Vec<Vec<Tile>>,
+    obstacles: Vec<Vec<bool>>,
 }
 
 impl Map {
     pub fn new() -> Self {
         let tiles = Self::cellular_automata();
-
         let mut obstacles = vec![vec![false; MAP_COLS]; MAP_ROWS];
+
         for (r, row) in tiles.iter().enumerate() {
             for (c, tile) in row.iter().enumerate() {
                 if *tile == Tile::Water {
@@ -34,12 +34,25 @@ impl Map {
         Self { tiles, obstacles }
     }
 
-    pub fn is_obstacle(&self, coord: GameCoord) -> bool {
-        self.obstacles[coord.y][coord.x]
+    pub fn is_obstacle(&self, pos: GameCoord) -> bool {
+        self.obstacles
+            .get(pos.y)
+            .map(|row| row.get(pos.x))
+            .flatten()
+            .copied()
+            .unwrap_or(true)
     }
 
-    pub fn export(&self) -> Vec<Vec<Tile>> {
-        self.tiles.clone()
+    pub fn get_obstacles(&self) -> &Vec<Vec<bool>> {
+        &self.obstacles
+    }
+
+    pub fn get_tile(&self, pos: GameCoord) -> Option<Tile> {
+        self.tiles
+            .get(pos.y)
+            .map(|row| row.get(pos.x))
+            .flatten()
+            .copied()
     }
 
     fn cellular_automata() -> Vec<Vec<Tile>> {
@@ -182,5 +195,9 @@ impl Map {
                 }
             }
         }
+    }
+
+    pub fn export(&self) -> Vec<Vec<Tile>> {
+        self.tiles.clone()
     }
 }

@@ -43,10 +43,10 @@ impl FacilityType {
     pub fn base_cost(&self) -> Resources {
         match self {
             FacilityType::FarmPlot => Resources::new(4, 4),
-            FacilityType::Sawmill => Resources::new(10, 10),
-            FacilityType::Mines => Resources::new(10, 10),
-            FacilityType::Barracks => Resources::new(10, 10),
-            FacilityType::Shipyard => Resources::new(10, 10),
+            FacilityType::Sawmill => Resources::new(2, 2),
+            FacilityType::Mines => Resources::new(2, 2),
+            FacilityType::Barracks => Resources::new(50, 50),
+            FacilityType::Shipyard => Resources::new(1000, 1000),
         }
     }
 
@@ -79,18 +79,5 @@ pub struct Facility {
 impl Facility {
     pub fn new(r#type: FacilityType, pos: GameCoord) -> Self {
         Self { lv: 1, r#type, pos }
-    }
-
-    pub fn cost(&self) -> Resources {
-        let base = self.r#type.base_cost();
-        Resources::new(base.wood * self.lv, base.stone * self.lv)
-    }
-
-    pub fn size(&self) -> GameCoord {
-        self.r#type.size()
-    }
-
-    pub fn pos(&self) -> GameCoord {
-        self.pos
     }
 }

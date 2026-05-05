@@ -1,26 +1,26 @@
+use std::collections::HashMap;
+
 use common::{
     GameCoord, Resources,
+    courtyard::{Facility, FacilityType},
     game_objs::{CastleE, OwnedCastleE},
     units::{UnitGroup, UnitType},
 };
 
-use crate::game::courtyard::Courtyard;
+use crate::game::courtyard::{Courtyard, CourtyardEvent};
 
 pub struct Castle {
-    pub name: String,
-    pub pos: GameCoord,
-    pub alive: bool,
-    pub peasants: u32,
-    pub units: UnitGroup,
-    pub resources: Resources,
-    pub courtyard: Courtyard,
+    name: String,
+    pos: GameCoord,
+    is_alive: bool,
+    units: UnitGroup,
+    resources: Resources,
+    courtyard: Courtyard,
 }
 
 impl Castle {
     pub fn new(name: String, pos: GameCoord) -> Self {
         let mut units = UnitGroup::new();
-        let peasants = 2;
-        let alive = true;
         let mut resources = Resources::new(10, 10);
 
         if name == "gabbiano" {
@@ -38,11 +38,59 @@ impl Castle {
         Self {
             name,
             pos,
+            is_alive: true,
             units,
-            peasants,
-            alive,
-            courtyard: Courtyard::new(),
             resources,
+            courtyard: Courtyard::new(),
+        }
+    }
+
+    pub fn is_alive(&self) -> bool {
+        self.is_alive
+    }
+
+    pub fn new_facility(&mut self, r#type: FacilityType, pos: GameCoord) -> bool {
+        let cost = r#type.base_cost();
+        if !self.resources.contains(&cost) {
+            return false;
+        }
+        if !self.courtyard.new_facility(r#type, pos) {
+            return false;
+        }
+        self.resources.saturating_sub(&cost);
+        true
+    }
+
+    pub fn add_units(&mut self, units: &UnitGroup) {
+        self.units.saturating_add(units);
+    }
+
+    pub fn subtract_units_if_enough(&mut self, units: &UnitGroup) -> bool {
+        self.units.subtract_if_enough(units)
+    }
+
+    pub fn get_strength(&self) -> u32 {
+        self.units.get_strength()
+    }
+
+    pub fn get_pos(&self) -> GameCoord {
+        self.pos
+    }
+
+    pub fn kill(&mut self) {
+        self.is_alive = false;
+    }
+
+    pub fn update(&mut self) {
+        for event in self.courtyard.update().iter() {
+            match event {
+                CourtyardEvent::ResourceProduction(resources) => {
+                    self.resources.saturating_add(resources);
+                }
+                CourtyardEvent::UnitsProduction(units) => {
+                    self.units.saturating_add(units);
+                }
+            }
         }
     }
 
@@ -50,17 +98,20 @@ impl Castle {
         CastleE {
             name: self.name.clone(),
             pos: self.pos,
-            alive: self.alive,
+            alive: self.is_alive,
         }
+    }
+
+    pub fn export_courtyard(&self) -> HashMap<u8, Facility> {
+        self.courtyard.export()
     }
 
     pub fn export_owned(&self) -> OwnedCastleE {
         OwnedCastleE {
-            alive: self.alive,
+            alive: self.is_alive,
             name: self.name.clone(),
             pos: self.pos,
             units: self.units.clone(),
-            peasants: self.peasants,
             resources: self.resources.clone(),
         }
     }
