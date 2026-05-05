@@ -19,17 +19,13 @@ impl ModInspect {
     const PADDING_VERT: usize = 1;
     const CONTENT_COLS: usize = MOD_INSPECT_COLS - 2;
 
-    pub fn update(
-        game_state: &GameState,
-        ui_state: &UiState,
-        map_data: &MapData,
-    ) -> Option<Vec<Vec<TermCell>>> {
+    pub fn update(game_state: &GameState, ui_state: &UiState) -> Option<Vec<Vec<TermCell>>> {
         if let UiMode::Inspect(ref inspect) = ui_state.mode {
             match ui_state.camera.location {
                 CameraLocation::Map | CameraLocation::WorldMap => {
                     let is_world_map = ui_state.camera.location == CameraLocation::WorldMap;
                     let night = game_state.time.night;
-                    let looked_tile = map_data.get_tile(inspect.coord);
+                    let looked_tile = game_state.get_tile(inspect.coord);
 
                     let mut renderable = Vec::new();
 
@@ -70,7 +66,7 @@ impl ModInspect {
                     if let Some(looked_facility) =
                         Tui::get_looked_facility(inspect.coord, &game_state.facilities)
                     {
-                        let mut facility_comp = Self::create_facility_component(looked_facility);
+                        let mut facility_comp = Self::create_facility_component(looked_facility.1);
                         renderable.append(&mut facility_comp);
                     };
 

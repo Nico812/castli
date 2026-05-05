@@ -75,7 +75,7 @@ pub enum InteractTarget {
     CourtyardPos(GameCoord),
     GameObj(GameId),
     // TODO: change this to take a facility id.
-    Facility(Facility),
+    Facility(GameId),
 }
 
 pub struct UnitSelection {

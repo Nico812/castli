@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    GameCoord, Resources,
+    GameCoord, GameId, Resources,
     r#const::{FARM_PLOT_COLS, FARM_PLOT_ROWS},
 };
 
@@ -30,7 +30,7 @@ macro_rules! all_facilities {
 impl FacilityType {
     pub const COUNT: usize = 5;
 
-    pub fn max_count(&self) -> usize {
+    pub fn max_count(&self) -> u8 {
         match self {
             FacilityType::FarmPlot => 4,
             FacilityType::Sawmill => 1,
@@ -77,8 +77,8 @@ pub struct Facility {
 }
 
 impl Facility {
-    pub fn new(r#type: FacilityType, lv: u32, pos: GameCoord) -> Self {
-        Self { lv, pos, r#type }
+    pub fn new(r#type: FacilityType, pos: GameCoord) -> Self {
+        Self { lv: 1, r#type, pos }
     }
 
     pub fn cost(&self) -> Resources {

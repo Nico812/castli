@@ -80,7 +80,7 @@ impl Connection {
                             game_state.time = packet.time;
                         }
                         S2C::L2S4C(L2S4C::CourtyardPacket(packet)) => {
-                            game_state.facilities = Some(packet.facilities);
+                            game_state.facilities = packet.facilities;
                             game_state.castle = Some(packet.castle);
                             game_state.player = packet.player;
                             game_state.time = packet.time;

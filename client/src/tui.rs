@@ -139,16 +139,9 @@ impl Tui {
 
     pub fn get_looked_facility(
         coord: GameCoord,
-        facilities: &Option<[Vec<Facility>; FacilityType::COUNT]>,
-    ) -> Option<&Facility> {
-        let Some(facilities) = facilities else {
-            return None;
-        };
-
-        facilities
-            .iter()
-            .flat_map(|facility_vec| facility_vec.iter())
-            .find(|facility| facility.pos == coord)
+        facilities: &HashMap<GameId, Facility>,
+    ) -> Option<(&GameId, &Facility)> {
+        facilities.iter().find(|facility| facility.1.pos == coord)
     }
 
     pub fn login() -> String {

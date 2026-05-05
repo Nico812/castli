@@ -29,7 +29,7 @@ impl ModCentral {
             CameraLocation::Map => {
                 let title = format!("Castli | map {}", camera_coord);
                 let mut cells = Self::draw_map(
-                    &map_data.tiles,
+                    &game_state.map,
                     &map_data.wind,
                     game_state.time.night,
                     &ui_state.camera,
@@ -44,8 +44,8 @@ impl ModCentral {
             }
             CameraLocation::WorldMap => {
                 let title = "Castli | world map".to_string();
-                let mut cells = Self::draw_map(
-                    &map_data.tiles,
+                let mut cells = Self::draw_world_map(
+                    &map_data.tiles_wor,
                     &map_data.wind,
                     game_state.time.night,
                     &ui_state.camera,
@@ -98,6 +98,55 @@ impl ModCentral {
                 let tile_bot = tiles
                     .get(game_coord.y + 1)
                     .and_then(|tile_row| tile_row.get(game_coord.x));
+
+                if let (Some(tile_top_), Some(tile_bot_)) = (tile_top, tile_bot) {
+                    let top_tile_asset = TileAsset::get_asset(*tile_top_, night);
+                    let bot_tile_asset = TileAsset::get_asset(*tile_bot_, night);
+
+                    if tile_top_ == tile_bot_ {
+                        let has_wind = wind
+                            .get(game_coord.y)
+                            .and_then(|wind_row| wind_row.get(game_coord.x))
+                            .copied()
+                            .unwrap_or(false);
+
+                        *cell = if has_wind {
+                            top_tile_asset.wind
+                        } else {
+                            top_tile_asset.std
+                        };
+                    } else {
+                        *cell = TermCell::new(BLOCK, top_tile_asset.fg, bot_tile_asset.bg);
+                    }
+                }
+            }
+        }
+
+        cells
+    }
+
+    fn draw_world_map(
+        tiles_wor: &[Vec<Tile>],
+        wind: &[Vec<bool>],
+        night: bool,
+        camera: &Camera,
+    ) -> Vec<Vec<TermCell>> {
+        let mut cells = vec![vec![TermCell::ERR; Renderer::FOV_COLS]; Renderer::FOV_ROWS];
+
+        for (row, cell_row) in cells.iter_mut().enumerate() {
+            for (col, cell) in cell_row.iter_mut().enumerate() {
+                let term_coord = TermCoord::new(row, col);
+                let game_coord = match term_coord.to_game_coord(camera, true) {
+                    Some(coord) => coord,
+                    None => continue,
+                };
+
+                let tile_top = tiles_wor
+                    .get(term_coord.y)
+                    .and_then(|tile_row| tile_row.get(term_coord.x));
+                let tile_bot = tiles_wor
+                    .get(term_coord.y + 1)
+                    .and_then(|tile_row| tile_row.get(term_coord.x));
 
                 if let (Some(tile_top_), Some(tile_bot_)) = (tile_top, tile_bot) {
                     let top_tile_asset = TileAsset::get_asset(*tile_top_, night);
@@ -182,23 +231,17 @@ impl ModCentral {
 
     fn add_facilities_to_courtyard(
         cells: &mut Vec<Vec<TermCell>>,
-        facilities: &Option<[Vec<Facility>; FacilityType::COUNT]>,
+        facilities: &HashMap<GameId, Facility>,
         camera: &Camera,
         night: bool,
     ) {
-        let Some(facilities) = facilities else {
-            return;
-        };
-
-        for facilities_of_one_type in facilities.iter() {
-            for facility in facilities_of_one_type.iter() {
-                let art = FacilityAsset::get_asset(facility, night);
-                let pos = facility.pos;
-                let Some(term_coord_rel) = TermCoord::from_game_coord(pos, camera, true) else {
-                    continue;
-                };
-                Self::add_art_to_cells(cells, art, term_coord_rel);
-            }
+        for (_, facility) in facilities.iter() {
+            let art = FacilityAsset::get_asset(facility, night);
+            let pos = facility.pos;
+            let Some(term_coord_rel) = TermCoord::from_game_coord(pos, camera, true) else {
+                continue;
+            };
+            Self::add_art_to_cells(cells, art, term_coord_rel);
         }
     }
 

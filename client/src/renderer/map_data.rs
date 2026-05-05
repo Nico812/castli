@@ -11,7 +11,6 @@ use crate::{
 };
 
 pub struct MapData {
-    pub tiles: Vec<Vec<Tile>>,
     pub tiles_wor: Vec<Vec<Tile>>,
     pub wind: Vec<Vec<bool>>,
     rng: SmallRng,
@@ -63,7 +62,6 @@ impl MapData {
         }
 
         Self {
-            tiles,
             tiles_wor,
             wind,
             rng,
@@ -113,13 +111,5 @@ impl MapData {
             }
         }
         self.wind = tmp_wind;
-    }
-
-    pub fn get_tile(&self, coord: GameCoord) -> Tile {
-        self.tiles
-            .get(coord.y)
-            .and_then(|row| row.get(coord.x))
-            .copied()
-            .unwrap_or(Tile::Err)
     }
 }

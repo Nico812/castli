@@ -93,7 +93,7 @@ impl Renderer {
         }
 
         // Inspect module
-        if let Some(renderable) = ModInspect::update(game_state, ui_state, &self.map_data) {
+        if let Some(renderable) = ModInspect::update(game_state, ui_state) {
             // TODO: Here pos_col should change based on look_coord
             let pos_row = MOD_CENTRAL_POS.0;
             let pos_col = MOD_CENTRAL_POS.1 + MOD_CENTRAL_COLS - MOD_INSPECT_COLS;
@@ -106,7 +106,7 @@ impl Renderer {
         }
 
         //Interact module
-        if let Some(renderable) = ModInteract::update(game_state, ui_state, &self.map_data) {
+        if let Some(renderable) = ModInteract::update(game_state, ui_state) {
             let pos_row = MOD_INTERACT_POS.0;
             let pos_col = MOD_INTERACT_POS.1;
 

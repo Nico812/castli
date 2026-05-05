@@ -2,6 +2,7 @@ use std::{
     io::{Read, Write},
     net::{TcpListener, TcpStream},
     sync::mpsc::{self, Receiver, Sender},
+    time::{Duration, Instant},
 };
 
 use crate::{lobby::Lobby, thread_pool::ThreadPool};
@@ -115,7 +116,13 @@ impl Server {
         listener.set_nonblocking(true).unwrap();
         println!("[server] Server started and listening on {}", IP_LOCAL);
 
+        // Performance tracking
+        let tick_duration = Duration::from_millis(10);
+        let mut loop_count = 0;
+        let mut total_loop_time = Duration::new(0, 0);
+
         loop {
+            let loop_start = Instant::now();
             let mut ended_conns = Vec::new();
 
             // Checks if there are new connections and handles them
@@ -188,6 +195,26 @@ impl Server {
             // Removing disconnected clients from the active connections
             for i in ended_conns {
                 self.conns.remove(i);
+            }
+
+            // Performace tracking
+            let loop_time = loop_start.elapsed();
+            loop_count += 1;
+            total_loop_time += loop_time;
+
+            if loop_count % 100 == 0 {
+                let avg_time = total_loop_time / 100;
+                println!(
+                    "[server] Performance Stats - Avg loop time over last 100: {} ms",
+                    avg_time.as_millis()
+                );
+                total_loop_time = Duration::new(0, 0);
+            }
+
+            // Small tick to prevent CPU overuse
+            let elapsed = loop_start.elapsed();
+            if elapsed < tick_duration {
+                std::thread::sleep(tick_duration - elapsed);
             }
         }
     }

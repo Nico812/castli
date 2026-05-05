@@ -8,7 +8,6 @@ use std::{
 use common::{
     GameId,
     r#const::MAX_LOBBY_PLAYERS,
-    courtyard::Facility,
     packets::{C2S4L, CourtyardPacket, L2S4C, LogE, MainPacket},
     player::PlayerE,
 };
@@ -99,7 +98,13 @@ impl Lobby {
         let mut next_tick = Instant::now();
         let mut running = true;
 
+        // Performance tracking
+        let mut tick_count = 0;
+        let mut total_comput = Duration::new(0, 0);
+
         while running {
+            let tick_start = Instant::now();
+
             self.listen_server(&mut main_rx, &mut running);
             self.listen_clients();
 
@@ -115,6 +120,20 @@ impl Lobby {
             }
 
             self.send_updates();
+
+            // Performance tracking
+            let comput_time = tick_start.elapsed();
+            tick_count += 1;
+            total_comput += comput_time;
+            if tick_count % 10 == 0 {
+                let avg_time = total_comput / 10;
+                println!(
+                    "[lobby {}] Avg tick time over last 10: {:} ms",
+                    self.id,
+                    avg_time.as_millis()
+                );
+                total_comput = Duration::new(0, 0);
+            }
 
             next_tick += tick_duration;
             thread::sleep(next_tick.saturating_duration_since(Instant::now()));
@@ -218,14 +237,7 @@ impl Lobby {
                         let Some(castle_id) = player.castle_id else {
                             continue;
                         };
-                        let Some(castle) = self.game.get_castle_mut(castle_id) else {
-                            continue;
-                        };
-
-                        if !castle
-                            .courtyard
-                            .add(&mut castle.resources, Facility::new(facility_type, 1, pos))
-                        {
+                        if !self.game.add_facility(castle_id, facility_type, pos) {
                             log = Some(LogE::FacilityCreationErr);
                         }
                     }

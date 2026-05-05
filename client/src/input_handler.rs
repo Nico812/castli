@@ -138,9 +138,8 @@ impl InputHandler {
                             let looked_facility =
                                 Tui::get_looked_facility(inspect.coord, &game_state.facilities);
                             if let Some(looked_facility) = looked_facility {
-                                ui_state.mode = UiMode::Interact(InteractTarget::Facility(
-                                    looked_facility.clone(),
-                                ));
+                                ui_state.mode =
+                                    UiMode::Interact(InteractTarget::Facility(*looked_facility.0));
                             } else {
                                 ui_state.mode =
                                     UiMode::Interact(InteractTarget::CourtyardPos(inspect.coord));

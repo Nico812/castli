@@ -1,4 +1,6 @@
-use common::{all_facilities, all_units, game_objs::GameObjE};
+use std::fmt::Pointer;
+
+use common::{all_facilities, all_units, courtyard::FacilityType, game_objs::GameObjE};
 
 use crate::{
     ansi::BLACK,
@@ -19,11 +21,7 @@ impl ModInteract {
     const PADDING_VERT: usize = 1;
     const CONTENT_COLS: usize = MOD_INTERACT_COLS.saturating_sub(2);
 
-    pub fn update(
-        game_state: &GameState,
-        ui_state: &UiState,
-        map_data: &MapData,
-    ) -> Option<Vec<Vec<TermCell>>> {
+    pub fn update(game_state: &GameState, ui_state: &UiState) -> Option<Vec<Vec<TermCell>>> {
         match ui_state.mode {
             UiMode::Interact(ref interact_target) => {
                 let mut renderable = Vec::new();
@@ -52,11 +50,14 @@ impl ModInteract {
                         }
                     }
                     InteractTarget::MapPos(pos) => {
-                        let tile = map_data.get_tile(*pos);
+                        let tile = game_state.get_tile(*pos);
                         Self::push_row_with_text(&mut renderable, &format!("{:?}", tile));
                         Self::push_row_with_text(&mut renderable, "a: send troops");
                     }
-                    InteractTarget::Facility(facility) => {
+                    InteractTarget::Facility(facility_id) => {
+                        let Some(facility) = game_state.get_facility(*facility_id) else {
+                            return None;
+                        };
                         Self::push_row_with_text(
                             &mut renderable,
                             &format!("{:?}", facility.r#type),
@@ -120,9 +121,6 @@ impl ModInteract {
                 Some(renderable)
             }
             UiMode::FacilitySelection(ref selection) => {
-                let Some(ref facilities) = game_state.facilities else {
-                    return None;
-                };
                 let all_facilities = all_facilities!();
                 let mut renderable = Vec::new();
 
@@ -130,17 +128,22 @@ impl ModInteract {
                     Self::push_empty_row(&mut renderable);
                 }
 
-                for (i, facility) in all_facilities.iter().enumerate() {
-                    let total = facility.max_count();
-                    let owned = facilities[i].len();
-                    let is_active = selection.active == *facility;
+                for facility_type in all_facilities.iter() {
+                    let total = facility_type.max_count();
+                    let owned = game_state
+                        .facilities
+                        .iter()
+                        .filter(|facility| facility.1.r#type == *facility_type)
+                        .count();
+
+                    let is_active = selection.active == *facility_type;
 
                     let display_quantities = format!("{}/{}", owned, total);
-                    let quantities_text = format!("{:?}: {}", facility, display_quantities);
+                    let quantities_text = format!("{:?}: {}", facility_type, display_quantities);
                     let price_text = format!(
                         "Wood: {}, Stone: {}",
-                        facility.base_cost().wood,
-                        facility.base_cost().stone
+                        facility_type.base_cost().wood,
+                        facility_type.base_cost().stone
                     );
 
                     Self::push_row_with_text(&mut renderable, &quantities_text);

@@ -135,11 +135,8 @@ impl Game {
         target_id: Option<GameId>,
         pool: &ThreadPool,
     ) -> bool {
-        let attacker_castle = match self.game_objs.get_mut(&attacker_id) {
-            Some(GameObj::Castle(c)) => c,
-            _ => {
-                return false;
-            }
+        let Some(attacker_castle) = Self::get_castle_mut(&mut self.game_objs, attacker_id) else {
+            return false;
         };
 
         if unit_group.is_empty() {
@@ -157,7 +154,7 @@ impl Game {
         let deployed_units = DeployedUnits::new(attacker_id, target_id, None, unit_group);
         let map_obstacles = self.map.obstacles.clone();
         let attacker_pos = attacker_castle.pos;
-        let id = self.new_id();
+        let id = Self::new_id(&mut self.id_cnt);
 
         self.incomp_game_objs
             .insert(id, GameObj::DeployedUnits(deployed_units));
@@ -221,10 +218,26 @@ impl Game {
         if self.map.is_obstacle(pos) {
             return None;
         }
-        let id = self.new_id();
+        let id = Self::new_id(&mut self.id_cnt);
         let castle = Castle::new(name, pos);
         self.game_objs.insert(id, GameObj::Castle(castle));
         Some(id)
+    }
+
+    pub fn add_facility(
+        &mut self,
+        castle_id: GameId,
+        facility_type: FacilityType,
+        pos: GameCoord,
+    ) -> bool {
+        let Some(castle) = Self::get_castle_mut(&mut self.game_objs, castle_id) else {
+            return false;
+        };
+
+        let facility = Facility::new(facility_type, pos);
+        let id = Self::new_id(&mut self.id_cnt);
+
+        castle.courtyard.add(&mut castle.resources, facility, id)
     }
 
     pub fn get_castle(&self, castle_id: GameId) -> Option<&Castle> {
@@ -240,8 +253,11 @@ impl Game {
             })
     }
 
-    pub fn get_castle_mut(&mut self, castle_id: GameId) -> Option<&mut Castle> {
-        self.game_objs
+    pub fn get_castle_mut(
+        game_objs: &mut HashMap<GameId, GameObj>,
+        castle_id: GameId,
+    ) -> Option<&mut Castle> {
+        game_objs
             .iter_mut()
             .find(|obj| *obj.0 == castle_id)
             .and_then(|obj| {
@@ -268,8 +284,8 @@ impl Game {
     }
 
     // TODO: Manage max amount of objects
-    fn new_id(&mut self) -> GameId {
-        self.id_cnt += 1;
-        self.id_cnt
+    fn new_id(id_cnt: &mut GameId) -> GameId {
+        *id_cnt += 1;
+        *id_cnt
     }
 }

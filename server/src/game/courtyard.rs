@@ -1,32 +1,42 @@
+use std::collections::HashMap;
+
 use crate::game::castle::Castle;
 use common::{
-    GameCoord, Resources,
+    GameCoord, GameId, Resources,
     r#const::{COURTYARD_COLS, COURTYARD_ROWS},
     courtyard::{Facility, FacilityType},
     units::UnitType,
 };
 
 pub struct Courtyard {
-    occupied: [[bool; COURTYARD_COLS]; COURTYARD_ROWS],
-    facilities: [Vec<Facility>; FacilityType::COUNT],
+    facilities: HashMap<GameId, Facility>,
+    occupied: [[Option<GameId>; COURTYARD_COLS]; COURTYARD_ROWS],
+    owned_cnt: [u8; FacilityType::COUNT],
 }
 
 impl Courtyard {
     pub fn new() -> Self {
-        let facilities = [Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new()];
-        let occupied = [[false; COURTYARD_COLS]; COURTYARD_ROWS];
+        let facilities = HashMap::new();
+        let occupied = [[None; COURTYARD_COLS]; COURTYARD_ROWS];
+        let owned_cnt = [0; FacilityType::COUNT];
 
         Self {
             occupied,
             facilities,
+            owned_cnt,
         }
     }
 
-    pub fn add(&mut self, resources: &mut Resources, facility: Facility) -> bool {
+    pub fn add(
+        &mut self,
+        resources: &mut Resources,
+        facility: Facility,
+        facility_id: GameId,
+    ) -> bool {
         let type_idx = facility.r#type.as_index();
         let max_count = facility.r#type.max_count();
 
-        if self.facilities[type_idx].len() >= max_count {
+        if self.owned_cnt[type_idx] >= max_count {
             return false;
         }
 
@@ -39,12 +49,18 @@ impl Courtyard {
             return false;
         }
 
-        Self::mark_occupied(&mut self.occupied, facility.pos(), facility.size());
-        self.facilities[type_idx].push(facility);
+        Self::mark_occupied(
+            &mut self.occupied,
+            facility_id,
+            facility.pos(),
+            facility.size(),
+        );
+
+        self.facilities.insert(facility_id, facility);
         true
     }
 
-    pub fn export(&self) -> [Vec<Facility>; FacilityType::COUNT] {
+    pub fn export(&self) -> HashMap<GameId, Facility> {
         self.facilities.clone()
     }
 
@@ -55,7 +71,7 @@ impl Courtyard {
 
         for x in pos.x..pos.x + size.x {
             for y in pos.y..pos.y + size.y {
-                if self.occupied[y as usize][x as usize] {
+                if self.occupied[y as usize][x as usize].is_some() {
                     return false;
                 }
             }
@@ -64,42 +80,44 @@ impl Courtyard {
     }
 
     fn mark_occupied(
-        occupied: &mut [[bool; COURTYARD_COLS]; COURTYARD_ROWS],
+        occupied: &mut [[Option<GameId>; COURTYARD_COLS]; COURTYARD_ROWS],
+        facility_id: GameId,
         pos: GameCoord,
         size: GameCoord,
     ) {
         for x in pos.x..pos.x + size.x {
             for y in pos.y..pos.y + size.y {
-                occupied[y as usize][x as usize] = true;
+                occupied[y as usize][x as usize] = Some(facility_id);
             }
         }
     }
 
     pub fn update(&self, castle: &mut Castle) {
-        for facility in self.facilities[FacilityType::FarmPlot.as_index()].iter() {
-            castle.peasants = castle.peasants.saturating_add(1 * facility.lv);
-        }
-
-        for facility in self.facilities[FacilityType::Sawmill.as_index()].iter() {
-            castle.resources.wood = castle.resources.wood.saturating_add(facility.lv * 10);
-        }
-
-        for facility in self.facilities[FacilityType::Mines.as_index()].iter() {
-            castle.resources.stone = castle.resources.stone.saturating_add(facility.lv * 10);
-        }
-
-        for facility in self.facilities[FacilityType::Barracks.as_index()].iter() {
-            let knights_to_add = facility.lv * 5;
-            if castle.peasants > knights_to_add {
-                castle.peasants -= knights_to_add;
-                castle
-                    .units
-                    .add_single_type(UnitType::Knight, knights_to_add);
+        for facility in self.facilities.values() {
+            match facility.r#type {
+                FacilityType::FarmPlot => {
+                    castle.peasants = castle.peasants.saturating_add(1 * facility.lv);
+                }
+                FacilityType::Sawmill => {
+                    castle.resources.wood = castle.resources.wood.saturating_add(facility.lv * 10);
+                }
+                FacilityType::Mines => {
+                    castle.resources.stone =
+                        castle.resources.stone.saturating_add(facility.lv * 10);
+                }
+                FacilityType::Barracks => {
+                    let knights_to_add = facility.lv * 5;
+                    if castle.peasants > knights_to_add {
+                        castle.peasants -= knights_to_add;
+                        castle
+                            .units
+                            .add_single_type(UnitType::Knight, knights_to_add);
+                    }
+                }
+                FacilityType::Shipyard => {
+                    castle.units.add_single_type(UnitType::Ship, facility.lv);
+                }
             }
-        }
-
-        for facility in self.facilities[FacilityType::Shipyard.as_index()].iter() {
-            castle.units.add_single_type(UnitType::Ship, facility.lv);
         }
     }
 }
