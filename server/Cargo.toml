@@ -7,4 +7,3 @@ edition = "2024"
 common = { path = "../common" }
 rand = "0.9.1"
 bincode = { version = "2", features = ["serde"] }
-rayon = "1"

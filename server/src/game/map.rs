@@ -1,5 +1,4 @@
 use rand::Rng;
-use rayon::prelude::*;
 
 use crate::r#const::{
     CA_ITER_HIGH_MOUNTAINS, CA_ITER_MOUNTAINS, CA_ITER_WATER, CA_ITER_WOODS,
@@ -34,7 +33,7 @@ impl Map {
     pub fn new() -> Self {
         let tiles = Self::cellular_automata();
         let obstacles: Vec<Vec<bool>> = tiles
-            .par_iter()
+            .iter()
             .map(|row| row.iter().map(|t| *t == Tile::Water).collect())
             .collect();
         let occupied = vec![vec![false; MAP_COLS]; MAP_ROWS];
@@ -171,22 +170,18 @@ impl Map {
     }
 
     fn add_random(tiles: &mut [Vec<Tile>], add_type: Tile, add_on: &[Tile], percent: u8) {
-        tiles
-            .par_iter_mut()
-            .enumerate()
-            .for_each(|(row, tile_row)| {
-                let mut rng = rand::rng();
-                for (col, tile) in tile_row.iter_mut().enumerate() {
-                    let is_edge =
-                        row == 0 || col == 0 || row == MAP_ROWS - 1 || col == MAP_COLS - 1;
-                    let random_hit = rng.random_range(1..=100) <= percent;
-                    let is_valid_tile = add_on.contains(tile);
+        tiles.iter_mut().enumerate().for_each(|(row, tile_row)| {
+            let mut rng = rand::rng();
+            for (col, tile) in tile_row.iter_mut().enumerate() {
+                let is_edge = row == 0 || col == 0 || row == MAP_ROWS - 1 || col == MAP_COLS - 1;
+                let random_hit = rng.random_range(1..=100) <= percent;
+                let is_valid_tile = add_on.contains(tile);
 
-                    if (is_edge || random_hit) && is_valid_tile {
-                        *tile = add_type;
-                    }
+                if (is_edge || random_hit) && is_valid_tile {
+                    *tile = add_type;
                 }
-            });
+            }
+        });
     }
 
     fn step_life(
@@ -200,7 +195,7 @@ impl Map {
         let counts_to_spread = params.counts_to_spread;
         let counts_to_survive = params.counts_to_survive;
 
-        b.par_iter_mut().enumerate().for_each(|(row, b_row)| {
+        b.iter_mut().enumerate().for_each(|(row, b_row)| {
             if row == 0 || row == MAP_ROWS - 1 {
                 return;
             }
