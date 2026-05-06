@@ -116,7 +116,7 @@ impl ModCentral {
                             top_tile_asset.std
                         };
                     } else {
-                        *cell = TermCell::new(BLOCK, top_tile_asset.fg, bot_tile_asset.bg);
+                        *cell = TermCell::new(BLOCK, top_tile_asset.up, bot_tile_asset.down);
                     }
                 }
             }
@@ -165,7 +165,7 @@ impl ModCentral {
                             top_tile_asset.std
                         };
                     } else {
-                        *cell = TermCell::new(BLOCK, top_tile_asset.fg, bot_tile_asset.bg);
+                        *cell = TermCell::new(BLOCK, top_tile_asset.up, bot_tile_asset.down);
                     }
                 }
             }
