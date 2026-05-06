@@ -69,27 +69,19 @@ pub struct Lobby {
     clients_ch: HashMap<ClientId, ClientCh>,
     players: HashMap<ClientId, Player>,
     num_players: usize,
-    game: Game,
+    game: Option<Game>,
     pool: ThreadPool,
 }
 
 impl Lobby {
     pub fn new(id: usize) -> Self {
-        let players = HashMap::new();
-        let clients_ch = HashMap::new();
-        let num_players = 0;
-        let game = Game::new();
-        let pool = ThreadPool::new(LOBBY_POOL_LEN);
-
-        println!("New lobby initialized");
-
         Self {
             id,
-            players,
-            clients_ch,
-            num_players,
-            game,
-            pool,
+            players: HashMap::new(),
+            clients_ch: HashMap::new(),
+            num_players: 0,
+            game: None,
+            pool: ThreadPool::new(LOBBY_POOL_LEN),
         }
     }
 
@@ -108,7 +100,7 @@ impl Lobby {
             self.listen_server(&mut main_rx, &mut running);
             self.listen_clients();
 
-            let dead_castles = self.game.step();
+            let dead_castles = self.game.as_mut().map(Game::step).unwrap_or_default();
             for dead_castle in dead_castles.iter() {
                 if let Some((_, player)) = self
                     .players
@@ -146,8 +138,12 @@ impl Lobby {
         self.num_players += 1;
         println!("New player joined in a lobby, ID: {}", client_id);
 
-        Self::send_map(&client_ch, &self.game);
-        Self::send_main_packet(&client_ch, &player, &self.game);
+        let game = self.game.get_or_insert_with(|| {
+            println!("New lobby initialized");
+            Game::new()
+        });
+        Self::send_map(&client_ch, game);
+        Self::send_main_packet(&client_ch, &player, game);
         println!("Sent initial data to client");
 
         self.clients_ch.insert(client_id, client_ch);
@@ -183,6 +179,9 @@ impl Lobby {
     }
 
     fn listen_clients(&mut self) {
+        let Some(game) = self.game.as_mut() else {
+            return;
+        };
         for (client_id, client_ch) in self.clients_ch.iter_mut() {
             let Some(player) = self.players.get_mut(client_id) else {
                 continue;
@@ -195,7 +194,7 @@ impl Lobby {
                         println!("Client ({}) requested to build a new castle", client_id);
                         if player.castle_id.is_none()
                             && let Some(castle_id) =
-                                self.game.add_player_castle(player.name.clone(), pos)
+                                game.add_player_castle(player.name.clone(), pos)
                         {
                             player.set_castle_id(castle_id);
                         } else {
@@ -204,19 +203,14 @@ impl Lobby {
                     }
                     C2S4L::AttackCastle(target_id, unit_group_e) => {
                         if let Some(castle_id) = player.castle_id {
-                            if !self.game.attack_castle(
-                                castle_id,
-                                target_id,
-                                unit_group_e,
-                                &self.pool,
-                            ) {
+                            if !game.attack_castle(castle_id, target_id, unit_group_e, &self.pool) {
                                 log = Some(LogE::AttackDeployErr);
                             }
                         }
                     }
                     C2S4L::SendUnits(target_pos, unit_group_e) => {
                         if let Some(castle_id) = player.castle_id {
-                            if !self.game.request_send_units(
+                            if !game.request_send_units(
                                 castle_id,
                                 target_pos,
                                 unit_group_e,
@@ -237,7 +231,7 @@ impl Lobby {
                         let Some(castle_id) = player.castle_id else {
                             continue;
                         };
-                        if !self.game.add_facility(castle_id, facility_type, pos) {
+                        if !game.add_facility(castle_id, facility_type, pos) {
                             log = Some(LogE::FacilityCreationErr);
                         }
                     }
@@ -250,14 +244,17 @@ impl Lobby {
     }
 
     fn send_updates(&mut self) {
+        let Some(game) = self.game.as_ref() else {
+            return;
+        };
         for (client_id, client_ch) in self.clients_ch.iter_mut() {
             let Some(player) = self.players.get_mut(client_id) else {
                 continue;
             };
 
             match player.in_courtyard {
-                false => Self::send_main_packet(client_ch, &player, &self.game),
-                true => Self::send_courtyard_packet(client_ch, &player, &self.game),
+                false => Self::send_main_packet(client_ch, &player, game),
+                true => Self::send_courtyard_packet(client_ch, &player, game),
             }
         }
     }
