@@ -41,15 +41,22 @@ pub enum T2C {
     NewFacility((GameCoord, FacilityType)),
 }
 
-pub struct Tui;
+pub struct Tui {
+    stdout: Stdout,
+}
 
 impl Tui {
+    pub async fn new() -> Self {
+        let stdout = io::stdout();
+        Self { stdout }
+    }
+
     pub async fn run(
+        &mut self,
         tx: mpsc::UnboundedSender<T2C>,
         game_state: Arc<Mutex<GameState>>,
         shutdown: ShutdownChannel,
     ) {
-        let mut stdout = io::stdout();
         let mut render_tick = time::interval(time::Duration::from_millis(16));
         let mut last_frame = time::Instant::now();
         let mut frame_dt: u64 = 0;
@@ -65,7 +72,7 @@ impl Tui {
         };
 
         Self::set_raw_mode();
-        Self::hide_cursor(&mut stdout);
+        self.hide_cursor();
         Self::clear_screen();
 
         while !shutdown.is_shutdown() {
@@ -97,14 +104,11 @@ impl Tui {
             };
             last_frame = now;
 
-            renderer.render(&mut stdout, game_state, &mut ui_state, frame_dt);
+            renderer.render(&mut self.stdout, game_state, &mut ui_state, frame_dt);
 
             render_tick.tick().await;
         }
-
         Self::clear_screen();
-        Self::show_cursor(&mut stdout);
-        Self::reset_mode();
     }
 
     pub fn get_looked_objs<'a>(
@@ -181,11 +185,18 @@ impl Tui {
         terminal::disable_raw_mode().expect("Failed to reset terminal mode");
     }
 
-    fn hide_cursor(stdout: &mut Stdout) {
-        let _ = stdout.execute(cursor::Hide);
+    fn hide_cursor(&mut self) {
+        let _ = self.stdout.execute(cursor::Hide);
     }
 
-    fn show_cursor(stdout: &mut Stdout) {
-        let _ = stdout.execute(cursor::Show);
+    fn show_cursor(&mut self) {
+        let _ = self.stdout.execute(cursor::Show);
+    }
+}
+
+impl Drop for Tui {
+    fn drop(&mut self) {
+        self.show_cursor();
+        Self::reset_mode();
     }
 }

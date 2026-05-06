@@ -1,18 +1,16 @@
 use crate::{
     ansi::BLACK,
-    assets::{FacilityAsset, SELECTION_TERMCELL, TermCell, TileAsset},
+    assets::{GameObjAsset, SELECTION_TERMCELL, TermCell, TileAsset},
     game_state::GameState,
-    renderer::{
-        r#const::MOD_INSPECT_COLS,
-        map_data::MapData,
-        module_utility::{WithArt, add_frame, draw_text_in_row},
-    },
+    renderer::{r#const::MOD_INSPECT_COLS, module::Module, module_utility::draw_text_in_row},
     tui::Tui,
     ui_state::{CameraLocation, UiMode, UiState},
 };
 use common::{GameId, courtyard::Facility, game_objs::GameObjE, map::Tile};
 
-pub struct ModInspect {}
+pub struct ModInspect {
+    module: Module,
+}
 
 impl ModInspect {
     const PADDING_HORI: usize = 2;
@@ -94,7 +92,6 @@ impl ModInspect {
 
         for (id, obj) in objs.iter() {
             let selected = selected_id.is_some_and(|id_| id_ == *id);
-
             match obj {
                 GameObjE::Castle(castle) => {
                     let mut alive_str = "Alive".to_string();
@@ -109,7 +106,7 @@ impl ModInspect {
 
                     let owned = *owned_castle == Some(*id);
                     castles_component.last_mut().unwrap()[Self::PADDING_HORI] =
-                        castle.get_art(false, owned)[0][0];
+                        GameObjAsset::get_asset(obj, owned)[0][0];
 
                     if selected {
                         castles_component.last_mut().unwrap()
@@ -142,7 +139,7 @@ impl ModInspect {
 
                     let owned = *owned_castle == Some(units.owner_id);
                     units_component.last_mut().unwrap()[Self::PADDING_HORI] =
-                        units.get_art(false, owned)[0][0];
+                        GameObjAsset::get_asset(obj, owned)[0][0];
 
                     if selected {
                         units_component.last_mut().unwrap()
@@ -181,21 +178,5 @@ impl ModInspect {
         Self::push_row_with_text(&mut component, &format!("{:?}", facility.r#type));
         Self::push_row_with_text(&mut component, &format!("lv {}", facility.lv));
         component
-    }
-
-    fn push_empty_row(renderable: &mut Vec<Vec<TermCell>>) {
-        renderable.push(vec![TermCell::new(' ', BLACK, BLACK); Self::CONTENT_COLS]);
-    }
-
-    fn push_row_with_text(renderable: &mut Vec<Vec<TermCell>>, text: &str) {
-        renderable.push(vec![TermCell::new(' ', BLACK, BLACK); Self::CONTENT_COLS]);
-        let row_to_write = renderable.len() - 1;
-        draw_text_in_row(
-            renderable,
-            text,
-            row_to_write,
-            Self::PADDING_HORI,
-            Self::PADDING_HORI,
-        );
     }
 }

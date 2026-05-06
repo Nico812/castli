@@ -1,3 +1,5 @@
+use std::ops::{Add, Mul, Sub};
+
 use common::{
     GameCoord,
     r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS},
@@ -24,12 +26,8 @@ impl TermCoord {
         Self { x, y }
     }
 
-    pub fn from_game_coord(
-        game_coord: GameCoord,
-        camera: &Camera,
-        get_mod_central_relative: bool,
-    ) -> Option<Self> {
-        let (mut term_y, mut term_x) = if camera.location == CameraLocation::WorldMap {
+    pub fn from_game_coord(game_coord: GameCoord, camera: &Camera) -> Option<Self> {
+        let (term_y, term_x) = if camera.location == CameraLocation::WorldMap {
             let term_y = game_coord.y / 2 / Renderer::ZOOM_FACTOR;
             let term_x = game_coord.x / Renderer::ZOOM_FACTOR;
 
@@ -46,18 +44,8 @@ impl TermCoord {
         };
 
         // Check out of boundary
-        if (get_mod_central_relative
-            && (term_y >= Renderer::FOV_ROWS || term_x >= Renderer::FOV_COLS))
-            || (!get_mod_central_relative && (term_y >= CANVAS_ROWS || term_x >= CANVAS_COLS))
-        {
+        if term_y >= CANVAS_ROWS || term_x >= CANVAS_COLS {
             return None;
-        };
-
-        // +1 to account for frame
-        // +1 o account for 1-indexing of terminal coords
-        if !get_mod_central_relative {
-            term_y += MOD_CENTRAL_POS.0 + 1;
-            term_x += MOD_CENTRAL_POS.1 + 1;
         };
 
         Some(Self::new(term_y, term_x))
@@ -67,33 +55,16 @@ impl TermCoord {
     // If the camera is in WorldMap gives the upper left GameCoords
     // If are_mod_central_relative it takes the given TermCoord as having origin at top left of ModCentral content
     // Returns None if the GameCoords are out of bounds
-    pub fn to_game_coord(
-        &self,
-        camera: &Camera,
-        are_mod_central_relative: bool,
-    ) -> Option<GameCoord> {
-        let (rel_term_y, rel_term_x) = if !are_mod_central_relative {
-            let Some(rel_term_y) = self.y.checked_sub(MOD_CENTRAL_POS.0 + 1) else {
-                return None;
-            };
-            let Some(rel_term_x) = self.x.checked_sub(MOD_CENTRAL_POS.1 + 1) else {
-                return None;
-            };
-
-            (rel_term_y, rel_term_x)
-        } else {
-            (self.y, self.x)
-        };
-
+    pub fn to_game_coord(&self, camera: &Camera) -> Option<GameCoord> {
         if camera.location == CameraLocation::WorldMap {
             return Some(GameCoord::new(
-                rel_term_y * Renderer::ZOOM_FACTOR * 2,
-                rel_term_x * Renderer::ZOOM_FACTOR,
+                self.y * Renderer::ZOOM_FACTOR * 2,
+                self.x * Renderer::ZOOM_FACTOR,
             ));
         } else {
             let camera_pos = camera.get_pos();
-            let game_y = camera_pos.y + rel_term_y * 2;
-            let game_x = camera_pos.x + rel_term_x;
+            let game_y = camera_pos.y + self.y * 2;
+            let game_x = camera_pos.x + self.x;
 
             // Checking if GameCoord is out of bounds
             if (camera.location == CameraLocation::Map
@@ -106,5 +77,38 @@ impl TermCoord {
                 return Some(GameCoord::new(game_y, game_x));
             }
         };
+    }
+}
+
+impl Add for TermCoord {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+}
+
+impl Sub for TermCoord {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        Self {
+            x: self.x - other.x,
+            y: self.y - other.y,
+        }
+    }
+}
+
+impl Mul<usize> for TermCoord {
+    type Output = Self;
+
+    fn mul(self, scalar: usize) -> Self {
+        Self {
+            x: self.x * scalar,
+            y: self.y * scalar,
+        }
     }
 }

@@ -1,6 +1,4 @@
-use std::fmt::Pointer;
-
-use common::{all_facilities, all_units, courtyard::FacilityType, game_objs::GameObjE};
+use common::{all_facilities, all_units, game_objs::GameObjE};
 
 use crate::{
     ansi::BLACK,
@@ -8,7 +6,6 @@ use crate::{
     game_state::GameState,
     renderer::{
         r#const::MOD_INTERACT_COLS,
-        map_data::MapData,
         module_utility::{self, draw_text_in_row},
     },
     ui_state::{InteractTarget, UiMode, UiState},

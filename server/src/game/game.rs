@@ -14,27 +14,18 @@ use crate::{
     thread_pool::ThreadPool,
 };
 use common::{
-    GameCoord, GameId, Time,
-    r#const::CASTLE_SIZE,
-    courtyard::{Facility, FacilityType},
-    game_objs::GameObjE,
-    packets::MapPayload,
-    units::UnitGroup,
+    GameCoord, GameId, Time, r#const::CASTLE_SIZE, courtyard::FacilityType, game_objs::GameObjE,
+    packets::MapPayload, units::UnitGroup,
 };
 
 struct PathTask {
     pub units_id: GameId,
     pub rx: Receiver<Option<VecDeque<GameCoord>>>,
-    pub completed: bool,
 }
 
 impl PathTask {
     fn new(rx: Receiver<Option<VecDeque<GameCoord>>>, units_id: GameId) -> Self {
-        Self {
-            rx,
-            units_id,
-            completed: false,
-        }
+        Self { rx, units_id }
     }
 }
 

@@ -10,7 +10,6 @@ use crate::renderer::module_utility::draw_text_in_row;
 use crate::ui_state::UiState;
 use common::Time;
 use common::all_units;
-use common::game_objs::OwnedCastleE;
 use common::player::PlayerE;
 
 pub struct ModRight {}

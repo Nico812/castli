@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crossterm::style::Color;
 
 pub const BLACK: Color = Color::Black;
@@ -6,126 +8,126 @@ pub const RED: Color = Color::Red;
 pub const WHITE: Color = Color::White;
 pub const GREEN: Color = Color::Green;
 
-// DAY PALETTE
+// DAY PALETTE (WARMER)
 pub const FG_DAY_BROWN: Color = Color::Rgb {
-    r: 150,
-    g: 100,
-    b: 50,
+    r: 180,
+    g: 110,
+    b: 55,
 };
 pub const BK_DAY_BROWN: Color = Color::Rgb {
-    r: 60,
-    g: 40,
+    r: 70,
+    g: 45,
     b: 20,
 };
 
 pub const FG_DAY_BLUE_1: Color = Color::Rgb {
-    r: 70,
-    g: 110,
-    b: 210,
+    r: 85,
+    g: 115,
+    b: 195,
 };
 pub const BK_DAY_BLUE_1: Color = Color::Rgb {
-    r: 28,
-    g: 44,
-    b: 84,
+    r: 35,
+    g: 48,
+    b: 78,
 };
 
 pub const FG_DAY_BLUE_0: Color = Color::Rgb {
-    r: 90,
-    g: 130,
-    b: 230,
+    r: 105,
+    g: 135,
+    b: 215,
 };
 pub const BK_DAY_BLUE_0: Color = Color::Rgb {
-    r: 36,
-    g: 52,
-    b: 92,
+    r: 43,
+    g: 56,
+    b: 85,
 };
 
 pub const FG_DAY_GREEN_0: Color = Color::Rgb {
-    r: 80,
-    g: 200,
-    b: 80,
+    r: 100,
+    g: 195,
+    b: 75,
 };
 pub const BK_DAY_GREEN_0: Color = Color::Rgb {
-    r: 32,
-    g: 80,
-    b: 32,
+    r: 38,
+    g: 78,
+    b: 28,
 };
 
 pub const FG_DAY_GREEN_1: Color = Color::Rgb {
-    r: 60,
-    g: 160,
-    b: 60,
+    r: 80,
+    g: 155,
+    b: 55,
 };
 pub const BK_DAY_GREEN_1: Color = Color::Rgb {
-    r: 24,
-    g: 64,
-    b: 24,
-};
-
-pub const FG_DAY_GREEN_2: Color = Color::Rgb {
-    r: 50,
-    g: 110,
-    b: 50,
-};
-pub const BK_DAY_GREEN_2: Color = Color::Rgb {
-    r: 20,
-    g: 44,
+    r: 30,
+    g: 62,
     b: 20,
 };
 
-pub const FG_DAY_GREEN_3: Color = Color::Rgb {
-    r: 40,
-    g: 75,
-    b: 40,
+pub const FG_DAY_GREEN_2: Color = Color::Rgb {
+    r: 65,
+    g: 105,
+    b: 45,
 };
-pub const BK_DAY_GREEN_3: Color = Color::Rgb {
-    r: 16,
-    g: 30,
+pub const BK_DAY_GREEN_2: Color = Color::Rgb {
+    r: 26,
+    g: 42,
     b: 16,
 };
 
+pub const FG_DAY_GREEN_3: Color = Color::Rgb {
+    r: 50,
+    g: 72,
+    b: 35,
+};
+pub const BK_DAY_GREEN_3: Color = Color::Rgb {
+    r: 20,
+    g: 28,
+    b: 12,
+};
+
 pub const FG_DAY_GREY_2: Color = Color::Rgb {
-    r: 110,
-    g: 105,
-    b: 100,
+    r: 135,
+    g: 120,
+    b: 105,
 };
 pub const BK_DAY_GREY_2: Color = Color::Rgb {
-    r: 44,
-    g: 42,
-    b: 40,
+    r: 52,
+    g: 46,
+    b: 38,
 };
 
 pub const FG_DAY_GREY_1: Color = Color::Rgb {
-    r: 150,
-    g: 145,
-    b: 135,
+    r: 175,
+    g: 158,
+    b: 140,
 };
 pub const BK_DAY_GREY_1: Color = Color::Rgb {
-    r: 60,
-    g: 58,
-    b: 54,
+    r: 68,
+    g: 60,
+    b: 50,
 };
 
 pub const FG_DAY_GREY_0: Color = Color::Rgb {
-    r: 200,
-    g: 195,
-    b: 185,
+    r: 225,
+    g: 208,
+    b: 190,
 };
 pub const BK_DAY_GREY_0: Color = Color::Rgb {
-    r: 80,
-    g: 78,
-    b: 74,
+    r: 88,
+    g: 80,
+    b: 70,
 };
 
 pub const FG_DAY_WHITE: Color = Color::Rgb {
-    r: 250,
-    g: 245,
+    r: 255,
+    g: 248,
     b: 235,
 };
 pub const BK_DAY_WHITE: Color = Color::Rgb {
-    r: 100,
+    r: 108,
     g: 98,
-    b: 94,
+    b: 86,
 };
 
 // NIGHT PALETTE

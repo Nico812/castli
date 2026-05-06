@@ -1,7 +1,7 @@
 use common::{
     GameCoord, GameId, all_facilities,
     r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS},
-    courtyard::{Facility, FacilityType},
+    courtyard::FacilityType,
     units::{UnitGroup, UnitType},
 };
 

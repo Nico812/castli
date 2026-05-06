@@ -5,6 +5,7 @@
 
 use common::{
     courtyard::{Facility, FacilityType},
+    game_objs::GameObjE,
     map::Tile,
 };
 use crossterm::style::{Color, StyledContent, Stylize};
@@ -128,29 +129,29 @@ pub const BKG_EL: TermCell = TermCell::new('.', RED, BLACK);
 pub const DAY_GRASS: TileAsset = TileAsset {
     up: BK_DAY_GREEN_1,
     down: BK_DAY_GREEN_1,
-    std: TermCell::new('.', FG_DAY_GREEN_0, BK_DAY_GREEN_1),
+    std: TermCell::new('\'', FG_DAY_GREEN_0, BK_DAY_GREEN_1),
     wind: TermCell::new('\"', FG_DAY_GREEN_0, BK_DAY_GREEN_1),
 };
 
 pub const NIGHT_GRASS: TileAsset = TileAsset {
     up: BK_NIGHT_GREEN_1,
     down: BK_NIGHT_GREEN_1,
-    std: TermCell::new('.', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
+    std: TermCell::new('\'', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
     wind: TermCell::new('\"', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
 };
 
 pub const DAY_WATER: TileAsset = TileAsset {
     up: BK_DAY_BLUE_1,
     down: BK_DAY_BLUE_0,
-    std: TermCell::new(' ', FG_DAY_BLUE_0, BK_DAY_BLUE_1),
-    wind: TermCell::new('~', FG_DAY_BLUE_0, BK_DAY_BLUE_1),
+    std: TermCell::new('~', FG_DAY_BLUE_0, BK_DAY_BLUE_1),
+    wind: TermCell::new('-', FG_DAY_BLUE_0, BK_DAY_BLUE_1),
 };
 
 pub const NIGHT_WATER: TileAsset = TileAsset {
     up: BK_NIGHT_BLUE_1,
     down: BK_NIGHT_BLUE_0,
-    std: TermCell::new(' ', FG_NIGHT_BLUE_0, BK_NIGHT_BLUE_1),
-    wind: TermCell::new('~', FG_NIGHT_BLUE_0, BK_NIGHT_BLUE_1),
+    std: TermCell::new('~', FG_NIGHT_BLUE_0, BK_NIGHT_BLUE_1),
+    wind: TermCell::new('-', FG_NIGHT_BLUE_0, BK_NIGHT_BLUE_1),
 };
 
 pub const DAY_WOODS: TileAsset = TileAsset {
@@ -197,18 +198,40 @@ pub const NIGHT_HIGH_MOUNTAIN: TileAsset = TileAsset {
 
 // Game elements
 
+pub struct GameObjAsset;
+
+impl GameObjAsset {
+    pub fn get_asset(obj: &GameObjE, owned: bool) -> &[&[TermCell]] {
+        match obj {
+            GameObjE::Castle(castle) => {
+                if !castle.alive {
+                    DEAD_CASTLE_ART
+                } else if owned {
+                    MY_CASTLE_ART
+                } else {
+                    CASTLE_ART
+                }
+            }
+            GameObjE::DeployedUnits(_) => {
+                if owned {
+                    MY_DEPLOYED_UNITS_ART
+                } else {
+                    DEPLOYED_UNITS_ART
+                }
+            }
+            _ => ERR_ART,
+        }
+    }
+}
+
 pub const MY_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', GREEN, BLACK)]];
 pub const CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', WHITE, BLACK)]];
 pub const DEAD_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('X', RED, BLACK)]];
-pub const CASTLE_ART_SIZE: (usize, usize) = (CASTLE_ART.len(), CASTLE_ART[0].len());
 
 pub const MY_DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', GREEN, BLACK)]];
 pub const DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', WHITE, BLACK)]];
-pub const DEPLOYED_UNITS_ART_SIZE: (usize, usize) =
-    (DEPLOYED_UNITS_ART.len(), DEPLOYED_UNITS_ART[0].len());
 
 pub const ERR_ART: &[&[TermCell]] = &[&[TermCell::ERR]];
-pub const ERR_ART_SIZE: (usize, usize) = (ERR_ART.len(), ERR_ART[0].len());
 
 // Facilities
 
@@ -253,59 +276,36 @@ pub const DAY_FARM_PLOT: &[&[TermCell]] = &[
 
 pub const NIGHT_FARM_PLOT: &[&[TermCell]] = &[
     &[
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
+        TermCell::new('+', FG_NIGHT_BROWN, BLACK),
+        TermCell::new('+', FG_NIGHT_BROWN, BLACK),
+        TermCell::new('+', FG_NIGHT_BROWN, BLACK),
+        TermCell::new('+', FG_NIGHT_BROWN, BLACK),
+        TermCell::new('+', FG_NIGHT_BROWN, BLACK),
+        TermCell::new('+', FG_NIGHT_BROWN, BLACK),
     ],
     &[
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
+        TermCell::new('+', FG_NIGHT_BROWN, BLACK),
         TermCell::new('▓', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
         TermCell::new('▒', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
         TermCell::new('▓', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
         TermCell::new('▓', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('░', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('░', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('▒', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
+        TermCell::new('+', FG_NIGHT_BROWN, BLACK),
     ],
     &[
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
+        TermCell::new('+', FG_NIGHT_BROWN, BLACK),
         TermCell::new('░', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
         TermCell::new('▓', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
         TermCell::new('░', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
         TermCell::new('▓', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('░', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('▓', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('▓', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
+        TermCell::new('+', FG_NIGHT_BROWN, BLACK),
     ],
     &[
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('▒', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('░', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('▒', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('▒', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('▓', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('▓', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('░', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-    ],
-    &[
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
-        TermCell::new('+', FG_NIGHT_GREEN_0, BK_NIGHT_GREEN_1),
+        TermCell::new('+', FG_NIGHT_BROWN, BLACK),
+        TermCell::new('+', FG_NIGHT_BROWN, BLACK),
+        TermCell::new('+', FG_NIGHT_BROWN, BLACK),
+        TermCell::new('+', FG_NIGHT_BROWN, BLACK),
+        TermCell::new('+', FG_NIGHT_BROWN, BLACK),
+        TermCell::new('+', FG_NIGHT_BROWN, BLACK),
     ],
 ];
 

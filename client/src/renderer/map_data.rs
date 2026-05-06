@@ -4,15 +4,11 @@ use common::{
 };
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 
-use crate::{
-    renderer::renderer::Renderer,
-    ui_state::{Camera, CameraLocation},
-};
+use crate::renderer::renderer::Renderer;
 
 pub struct MapData {
     pub tiles_wor: Vec<Vec<Tile>>,
-    pub wind: Vec<Vec<bool>>,
-    rng: SmallRng,
+    pub variants: Vec<Vec<bool>>,
 }
 
 impl MapData {
@@ -55,60 +51,14 @@ impl MapData {
             })
             .collect();
 
-        let mut wind = vec![vec![false; Self::WIND_COLS]; Self::WIND_ROWS];
-        for cell in wind.iter_mut().flat_map(|row| row.iter_mut()) {
+        let mut variants = vec![vec![false; Self::WIND_COLS]; Self::WIND_ROWS];
+        for cell in variants.iter_mut().flat_map(|row| row.iter_mut()) {
             *cell = rng.random_bool(0.1);
         }
 
         Self {
             tiles_wor,
-            wind,
-            rng,
+            variants,
         }
-    }
-
-    pub fn update_wind(&mut self, render_count: u32, camera: &Camera) {
-        if camera.location == CameraLocation::Courtyard {
-            return;
-        };
-        let camera_pos = camera.get_pos();
-
-        if !render_count.is_multiple_of(10) {
-            return;
-        }
-
-        let mut tmp_wind = self.wind.clone();
-
-        let (row_start, col_start) = (camera_pos.y / 2, camera_pos.x);
-        let row_end = (row_start + Renderer::FOV_ROWS - 1).min(Self::WIND_ROWS);
-        let col_end = (col_start + Renderer::FOV_COLS - 1).min(Self::WIND_COLS);
-
-        for row in row_start..=row_end {
-            for col in col_start..=col_end {
-                if self.wind[row][col] {
-                    let mut next_col = col;
-                    let mut next_row = row;
-                    if row == row_end {
-                        next_row = row_start;
-                    } else {
-                        next_row += 1;
-                    }
-                    if col == col_end {
-                        next_col = col_start;
-                    } else {
-                        next_col += 1;
-                    }
-
-                    if self.rng.random_bool(0.3) && !tmp_wind[row][next_col] {
-                        tmp_wind[row][col] = false;
-                        tmp_wind[row][next_col] = true;
-                    } else if self.rng.random_bool(0.1) && !tmp_wind[next_row][col] {
-                        tmp_wind[row][col] = false;
-                        tmp_wind[next_row][col] = true;
-                    }
-                }
-            }
-        }
-        self.wind = tmp_wind;
     }
 }

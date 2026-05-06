@@ -55,17 +55,19 @@ impl ShutdownChannel {
     }
 }
 
-pub struct Client;
+pub struct Client {
+    shutdown: ShutdownChannel,
+}
 
 impl Client {
     pub fn new() -> Self {
-        Self {}
+        let shutdown = ShutdownChannel::new();
+        Self { shutdown }
     }
 
     /// Runs the main client application.
     pub async fn run(&mut self) {
         // Connect to the Server
-        let shutdown = ShutdownChannel::new();
         let addr = if ONLINE { IP_LOCAL } else { IP_LOCAL };
         let stream = match TcpStream::connect(addr).await {
             Ok(s) => s,
@@ -109,17 +111,23 @@ impl Client {
         // Spawn the dedicated network task
         let communication_handle = tokio::spawn(connection.communicate_with_server(
             t2c_rx,
-            ShutdownChannel::clone(&shutdown),
+            ShutdownChannel::clone(&self.shutdown),
             Arc::clone(&game_state),
         ));
 
         // Create and run the TUI. The main thread will now be dedicated to the UI.
         // This blocks until the user quits the TUI.
-        Tui::run(t2c_tx, game_state, ShutdownChannel::clone(&shutdown)).await;
+        let mut tui = Tui::new().await;
+        tui.run(t2c_tx, game_state, ShutdownChannel::clone(&self.shutdown))
+            .await;
 
-        // Cleanup
         let _ = communication_handle.await;
-        let shutdown_str = if let Some(reason) = shutdown.get_reason() {
+    }
+}
+
+impl Drop for Client {
+    fn drop(&mut self) {
+        let shutdown_str = if let Some(reason) = self.shutdown.get_reason() {
             format!("{:?}", reason)
         } else {
             "no resaon".to_string()

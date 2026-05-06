@@ -6,197 +6,207 @@ use common::game_objs::GameObjE;
 use common::map::Tile;
 use common::{GameCoord, GameId};
 
-use super::module_utility;
 use crate::assets::*;
 use crate::coord::TermCoord;
 use crate::game_state::GameState;
 use crate::renderer::map_data::MapData;
-use crate::renderer::module_utility::WithArt;
-use crate::renderer::renderer::{Renderer, draw_asset};
-use crate::ui_state::{Camera, CameraLocation, UiState};
+use crate::renderer::module::Module;
+use crate::renderer::renderer::Renderer;
+use crate::ui_state::{Camera, CameraLocation, UiMode, UiState};
 
-pub struct ModCentral;
+pub struct ModCentral {
+    module: Module,
+}
 
 impl ModCentral {
-    pub fn update(
+    pub fn new(module: Module) -> Self {
+        Self { module }
+    }
+
+    pub fn render(
+        &mut self,
         game_state: &mut GameState,
         ui_state: &UiState,
         map_data: &MapData,
-    ) -> Vec<Vec<TermCell>> {
+    ) -> &Vec<Vec<TermCell>> {
         let camera_coord = ui_state.camera.get_pos();
 
-        let (mut cells, frame_title) = match ui_state.camera.location {
+        let title = match ui_state.camera.location {
             CameraLocation::Map => {
                 let title = format!("Castli | map {}", camera_coord);
-                let mut cells = Self::draw_map(
+                self.draw_map(
                     &game_state.map,
-                    &map_data.wind,
+                    &map_data.variants,
                     game_state.time.night,
                     &ui_state.camera,
                 );
-                Self::add_objs_to_map(
+                self.draw_objs(
                     &game_state.player.castle_id,
-                    &mut cells,
                     &game_state.objs,
                     &ui_state.camera,
                 );
-                (cells, title)
+                title
             }
             CameraLocation::WorldMap => {
                 let title = "Castli | world map".to_string();
-                let mut cells = Self::draw_world_map(
+                self.draw_world_map(
                     &map_data.tiles_wor,
-                    &map_data.wind,
+                    &map_data.variants,
                     game_state.time.night,
-                    &ui_state.camera,
                 );
 
-                Self::add_objs_to_world_map(
-                    &game_state.player.castle_id,
-                    &mut cells,
-                    &game_state.objs,
-                    &ui_state.camera,
-                );
-                (cells, title)
+                self.draw_world_objs(&game_state.player.castle_id, &game_state.objs);
+                title
             }
             CameraLocation::Courtyard => {
                 let title = format!("Castli | courtyard {}", camera_coord);
-                let mut cells = Self::draw_courtyard();
-                Self::add_facilities_to_courtyard(
-                    &mut cells,
+                self.draw_courtyard(&ui_state.camera);
+                self.draw_facilities(
                     &game_state.facilities,
                     &ui_state.camera,
                     game_state.time.night,
                 );
-                (cells, title)
+                title
             }
         };
 
-        module_utility::add_frame(&frame_title, &mut cells);
-        cells
+        // Adding the cursor
+        if let UiMode::Inspect(ref inspect) = ui_state.mode
+            && let Some(term_coord) = TermCoord::from_game_coord(inspect.coord, &ui_state.camera)
+        {
+            self.module.draw_asset(&CURSOR, term_coord);
+        }
+
+        self.module.set_name(title);
+        self.module.get_cells()
     }
 
     fn draw_map(
+        &mut self,
         tiles: &[Vec<Tile>],
-        wind: &[Vec<bool>],
+        variants: &[Vec<bool>],
         night: bool,
         camera: &Camera,
-    ) -> Vec<Vec<TermCell>> {
-        let mut cells = vec![vec![TermCell::ERR; Renderer::FOV_COLS]; Renderer::FOV_ROWS];
+    ) {
+        let drawable_size = self.module.drawable_size();
+        let camera_pos = camera.map;
 
-        for (row, cell_row) in cells.iter_mut().enumerate() {
-            for (col, cell) in cell_row.iter_mut().enumerate() {
-                let term_coord = TermCoord::new(row, col);
-                let game_coord = match term_coord.to_game_coord(camera, true) {
-                    Some(coord) => coord,
-                    None => continue,
+        for tile_row in camera_pos.y..camera_pos.y + drawable_size.y * 2 {
+            if tile_row & 0 == 0 {
+                continue;
+            }
+            for tile_col in camera_pos.x..camera_pos.x + drawable_size.x {
+                let Some(term_pos) =
+                    TermCoord::from_game_coord(GameCoord::new(tile_row, tile_col), camera)
+                else {
+                    continue;
                 };
-
-                let tile_top = tiles
-                    .get(game_coord.y)
-                    .and_then(|tile_row| tile_row.get(game_coord.x));
-                let tile_bot = tiles
-                    .get(game_coord.y + 1)
-                    .and_then(|tile_row| tile_row.get(game_coord.x));
+                let tile_top = tiles.get(tile_row).and_then(|row| row.get(tile_col));
+                let tile_bot = tiles.get(tile_row + 1).and_then(|row| row.get(tile_col));
 
                 if let (Some(tile_top_), Some(tile_bot_)) = (tile_top, tile_bot) {
                     let top_tile_asset = TileAsset::get_asset(*tile_top_, night);
                     let bot_tile_asset = TileAsset::get_asset(*tile_bot_, night);
 
+                    let cell;
                     if tile_top_ == tile_bot_ {
-                        let has_wind = wind
-                            .get(game_coord.y)
-                            .and_then(|wind_row| wind_row.get(game_coord.x))
+                        let variant = variants
+                            .get(tile_row)
+                            .and_then(|row| row.get(tile_col))
                             .copied()
                             .unwrap_or(false);
 
-                        *cell = if has_wind {
+                        cell = if variant {
                             top_tile_asset.wind
                         } else {
                             top_tile_asset.std
                         };
                     } else {
-                        *cell = TermCell::new(BLOCK, top_tile_asset.up, bot_tile_asset.down);
+                        cell = TermCell::new(BLOCK, top_tile_asset.up, bot_tile_asset.down);
                     }
+                    self.module.draw_cell(cell, term_pos);
                 }
             }
         }
-
-        cells
     }
 
-    fn draw_world_map(
-        tiles_wor: &[Vec<Tile>],
-        wind: &[Vec<bool>],
-        night: bool,
-        camera: &Camera,
-    ) -> Vec<Vec<TermCell>> {
-        let mut cells = vec![vec![TermCell::ERR; Renderer::FOV_COLS]; Renderer::FOV_ROWS];
+    fn draw_world_map(&mut self, tiles: &[Vec<Tile>], variants: &[Vec<bool>], night: bool) {
+        let drawable_size = self.module.drawable_size();
 
-        for (row, cell_row) in cells.iter_mut().enumerate() {
-            for (col, cell) in cell_row.iter_mut().enumerate() {
-                let term_coord = TermCoord::new(row, col);
-                let game_coord = match term_coord.to_game_coord(camera, true) {
-                    Some(coord) => coord,
-                    None => continue,
-                };
-
-                let tile_top = tiles_wor
-                    .get(term_coord.y * 2)
-                    .and_then(|tile_row| tile_row.get(term_coord.x));
-                let tile_bot = tiles_wor
-                    .get(term_coord.y * 2 + 1)
-                    .and_then(|tile_row| tile_row.get(term_coord.x));
+        for tile_row in 0..drawable_size.y * 2 {
+            if tile_row & 0 == 0 {
+                continue;
+            }
+            for tile_col in 0..drawable_size.x {
+                let term_pos = TermCoord::new(tile_row / 2, tile_col);
+                let tile_top = tiles.get(tile_row).and_then(|row| row.get(tile_col));
+                let tile_bot = tiles.get(tile_row + 1).and_then(|row| row.get(tile_col));
 
                 if let (Some(tile_top_), Some(tile_bot_)) = (tile_top, tile_bot) {
                     let top_tile_asset = TileAsset::get_asset(*tile_top_, night);
                     let bot_tile_asset = TileAsset::get_asset(*tile_bot_, night);
 
+                    let cell;
                     if tile_top_ == tile_bot_ {
-                        let has_wind = wind
-                            .get(game_coord.y)
-                            .and_then(|wind_row| wind_row.get(game_coord.x))
+                        let variant = variants
+                            .get(tile_row)
+                            .and_then(|row| row.get(tile_col))
                             .copied()
                             .unwrap_or(false);
 
-                        *cell = if has_wind {
+                        cell = if variant {
                             top_tile_asset.wind
                         } else {
                             top_tile_asset.std
                         };
                     } else {
-                        *cell = TermCell::new(BLOCK, top_tile_asset.up, bot_tile_asset.down);
+                        cell = TermCell::new(BLOCK, top_tile_asset.up, bot_tile_asset.down);
                     }
+                    self.module.draw_cell(cell, term_pos);
                 }
             }
         }
-
-        cells
     }
 
-    fn draw_courtyard() -> Vec<Vec<TermCell>> {
-        let mut cells = vec![vec![BKG_EL; Renderer::FOV_COLS]; Renderer::FOV_ROWS];
-        for i in 0..(COURTYARD_ROWS / 2).min(Renderer::FOV_ROWS) {
-            for j in 0..COURTYARD_COLS.min(Renderer::FOV_COLS) {
-                cells[i][j] = BKG_EL;
+    fn draw_courtyard(&mut self, camera: &Camera) {
+        let drawable_size = self.module.drawable_size();
+        let camera_pos = camera.map;
+
+        for tile_row in camera_pos.y..camera_pos.y + drawable_size.y * 2 {
+            if tile_row & 0 == 0 {
+                continue;
+            }
+            for tile_col in camera_pos.x..camera_pos.x + drawable_size.x {
+                let Some(term_pos) =
+                    TermCoord::from_game_coord(GameCoord::new(tile_row, tile_col), camera)
+                else {
+                    continue;
+                };
+
+                if tile_row < COURTYARD_ROWS && tile_col < COURTYARD_COLS {
+                    self.module.draw_cell(NIGHT_GRASS.std, term_pos);
+                }
             }
         }
-
-        cells
     }
 
-    fn add_objs_to_map(
+    fn draw_objs(
+        &mut self,
         castle_id: &Option<GameId>,
-        cells: &mut Vec<Vec<TermCell>>,
         objs: &HashMap<GameId, GameObjE>,
         camera: &Camera,
     ) {
+        let drawable_size = self.module.drawable_size();
         for (id, obj) in objs.iter() {
-            if !Self::is_in_view(obj.get_pos(), camera.map, obj.get_art_size(false)) {
+            let pos = obj.get_pos();
+            if pos.y < camera.map.y
+                || pos.x < camera.map.x
+                || pos.y >= camera.map.y + drawable_size.y * 2
+                || pos.x >= camera.map.x + drawable_size.x
+            {
                 continue;
             };
-            let pos = obj.get_pos();
-            let Some(term_coord_rel) = TermCoord::from_game_coord(pos, camera, true) else {
+            let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
                 continue;
             };
 
@@ -206,67 +216,53 @@ impl ModCentral {
                 _ => false,
             };
 
-            let art = obj.get_art(false, owned);
-            draw_asset(cells, art, term_coord_rel);
+            let asset = GameObjAsset::get_asset(obj, owned);
+            self.module.draw_asset(asset, term_coord);
         }
     }
 
-    fn add_objs_to_world_map(
+    fn draw_world_objs(
+        &mut self,
         castle_id: &Option<GameId>,
-        cells: &mut Vec<Vec<TermCell>>,
         world_objs: &HashMap<GameId, GameObjE>,
-        camera: &Camera,
     ) {
+        let drawable_size = self.module.drawable_size();
         for (id, obj) in world_objs.iter() {
             let pos = obj.get_pos();
-            let Some(term_coord_rel) = TermCoord::from_game_coord(pos, camera, true) else {
+            if pos.y >= (drawable_size.y * Renderer::FOV_ROWS) * 2
+                || pos.x >= drawable_size.x * Renderer::FOV_COLS
+            {
                 continue;
             };
 
-            let owned = *castle_id == Some(*id);
-            let art = obj.get_art(true, owned);
-            draw_asset(cells, art, term_coord_rel);
+            let term_coord =
+                TermCoord::new(pos.y / 2 / Renderer::FOV_ROWS, pos.x / Renderer::FOV_COLS);
+
+            let owned = match obj {
+                GameObjE::Castle(_) => *castle_id == Some(*id),
+                GameObjE::DeployedUnits(units) => Some(units.owner_id) == *castle_id,
+                _ => false,
+            };
+
+            let asset = GameObjAsset::get_asset(obj, owned);
+            self.module.draw_asset(asset, term_coord);
         }
     }
 
-    fn add_facilities_to_courtyard(
-        cells: &mut Vec<Vec<TermCell>>,
+    fn draw_facilities(
+        &mut self,
         facilities: &HashMap<u8, Facility>,
         camera: &Camera,
         night: bool,
     ) {
         for (_, facility) in facilities.iter() {
-            let art = FacilityAsset::get_asset(facility, night);
+            let asset = FacilityAsset::get_asset(facility, night);
             let pos = facility.pos;
-            let Some(term_coord_rel) = TermCoord::from_game_coord(pos, camera, true) else {
+            let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
                 continue;
             };
-            draw_asset(cells, art, term_coord_rel);
+
+            self.module.draw_asset(asset, term_coord);
         }
-    }
-
-    // fn get_map_slice(tiles: &[Vec<Tile>], camera_pos: GameCoord) -> Vec<Vec<Tile>> {
-    //     tiles[camera_pos.y..(camera_pos.y + Renderer::FOV_ROWS * 2).min(MAP_ROWS)]
-    //         .iter()
-    //         .map(|row| {
-    //             row[camera_pos.x..(camera_pos.x + Renderer::FOV_COLS).min(MAP_COLS)].to_vec()
-    //         })
-    //         .collect()
-    // }
-
-    // fn get_wind_slice(wind: &[Vec<bool>], camera_pos: GameCoord) -> Vec<Vec<bool>> {
-    //     wind[camera_pos.y / 2..(camera_pos.y / 2 + Renderer::FOV_ROWS).min(MapData::WIND_ROWS)]
-    //         .iter()
-    //         .map(|row| {
-    //             row[camera_pos.x..(camera_pos.x + Renderer::FOV_COLS).min(MapData::WIND_COLS)]
-    //                 .to_vec()
-    //         })
-    //         .collect()
-    // }
-
-    fn is_in_view(pos: GameCoord, camera_pos: GameCoord, obj_size: (usize, usize)) -> bool {
-        let y = pos.y + obj_size.0 >= camera_pos.y && pos.y < camera_pos.y + Renderer::FOV_ROWS * 2;
-        let x = pos.x + obj_size.1 >= camera_pos.x && pos.x < camera_pos.x + Renderer::FOV_COLS;
-        y && x
     }
 }

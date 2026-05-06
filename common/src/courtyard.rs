@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{GameCoord, GameId, Resources, r#const::FARM_PLOT_SIZE};
+use crate::{GameCoord, Resources, r#const::FARM_PLOT_SIZE};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FacilityType {

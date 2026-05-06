@@ -17,7 +17,6 @@ use crate::renderer::map_data::MapData;
 use crate::renderer::mod_inspect::ModInspect;
 use crate::renderer::mod_interact::ModInteract;
 use crate::renderer::{mod_central::ModCentral, mod_right::ModRight};
-use crate::ui_state::CameraLocation;
 use crate::ui_state::UiMode;
 use crate::ui_state::UiState;
 
@@ -30,8 +29,8 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub const FOV_ROWS: usize = MOD_CENTRAL_ROWS - 2;
-    pub const FOV_COLS: usize = MOD_CENTRAL_COLS - 2;
+    pub const FOV_ROWS: usize = MOD_CENTRAL_ROWS - 2 - ModCentral::PADDING_VERT * 2;
+    pub const FOV_COLS: usize = MOD_CENTRAL_COLS - 2 - ModCentral::PADDING_HORI * 2;
     pub const ZOOM_FACTOR: usize = 8;
 
     pub fn new(map_tiles: Vec<Vec<Tile>>) -> Result<Self, ()> {
@@ -66,9 +65,6 @@ impl Renderer {
         ui_state: &UiState,
         frame_dt: u64,
     ) {
-        self.map_data
-            .update_wind(self.render_count, &ui_state.camera);
-
         // Right module
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
@@ -78,7 +74,11 @@ impl Renderer {
             .enumerate()
         {
             for (col, cell) in line_contents.iter().enumerate() {
-                new_frame[row + MOD_RIGHT_POS.0][col + MOD_RIGHT_POS.1] = *cell;
+                new_frame
+                    .get_mut(row + MOD_RIGHT_POS.0)
+                    .map(|frame_row| frame_row.get_mut(col + MOD_RIGHT_POS.1))
+                    .flatten()
+                    .map(|frame_cell| *frame_cell = *cell);
             }
         }
 
@@ -88,15 +88,19 @@ impl Renderer {
             .enumerate()
         {
             for (col, cell) in line_contents.iter().enumerate() {
-                new_frame[row + MOD_CENTRAL_POS.0][col + MOD_CENTRAL_POS.1] = *cell;
+                new_frame
+                    .get_mut(row + MOD_CENTRAL_POS.0)
+                    .map(|frame_row| frame_row.get_mut(col + MOD_CENTRAL_POS.1))
+                    .flatten()
+                    .map(|frame_cell| *frame_cell = *cell);
             }
         }
 
         // Inspect module
         if let Some(renderable) = ModInspect::update(game_state, ui_state) {
             // TODO: Here pos_col should change based on look_coord
-            let pos_row = MOD_CENTRAL_POS.0;
-            let pos_col = MOD_CENTRAL_POS.1 + MOD_CENTRAL_COLS - MOD_INSPECT_COLS;
+            let pos_row = MOD_CENTRAL_POS.0 + 2;
+            let pos_col = MOD_CENTRAL_POS.1 + MOD_CENTRAL_COLS - MOD_INSPECT_COLS - 4;
 
             for (row, line_contents) in renderable.iter().enumerate() {
                 for (col, cell) in line_contents.iter().enumerate() {
@@ -114,22 +118,6 @@ impl Renderer {
                 for (col, cell) in line_contents.iter().enumerate() {
                     new_frame[row + pos_row][col + pos_col] = *cell;
                 }
-            }
-        }
-
-        // Adding the cursor
-        if let UiMode::Inspect(ref inspect) = ui_state.mode
-            && let Some(term_coord) =
-                TermCoord::from_game_coord(inspect.coord, &ui_state.camera, false)
-        {
-            // Checks if the cursor is inside the central module
-            let is_inside_fov = term_coord.y > MOD_CENTRAL_POS.0
-                && term_coord.x > MOD_CENTRAL_POS.1
-                && term_coord.y <= (MOD_CENTRAL_POS.0 + Self::FOV_ROWS)
-                && term_coord.x <= (MOD_CENTRAL_POS.1 + Self::FOV_COLS);
-
-            if is_inside_fov {
-                draw_asset(&mut new_frame, &CURSOR, term_coord);
             }
         }
 
@@ -157,19 +145,5 @@ impl Renderer {
 
         // All the commands are executed and tha changes printed now
         let _ = stdout.flush();
-    }
-}
-
-// TODO: fix this. This can take negative positions to account for the objects that have origin outsize of view but
-// with art that enters the view
-pub fn draw_asset(cells: &mut [Vec<TermCell>], art: &[&[TermCell]], pos: TermCoord) {
-    for (art_row, art_row_iter) in art.iter().enumerate() {
-        for (art_col, art_cell) in art_row_iter.iter().enumerate() {
-            let cell_pos_y = pos.y + art_row;
-            let cell_pos_x = pos.x + art_col;
-            if cell_pos_y < cells.len() && cell_pos_x < cells[0].len() {
-                cells[cell_pos_y][cell_pos_x] = *art_cell;
-            }
-        }
     }
 }
