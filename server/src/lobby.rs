@@ -203,12 +203,7 @@ impl Lobby {
                     }
                     C2S4L::AttackCastle(target_id, unit_group_e) => {
                         if let Some(castle_id) = player.castle_id {
-                            if !game.attack_castle(
-                                castle_id,
-                                target_id,
-                                unit_group_e,
-                                &self.pool,
-                            ) {
+                            if !game.attack_castle(castle_id, target_id, unit_group_e, &self.pool) {
                                 log = Some(LogE::AttackDeployErr);
                             }
                         }
