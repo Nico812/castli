@@ -91,6 +91,23 @@ impl TileAsset {
     }
 }
 
+pub struct WallAsset {
+    pub corner_tl: TermCell,
+    pub corner_tr: TermCell,
+    pub corner_bl: TermCell,
+    pub corner_br: TermCell,
+    pub edge_top: TermCell,
+    pub edge_bottom: TermCell,
+    pub edge_left: TermCell,
+    pub edge_right: TermCell,
+}
+
+impl WallAsset {
+    pub fn get_asset(night: bool) -> &'static Self {
+        if night { &NIGHT_WALL } else { &DAY_WALL }
+    }
+}
+
 pub struct FacilityAsset;
 
 impl FacilityAsset {
@@ -209,6 +226,30 @@ pub const DEPLOYED_UNITS_ART_SIZE: (usize, usize) =
 
 pub const ERR_ART: &[&[TermCell]] = &[&[TermCell::ERR]];
 pub const ERR_ART_SIZE: (usize, usize) = (ERR_ART.len(), ERR_ART[0].len());
+
+// Courtyard walls
+
+pub const DAY_WALL: WallAsset = WallAsset {
+    corner_tl: TermCell::new('╔', DAY_GREY_0, DAY_GREY_2),
+    corner_tr: TermCell::new('╗', DAY_GREY_0, DAY_GREY_2),
+    corner_bl: TermCell::new('╚', DAY_GREY_0, DAY_GREY_2),
+    corner_br: TermCell::new('╝', DAY_GREY_0, DAY_GREY_2),
+    edge_top: TermCell::new('═', DAY_GREY_0, DAY_GREY_2),
+    edge_bottom: TermCell::new('═', DAY_GREY_0, DAY_GREY_2),
+    edge_left: TermCell::new('║', DAY_GREY_0, DAY_GREY_2),
+    edge_right: TermCell::new('║', DAY_GREY_0, DAY_GREY_2),
+};
+
+pub const NIGHT_WALL: WallAsset = WallAsset {
+    corner_tl: TermCell::new('╔', NIGHT_GREY_0, NIGHT_GREY_2),
+    corner_tr: TermCell::new('╗', NIGHT_GREY_0, NIGHT_GREY_2),
+    corner_bl: TermCell::new('╚', NIGHT_GREY_0, NIGHT_GREY_2),
+    corner_br: TermCell::new('╝', NIGHT_GREY_0, NIGHT_GREY_2),
+    edge_top: TermCell::new('═', NIGHT_GREY_0, NIGHT_GREY_2),
+    edge_bottom: TermCell::new('═', NIGHT_GREY_0, NIGHT_GREY_2),
+    edge_left: TermCell::new('║', NIGHT_GREY_0, NIGHT_GREY_2),
+    edge_right: TermCell::new('║', NIGHT_GREY_0, NIGHT_GREY_2),
+};
 
 // Facilities
 

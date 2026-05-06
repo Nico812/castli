@@ -61,7 +61,7 @@ impl ModCentral {
             }
             CameraLocation::Courtyard => {
                 let title = format!("Castli | courtyard {}", camera_coord);
-                let mut cells = Self::draw_courtyard();
+                let mut cells = Self::draw_courtyard(game_state.time.night);
                 Self::add_facilities_to_courtyard(
                     &mut cells,
                     &game_state.facilities,
@@ -174,13 +174,43 @@ impl ModCentral {
         cells
     }
 
-    fn draw_courtyard() -> Vec<Vec<TermCell>> {
+    fn draw_courtyard(night: bool) -> Vec<Vec<TermCell>> {
         let mut cells = vec![vec![TermCell::ERR; Renderer::FOV_COLS]; Renderer::FOV_ROWS];
-        for i in 0..(COURTYARD_ROWS / 2).min(Renderer::FOV_ROWS) {
-            for j in 0..COURTYARD_COLS.min(Renderer::FOV_COLS) {
-                cells[i][j] = BKG_EL;
+        let rows = (COURTYARD_ROWS / 2).min(Renderer::FOV_ROWS);
+        let cols = COURTYARD_COLS.min(Renderer::FOV_COLS);
+
+        for row in cells.iter_mut().take(rows) {
+            for cell in row.iter_mut().take(cols) {
+                *cell = BKG_EL;
             }
         }
+
+        if rows < 2 || cols < 2 {
+            return cells;
+        }
+
+        let wall = WallAsset::get_asset(night);
+        let last_row = rows - 1;
+        let last_col = cols - 1;
+
+        let (top_row, rest) = cells.split_first_mut().expect("rows >= 2");
+        let (middle_rows, bottom_only) = rest.split_at_mut(last_row - 1);
+        let bottom_row = &mut bottom_only[0];
+
+        for cell in top_row.iter_mut().take(cols).skip(1).take(last_col - 1) {
+            *cell = wall.edge_top;
+        }
+        for cell in bottom_row.iter_mut().take(cols).skip(1).take(last_col - 1) {
+            *cell = wall.edge_bottom;
+        }
+        for row in middle_rows.iter_mut() {
+            row[0] = wall.edge_left;
+            row[last_col] = wall.edge_right;
+        }
+        top_row[0] = wall.corner_tl;
+        top_row[last_col] = wall.corner_tr;
+        bottom_row[0] = wall.corner_bl;
+        bottom_row[last_col] = wall.corner_br;
 
         cells
     }
