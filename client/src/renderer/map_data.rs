@@ -1,5 +1,4 @@
 use common::{
-    GameCoord,
     r#const::{MAP_COLS, MAP_ROWS},
     map::Tile,
 };
@@ -7,7 +6,7 @@ use rand::{Rng, SeedableRng, rngs::SmallRng};
 
 use crate::{
     renderer::renderer::Renderer,
-    ui_state::{Camera, CameraLocation, UiState},
+    ui_state::{Camera, CameraLocation},
 };
 
 pub struct MapData {

@@ -1,5 +1,6 @@
 use crate::{
     client::{ShutdownChannel, ShutdownReason},
+    r#const::CURSOR_SIZE,
     game_state::GameState,
     input_handler::InputHandler,
     renderer::renderer::Renderer,
@@ -114,12 +115,16 @@ impl Tui {
         let mut looked_objs: Vec<(GameId, &GameObjE)> = game_objs
             .iter()
             .filter_map(|(game_id, game_obj)| {
-                if (!in_world_map && game_obj.get_pos() == coord)
+                if (!in_world_map
+                    && game_obj.get_pos().y >= coord.y
+                    && game_obj.get_pos().x >= coord.x
+                    && game_obj.get_pos().y < coord.y + CURSOR_SIZE.y
+                    && game_obj.get_pos().x < coord.x + CURSOR_SIZE.x)
                     || (in_world_map
                         && game_obj.get_pos().y >= coord.y
                         && game_obj.get_pos().x >= coord.x
-                        && game_obj.get_pos().y < coord.y + Renderer::ZOOM_FACTOR
-                        && game_obj.get_pos().x < coord.x + Renderer::ZOOM_FACTOR)
+                        && game_obj.get_pos().y < coord.y + Renderer::ZOOM_FACTOR * CURSOR_SIZE.y
+                        && game_obj.get_pos().x < coord.x + Renderer::ZOOM_FACTOR * CURSOR_SIZE.x)
                 {
                     Some((*game_id, game_obj))
                 } else {

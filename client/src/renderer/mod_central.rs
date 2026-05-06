@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use common::r#const::{COURTYARD_COLS, COURTYARD_ROWS};
-use common::courtyard::{Facility, FacilityType};
+use common::courtyard::Facility;
 use common::game_objs::GameObjE;
 use common::map::Tile;
 use common::{GameCoord, GameId};
@@ -12,7 +12,7 @@ use crate::coord::TermCoord;
 use crate::game_state::GameState;
 use crate::renderer::map_data::MapData;
 use crate::renderer::module_utility::WithArt;
-use crate::renderer::renderer::Renderer;
+use crate::renderer::renderer::{Renderer, draw_asset};
 use crate::ui_state::{Camera, CameraLocation, UiState};
 
 pub struct ModCentral;
@@ -207,7 +207,7 @@ impl ModCentral {
             };
 
             let art = obj.get_art(false, owned);
-            Self::add_art_to_cells(cells, art, term_coord_rel);
+            draw_asset(cells, art, term_coord_rel);
         }
     }
 
@@ -225,7 +225,7 @@ impl ModCentral {
 
             let owned = *castle_id == Some(*id);
             let art = obj.get_art(true, owned);
-            Self::add_art_to_cells(cells, art, term_coord_rel);
+            draw_asset(cells, art, term_coord_rel);
         }
     }
 
@@ -241,25 +241,7 @@ impl ModCentral {
             let Some(term_coord_rel) = TermCoord::from_game_coord(pos, camera, true) else {
                 continue;
             };
-            Self::add_art_to_cells(cells, art, term_coord_rel);
-        }
-    }
-
-    // TODO: fix this. This can take negative positions to account for the objects that have origin outsize of view but
-    // with art that enters the view
-    fn add_art_to_cells(cells: &mut [Vec<TermCell>], art: &[&[TermCell]], pos: TermCoord) {
-        for (art_row, art_row_iter) in art.iter().enumerate() {
-            for (art_col, art_cell) in art_row_iter.iter().enumerate() {
-                let cell_pos_y = pos.y + art_row;
-                let cell_pos_x = pos.x + art_col;
-                if cell_pos_y >= 0
-                    && cell_pos_x >= 0
-                    && cell_pos_y < cells.len()
-                    && cell_pos_x < cells[0].len()
-                {
-                    cells[cell_pos_y][cell_pos_x] = *art_cell;
-                }
-            }
+            draw_asset(cells, art, term_coord_rel);
         }
     }
 

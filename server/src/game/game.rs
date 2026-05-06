@@ -15,6 +15,7 @@ use crate::{
 };
 use common::{
     GameCoord, GameId, Time,
+    r#const::CASTLE_SIZE,
     courtyard::{Facility, FacilityType},
     game_objs::GameObjE,
     map::Tile,
@@ -201,9 +202,10 @@ impl Game {
     }
 
     pub fn add_player_castle(&mut self, name: String, pos: GameCoord) -> Option<GameId> {
-        if self.map.is_obstacle(pos) {
+        if !pos.is_even() || !self.map.can_build(pos, CASTLE_SIZE) {
             return None;
         }
+        self.map.set_occupied(pos, CASTLE_SIZE);
         let id = Self::new_id(&mut self.id_cnt);
         let castle = Castle::new(name, pos);
         self.game_objs.insert(id, GameObj::Castle(castle));

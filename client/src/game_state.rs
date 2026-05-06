@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use common::{
     GameCoord, GameId, Time,
-    courtyard::{Facility, FacilityType},
+    courtyard::Facility,
     game_objs::{GameObjE, OwnedCastleE},
     map::Tile,
     player::PlayerE,

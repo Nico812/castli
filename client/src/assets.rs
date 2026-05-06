@@ -112,8 +112,10 @@ impl FacilityAsset {
 
 pub const BLOCK: char = '▀';
 
-pub const CURSOR_UP: TermCell = TermCell::new('\u{21B1}', WHITE, BLACK);
-pub const CURSOR_DOWN: TermCell = TermCell::new('\u{21B3}', WHITE, BLACK);
+pub const CURSOR: &[&[TermCell]] = &[&[
+    TermCell::new('>', WHITE, BLACK),
+    TermCell::new('<', WHITE, BLACK),
+]];
 
 pub const SELECTION_TERMCELL: TermCell = TermCell::new('<', BLACK, WHITE);
 

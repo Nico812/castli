@@ -23,6 +23,11 @@ impl GameCoord {
     pub const fn new(y: usize, x: usize) -> Self {
         Self { y, x }
     }
+
+    // You can only build on even coords
+    pub fn is_even(&self) -> bool {
+        self.x & 1 == 0 && self.y & 1 == 0
+    }
 }
 
 impl fmt::Display for GameCoord {
@@ -93,7 +98,7 @@ impl Resources {
         }
     }
 
-    pub fn contains(&self, other: &Self)->bool {
+    pub fn contains(&self, other: &Self) -> bool {
         self.wood >= other.wood && self.stone >= other.stone
     }
 }

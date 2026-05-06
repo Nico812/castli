@@ -8,8 +8,8 @@ use crossterm::style::PrintStyledContent;
 use crossterm::terminal;
 
 use crate::assets;
-use crate::assets::CURSOR_DOWN;
-use crate::assets::CURSOR_UP;
+use crate::assets::CURSOR;
+use crate::assets::TermCell;
 use crate::coord::TermCoord;
 use crate::game_state::GameState;
 use crate::renderer::r#const::*;
@@ -129,16 +129,7 @@ impl Renderer {
                 && term_coord.x <= (MOD_CENTRAL_POS.1 + Self::FOV_COLS);
 
             if is_inside_fov {
-                let cursor_asset = match (ui_state.camera.location, inspect.coord.y) {
-                    (CameraLocation::Map, y) | (CameraLocation::Courtyard, y) if y % 2 == 0 => {
-                        CURSOR_UP
-                    }
-                    (CameraLocation::WorldMap, y) if y % (2 * Renderer::ZOOM_FACTOR) < 8 => {
-                        CURSOR_UP
-                    }
-                    _ => CURSOR_DOWN,
-                };
-                new_frame[term_coord.y][term_coord.x - 1] = cursor_asset;
+                draw_asset(&mut new_frame, &CURSOR, term_coord);
             }
         }
 
@@ -166,5 +157,19 @@ impl Renderer {
 
         // All the commands are executed and tha changes printed now
         let _ = stdout.flush();
+    }
+}
+
+// TODO: fix this. This can take negative positions to account for the objects that have origin outsize of view but
+// with art that enters the view
+pub fn draw_asset(cells: &mut [Vec<TermCell>], art: &[&[TermCell]], pos: TermCoord) {
+    for (art_row, art_row_iter) in art.iter().enumerate() {
+        for (art_col, art_cell) in art_row_iter.iter().enumerate() {
+            let cell_pos_y = pos.y + art_row;
+            let cell_pos_x = pos.x + art_col;
+            if cell_pos_y < cells.len() && cell_pos_x < cells[0].len() {
+                cells[cell_pos_y][cell_pos_x] = *art_cell;
+            }
+        }
     }
 }

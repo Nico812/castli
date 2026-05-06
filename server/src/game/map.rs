@@ -16,12 +16,14 @@ use common::{
 pub struct Map {
     tiles: Vec<Vec<Tile>>,
     obstacles: Vec<Vec<bool>>,
+    occupied: Vec<Vec<bool>>,
 }
 
 impl Map {
     pub fn new() -> Self {
         let tiles = Self::cellular_automata();
         let mut obstacles = vec![vec![false; MAP_COLS]; MAP_ROWS];
+        let occupied = vec![vec![false; MAP_COLS]; MAP_ROWS];
 
         for (r, row) in tiles.iter().enumerate() {
             for (c, tile) in row.iter().enumerate() {
@@ -31,7 +33,11 @@ impl Map {
             }
         }
 
-        Self { tiles, obstacles }
+        Self {
+            tiles,
+            obstacles,
+            occupied,
+        }
     }
 
     pub fn is_obstacle(&self, pos: GameCoord) -> bool {
@@ -41,6 +47,51 @@ impl Map {
             .flatten()
             .copied()
             .unwrap_or(true)
+    }
+
+    pub fn is_occupied(&self, pos: GameCoord) -> bool {
+        self.occupied
+            .get(pos.y)
+            .map(|row| row.get(pos.x))
+            .flatten()
+            .copied()
+            .unwrap_or(true)
+    }
+
+    pub fn can_build(&self, pos: GameCoord, size: GameCoord) -> bool {
+        let Some(end_y) = pos.y.checked_add(size.y) else {
+            return false;
+        };
+        let Some(end_x) = pos.x.checked_add(size.x) else {
+            return false;
+        };
+
+        for row in pos.y..end_y {
+            for col in pos.x..end_x {
+                let curr_pos = GameCoord::new(row, col);
+                if self.is_occupied(curr_pos) || self.is_obstacle(curr_pos) {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    pub fn set_occupied(&mut self, pos: GameCoord, size: GameCoord) {
+        let end_y = pos.y.saturating_add(size.y);
+        let end_x = pos.x.saturating_add(size.x);
+
+        for row in pos.y..end_y {
+            if row >= MAP_ROWS {
+                continue;
+            }
+            for col in pos.x..end_x {
+                if col >= MAP_COLS {
+                    continue;
+                }
+                self.occupied[row][col] = true;
+            }
+        }
     }
 
     pub fn get_obstacles(&self) -> &Vec<Vec<bool>> {

@@ -253,8 +253,8 @@ impl Server {
 
     pub fn send_msg_to_client(stream: &mut TcpStream, msg: &S2C) -> std::io::Result<()> {
         let json = serde_json::to_string(msg).expect("Serialization failed");
-        stream.write_all(json.as_bytes())?;
-        stream.write_all(b"\n")?;
+        stream.write_all(json.as_bytes()).unwrap();
+        stream.write_all(b"\n").unwrap();
         let _ = stream.flush();
         Ok(())
     }

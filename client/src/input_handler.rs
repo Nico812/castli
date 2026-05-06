@@ -11,8 +11,7 @@ use crate::game_state::GameState;
 use crate::renderer::renderer::Renderer;
 use crate::tui::{T2C, Tui};
 use crate::ui_state::{
-    Camera, CameraLocation, FacilitySelection, Inspect, InteractTarget, UiMode, UiState,
-    UnitSelection,
+    CameraLocation, FacilitySelection, Inspect, InteractTarget, UiMode, UiState, UnitSelection,
 };
 use common::GameCoord;
 use common::r#const::{MAP_COLS, MAP_ROWS};
@@ -149,19 +148,19 @@ impl InputHandler {
                 }
                 (KeyCode::Up, KeyModifiers::NONE) => {
                     let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
-                    Self::move_inspect(0, -1, inspect, &game_state.objs, in_world_map)
+                    Self::move_inspect(0, -2, inspect, &game_state.objs, in_world_map)
                 }
                 (KeyCode::Down, KeyModifiers::NONE) => {
                     let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
-                    Self::move_inspect(0, 1, inspect, &game_state.objs, in_world_map)
+                    Self::move_inspect(0, 2, inspect, &game_state.objs, in_world_map)
                 }
                 (KeyCode::Right, KeyModifiers::NONE) => {
                     let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
-                    Self::move_inspect(1, 0, inspect, &game_state.objs, in_world_map)
+                    Self::move_inspect(2, 0, inspect, &game_state.objs, in_world_map)
                 }
                 (KeyCode::Left, KeyModifiers::NONE) => {
                     let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
-                    Self::move_inspect(-1, 0, inspect, &game_state.objs, in_world_map)
+                    Self::move_inspect(-2, 0, inspect, &game_state.objs, in_world_map)
                 }
                 (KeyCode::Up, KeyModifiers::CONTROL) => {
                     let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
@@ -244,7 +243,7 @@ impl InputHandler {
                 }
             }
             UiMode::FacilitySelection(ref mut selection) => {
-                let Some(ref castle) = game_state.castle else {
+                let Some(_) = game_state.castle else {
                     return;
                 };
                 match (key.code, key.modifiers) {

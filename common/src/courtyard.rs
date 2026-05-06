@@ -1,9 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    GameCoord, GameId, Resources,
-    r#const::{FARM_PLOT_COLS, FARM_PLOT_ROWS},
-};
+use crate::{GameCoord, GameId, Resources, r#const::FARM_PLOT_SIZE};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FacilityType {
@@ -52,7 +49,7 @@ impl FacilityType {
 
     pub fn size(&self) -> GameCoord {
         match self {
-            FacilityType::FarmPlot => GameCoord::new(FARM_PLOT_ROWS, FARM_PLOT_COLS),
+            FacilityType::FarmPlot => FARM_PLOT_SIZE,
             FacilityType::Sawmill => GameCoord::new(5, 5),
             FacilityType::Mines => GameCoord::new(5, 5),
             FacilityType::Barracks => GameCoord::new(5, 5),
