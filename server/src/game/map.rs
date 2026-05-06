@@ -1,4 +1,5 @@
 use rand::Rng;
+use rayon::prelude::*;
 
 use crate::r#const::{
     CA_ITER_HIGH_MOUNTAINS, CA_ITER_MOUNTAINS, CA_ITER_WATER, CA_ITER_WOODS,
@@ -14,6 +15,15 @@ use common::{
     packets::MapPayload,
 };
 
+struct TerrainParams {
+    spreading: Tile,
+    spreads_on: &'static [Tile],
+    iters: usize,
+    percent: u8,
+    counts_to_spread: u8,
+    counts_to_survive: u8,
+}
+
 pub struct Map {
     tiles: Vec<Vec<Tile>>,
     obstacles: Vec<Vec<bool>>,
@@ -23,16 +33,11 @@ pub struct Map {
 impl Map {
     pub fn new() -> Self {
         let tiles = Self::cellular_automata();
-        let mut obstacles = vec![vec![false; MAP_COLS]; MAP_ROWS];
+        let obstacles: Vec<Vec<bool>> = tiles
+            .par_iter()
+            .map(|row| row.iter().map(|t| *t == Tile::Water).collect())
+            .collect();
         let occupied = vec![vec![false; MAP_COLS]; MAP_ROWS];
-
-        for (r, row) in tiles.iter().enumerate() {
-            for (c, tile) in row.iter().enumerate() {
-                if *tile == Tile::Water {
-                    obstacles[r][c] = true;
-                }
-            }
-        }
 
         println!("mappa caricata LOL");
         Self {
@@ -109,145 +114,127 @@ impl Map {
     }
 
     fn cellular_automata() -> Vec<Vec<Tile>> {
-        let mut tiles = vec![vec![Tile::Grass; MAP_COLS]; MAP_ROWS];
+        let mut a = vec![vec![Tile::Grass; MAP_COLS]; MAP_ROWS];
+        let mut b = a.clone();
 
-        // Creating oceans
-        let mut before_add_random = tiles.clone();
-        let water_spreads_on = [Tile::Grass];
-        Self::add_random(&mut tiles, Tile::Water, &water_spreads_on, PERCENT_IS_WATER);
+        let terrains = [
+            TerrainParams {
+                spreading: Tile::Water,
+                spreads_on: &[Tile::Grass],
+                iters: CA_ITER_WATER,
+                percent: PERCENT_IS_WATER,
+                counts_to_spread: COUNTS_TO_SPREAD_WATER,
+                counts_to_survive: COUNTS_TO_SURVIVE_WATER,
+            },
+            TerrainParams {
+                spreading: Tile::Woods,
+                spreads_on: &[Tile::Grass],
+                iters: CA_ITER_WOODS,
+                percent: PERCENT_IS_WOODS,
+                counts_to_spread: COUNTS_TO_SPREAD_WOODS,
+                counts_to_survive: COUNTS_TO_SURVIVE_WOODS,
+            },
+            TerrainParams {
+                spreading: Tile::Mountain,
+                spreads_on: &[Tile::Grass, Tile::Woods],
+                iters: CA_ITER_MOUNTAINS,
+                percent: PERCENT_IS_MOUNTAINS,
+                counts_to_spread: COUNTS_TO_SPREAD_MOUNTAINS,
+                counts_to_survive: COUNTS_TO_SURVIVE_MOUNTAINS,
+            },
+            TerrainParams {
+                spreading: Tile::HighMountain,
+                spreads_on: &[Tile::Mountain],
+                iters: CA_ITER_HIGH_MOUNTAINS,
+                percent: PERCENT_IS_HIGH_MOUNTAINS,
+                counts_to_spread: COUNTS_TO_SPREAD_HIGH_MOUNTAINS,
+                counts_to_survive: COUNTS_TO_SURVIVE_HIGH_MOUNTAINS,
+            },
+        ];
 
-        let mut temp_tiles = tiles.clone();
-        for _ in 0..CA_ITER_WATER {
-            Self::step_life(
-                &tiles,
-                &mut temp_tiles,
-                &before_add_random,
-                Tile::Water,
-                &water_spreads_on,
-                COUNTS_TO_SPREAD_WATER,
-                COUNTS_TO_SURVIVE_WATER,
-            );
-            tiles.clone_from(&temp_tiles);
+        for params in &terrains {
+            Self::run_terrain(&mut a, &mut b, params);
         }
 
-        // Creating woodlands
-        before_add_random.clone_from(&tiles);
-        let woods_spreads_on = [Tile::Grass];
-        Self::add_random(&mut tiles, Tile::Woods, &woods_spreads_on, PERCENT_IS_WOODS);
+        a
+    }
 
-        let mut temp_tiles = tiles.clone();
-        for _ in 0..CA_ITER_WOODS {
-            Self::step_life(
-                &tiles,
-                &mut temp_tiles,
-                &before_add_random,
-                Tile::Woods,
-                &woods_spreads_on,
-                COUNTS_TO_SPREAD_WOODS,
-                COUNTS_TO_SURVIVE_WOODS,
-            );
-            tiles.clone_from(&temp_tiles);
+    fn run_terrain(a: &mut Vec<Vec<Tile>>, b: &mut Vec<Vec<Tile>>, params: &TerrainParams) {
+        let before_add_random = a.clone();
+        Self::add_random(a, params.spreading, params.spreads_on, params.percent);
+        b.clone_from(a);
+
+        for _ in 0..params.iters {
+            Self::step_life(a, b, &before_add_random, params);
+            std::mem::swap(a, b);
         }
-
-        // Creating mountains
-        before_add_random = tiles.clone();
-        let mountains_spreads_on = [Tile::Grass, Tile::Woods];
-        Self::add_random(
-            &mut tiles,
-            Tile::Mountain,
-            &mountains_spreads_on,
-            PERCENT_IS_MOUNTAINS,
-        );
-
-        let mut temp_tiles = tiles.clone();
-        for _ in 0..CA_ITER_MOUNTAINS {
-            Self::step_life(
-                &tiles,
-                &mut temp_tiles,
-                &before_add_random,
-                Tile::Mountain,
-                &mountains_spreads_on,
-                COUNTS_TO_SPREAD_MOUNTAINS,
-                COUNTS_TO_SURVIVE_MOUNTAINS,
-            );
-            tiles.clone_from(&temp_tiles);
-        }
-
-        // Creating high mountains
-        before_add_random = tiles.clone();
-        let high_mountains_spreads_on = [Tile::Mountain];
-        Self::add_random(
-            &mut tiles,
-            Tile::HighMountain,
-            &high_mountains_spreads_on,
-            PERCENT_IS_HIGH_MOUNTAINS,
-        );
-
-        let mut temp_tiles = tiles.clone();
-        for _ in 0..CA_ITER_HIGH_MOUNTAINS {
-            Self::step_life(
-                &tiles,
-                &mut temp_tiles,
-                &before_add_random,
-                Tile::HighMountain,
-                &high_mountains_spreads_on,
-                COUNTS_TO_SPREAD_HIGH_MOUNTAINS,
-                COUNTS_TO_SURVIVE_HIGH_MOUNTAINS,
-            );
-            tiles.clone_from(&temp_tiles);
-        }
-        tiles
     }
 
     fn add_random(tiles: &mut [Vec<Tile>], add_type: Tile, add_on: &[Tile], percent: u8) {
-        let mut rng = rand::rng();
+        tiles
+            .par_iter_mut()
+            .enumerate()
+            .for_each(|(row, tile_row)| {
+                let mut rng = rand::rng();
+                for (col, tile) in tile_row.iter_mut().enumerate() {
+                    let is_edge =
+                        row == 0 || col == 0 || row == MAP_ROWS - 1 || col == MAP_COLS - 1;
+                    let random_hit = rng.random_range(1..=100) <= percent;
+                    let is_valid_tile = add_on.contains(tile);
 
-        for row in 0..MAP_ROWS {
-            for col in 0..MAP_COLS {
-                let is_edge = row == 0 || col == 0 || row == MAP_ROWS - 1 || col == MAP_COLS - 1;
-                let random_hit = rng.random_range(1..=100) <= percent;
-                let is_valid_tile = add_on.contains(&tiles[row][col]);
-
-                if (is_edge || random_hit) && is_valid_tile {
-                    tiles[row][col] = add_type;
+                    if (is_edge || random_hit) && is_valid_tile {
+                        *tile = add_type;
+                    }
                 }
-            }
-        }
+            });
     }
 
     fn step_life(
-        tiles: &[Vec<Tile>],
-        temp_tiles: &mut [Vec<Tile>],
+        a: &[Vec<Tile>],
+        b: &mut [Vec<Tile>],
         before_add_random: &[Vec<Tile>],
-        spreading_type: Tile,
-        spreads_on: &[Tile],
-        counts_to_spread: u8,
-        counts_to_survive: u8,
+        params: &TerrainParams,
     ) {
-        for row in 1..MAP_ROWS - 1 {
-            for col in 1..MAP_COLS - 1 {
-                let mut neightb_count = 0;
+        let spreading = params.spreading;
+        let spreads_on = params.spreads_on;
+        let counts_to_spread = params.counts_to_spread;
+        let counts_to_survive = params.counts_to_survive;
 
-                for i in row.saturating_sub(1)..=(row + 1).min(MAP_ROWS - 1) {
-                    for j in col.saturating_sub(1)..=(col + 1).min(MAP_COLS - 1) {
-                        if i == row && j == col {
-                            continue;
-                        }
-                        if tiles[i][j] == spreading_type {
-                            neightb_count += 1;
-                        }
+        b.par_iter_mut().enumerate().for_each(|(row, b_row)| {
+            if row == 0 || row == MAP_ROWS - 1 {
+                return;
+            }
+            let prev = &a[row - 1];
+            let curr = &a[row];
+            let next = &a[row + 1];
+            let before_row = &before_add_random[row];
+            for col in 1..MAP_COLS - 1 {
+                let mut neightb_count = 0u8;
+                for c in (col - 1)..=(col + 1) {
+                    if prev[c] == spreading {
+                        neightb_count += 1;
+                    }
+                    if next[c] == spreading {
+                        neightb_count += 1;
                     }
                 }
+                if curr[col - 1] == spreading {
+                    neightb_count += 1;
+                }
+                if curr[col + 1] == spreading {
+                    neightb_count += 1;
+                }
 
-                if neightb_count >= counts_to_spread && spreads_on.contains(&temp_tiles[row][col]) {
-                    temp_tiles[row][col] = spreading_type;
+                let mut new_val = curr[col];
+                if neightb_count >= counts_to_spread && spreads_on.contains(&new_val) {
+                    new_val = spreading;
                 }
-                if neightb_count < counts_to_survive && temp_tiles[row][col] == spreading_type {
-                    let new_tile = before_add_random[row][col];
-                    temp_tiles[row][col] = new_tile;
+                if neightb_count < counts_to_survive && new_val == spreading {
+                    new_val = before_row[col];
                 }
+                b_row[col] = new_val;
             }
-        }
+        });
     }
 
     pub fn export(&self) -> MapPayload {

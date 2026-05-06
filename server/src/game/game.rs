@@ -18,7 +18,6 @@ use common::{
     r#const::CASTLE_SIZE,
     courtyard::{Facility, FacilityType},
     game_objs::GameObjE,
-    map::Tile,
     packets::MapPayload,
     units::UnitGroup,
 };
