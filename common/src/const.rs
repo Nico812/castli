@@ -18,4 +18,4 @@ pub const DRAGON_STR: u32 = 10;
 pub const SHIP_STR: u32 = 0;
 
 pub const CASTLE_SIZE: GameCoord = GameCoord::new(2, 1);
-pub const FARM_PLOT_SIZE: GameCoord = GameCoord::new(10, 9);
+pub const FARM_PLOT_SIZE: GameCoord = GameCoord::new(8, 6);

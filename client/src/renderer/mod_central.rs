@@ -175,7 +175,7 @@ impl ModCentral {
     }
 
     fn draw_courtyard() -> Vec<Vec<TermCell>> {
-        let mut cells = vec![vec![TermCell::ERR; Renderer::FOV_COLS]; Renderer::FOV_ROWS];
+        let mut cells = vec![vec![BKG_EL; Renderer::FOV_COLS]; Renderer::FOV_ROWS];
         for i in 0..(COURTYARD_ROWS / 2).min(Renderer::FOV_ROWS) {
             for j in 0..COURTYARD_COLS.min(Renderer::FOV_COLS) {
                 cells[i][j] = BKG_EL;
