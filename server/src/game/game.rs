@@ -19,6 +19,7 @@ use common::{
     courtyard::{Facility, FacilityType},
     game_objs::GameObjE,
     map::Tile,
+    packets::MapPayload,
     units::UnitGroup,
 };
 
@@ -255,7 +256,7 @@ impl Game {
         self.time
     }
 
-    pub fn export_map(&self) -> Vec<Vec<Tile>> {
+    pub fn export_map(&self) -> MapPayload {
         self.map.export()
     }
 

@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use common::{
-    packets::{C2S, C2S4L, L2S4C, LogE, S2C},
+    map::Tile,
+    packets::{C2S, C2S4L, L2S4C, LogE, MapPayload, S2C},
     stream::{StreamErr, get_msg_from_server, send_msg_to_server},
 };
 use tokio::{
@@ -85,8 +86,8 @@ impl Connection {
                             game_state.player = packet.player;
                             game_state.time = packet.time;
                         },
-                        S2C::L2S4C(L2S4C::Map(map)) => {
-                            game_state.map = map;
+                        S2C::L2S4C(L2S4C::Map(payload)) => {
+                            game_state.map = unflatten_map(payload);
                         }
                         S2C::L2S4C(L2S4C::Log(log)) => {
                             let string = match log {
@@ -118,7 +119,7 @@ impl Connection {
 
     pub async fn fetch_initial_state(&mut self) -> Result<GameState, ()> {
         let map = match get_msg_from_server(&mut self.reader).await {
-            Ok(S2C::L2S4C(L2S4C::Map(map))) => map,
+            Ok(S2C::L2S4C(L2S4C::Map(payload))) => unflatten_map(payload),
             _ => {
                 println!("Failed to receive map");
                 return Err(());
@@ -139,4 +140,19 @@ impl Connection {
 
         Ok(GameState::new(time, objs, map, client, castle))
     }
+}
+
+fn unflatten_map(payload: MapPayload) -> Vec<Vec<Tile>> {
+    let rows = payload.rows as usize;
+    let cols = payload.cols as usize;
+    let mut out = Vec::with_capacity(rows);
+    let mut iter = payload.tiles.into_iter();
+    for _ in 0..rows {
+        let mut row = Vec::with_capacity(cols);
+        for _ in 0..cols {
+            row.push(iter.next().unwrap_or(Tile::Err));
+        }
+        out.push(row);
+    }
+    out
 }

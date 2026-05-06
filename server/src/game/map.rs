@@ -11,6 +11,7 @@ use common::{
     GameCoord,
     r#const::{MAP_COLS, MAP_ROWS},
     map::Tile,
+    packets::MapPayload,
 };
 
 pub struct Map {
@@ -33,6 +34,7 @@ impl Map {
             }
         }
 
+        println!("mappa caricata LOL");
         Self {
             tiles,
             obstacles,
@@ -248,7 +250,17 @@ impl Map {
         }
     }
 
-    pub fn export(&self) -> Vec<Vec<Tile>> {
-        self.tiles.clone()
+    pub fn export(&self) -> MapPayload {
+        let rows = self.tiles.len();
+        let cols = self.tiles.first().map(|row| row.len()).unwrap_or(0);
+        let mut tiles = Vec::with_capacity(rows * cols);
+        for row in &self.tiles {
+            tiles.extend_from_slice(row);
+        }
+        MapPayload {
+            rows: rows as u32,
+            cols: cols as u32,
+            tiles,
+        }
     }
 }

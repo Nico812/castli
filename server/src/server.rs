@@ -5,11 +5,13 @@ use std::{
     time::{Duration, Instant},
 };
 
+use bincode::{config, serde::decode_from_slice, serde::encode_to_vec};
+
 use crate::{r#const::SERVER_TICK, lobby::Lobby, thread_pool::ThreadPool};
 use common::{
     r#const::{IP_LOCAL, MAX_LOBBIES},
     packets::{C2S, C2S4L, L2S4C, S2C},
-    stream::StreamErr,
+    stream::{MAX_FRAME_BYTES, StreamErr},
 };
 
 pub enum S2L {
@@ -56,33 +58,41 @@ struct Connection {
 
 impl Connection {
     pub fn try_get_msg(&mut self) -> Result<Option<C2S>, StreamErr> {
-        let mut tmp_buf = [0u8; 1024];
-
+        let mut tmp_buf = [0u8; 4096];
         match self.stream.read(&mut tmp_buf) {
             Ok(0) => return Err(StreamErr::ConnectionEnded),
-            Ok(n) => {
-                self.read_buffer.extend(&tmp_buf[..n]);
-                if let Some(pos) = self.read_buffer.iter().position(|&b| b == b'\n') {
-                    let line = self.read_buffer[..pos].to_vec();
-
-                    self.read_buffer.drain(..=pos);
-
-                    let line_str = String::from_utf8_lossy(&line);
-                    return serde_json::from_str(&line_str)
-                        .map(Some)
-                        .map_err(|_| StreamErr::SerializationErr);
-                }
-                Ok(None)
-            }
-            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => Ok(None),
-            Err(_) => Err(StreamErr::ConnectionEnded),
+            Ok(n) => self.read_buffer.extend_from_slice(&tmp_buf[..n]),
+            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {}
+            Err(_) => return Err(StreamErr::ConnectionEnded),
         }
+
+        if self.read_buffer.len() < 4 {
+            return Ok(None);
+        }
+        let len = u32::from_le_bytes(self.read_buffer[..4].try_into().unwrap());
+        if len > MAX_FRAME_BYTES {
+            return Err(StreamErr::SerializationErr);
+        }
+        let frame_end = 4 + len as usize;
+        if self.read_buffer.len() < frame_end {
+            return Ok(None);
+        }
+        let result =
+            decode_from_slice::<C2S, _>(&self.read_buffer[4..frame_end], config::standard())
+                .map(|(msg, _)| Some(msg))
+                .map_err(|_| StreamErr::SerializationErr);
+        self.read_buffer.drain(..frame_end);
+        result
     }
 
     pub fn queue_msg(&mut self, msg: &S2C) {
-        let json = serde_json::to_string(msg).expect("Serialization failed");
-        self.write_buffer.extend_from_slice(json.as_bytes());
-        self.write_buffer.push(b'\n');
+        let bytes = encode_to_vec(msg, config::standard()).expect("Serialization failed");
+        let len: u32 = bytes
+            .len()
+            .try_into()
+            .expect("Outgoing frame exceeds u32 length");
+        self.write_buffer.extend_from_slice(&len.to_le_bytes());
+        self.write_buffer.extend_from_slice(&bytes);
     }
 
     pub fn try_flush(&mut self) -> Result<(), StreamErr> {

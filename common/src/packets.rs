@@ -46,12 +46,19 @@ pub enum LogE {
     FacilityCreationErr,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct MapPayload {
+    pub rows: u32,
+    pub cols: u32,
+    pub tiles: Vec<Tile>,
+}
+
 // Represents messages sent from a Lobby, to the Server, for a Client (L2S4C).
 #[derive(Serialize, Deserialize)]
 pub enum L2S4C {
     MainPacket(MainPacket),
     CourtyardPacket(CourtyardPacket),
-    Map(Vec<Vec<Tile>>),
+    Map(MapPayload),
     Log(LogE),
 }
 
