@@ -95,15 +95,17 @@ pub struct FacilityAsset;
 
 impl FacilityAsset {
     pub fn get_asset(facility: &Facility, night: bool) -> &[&[TermCell]] {
-        match facility.r#type {
-            FacilityType::FarmPlot => {
-                if night {
-                    NIGHT_FARM_PLOT
-                } else {
-                    DAY_FARM_PLOT
-                }
-            }
-            _ => ERR_ART,
+        match (facility.r#type, night) {
+            (FacilityType::FarmPlot, false) => DAY_FARM_PLOT,
+            (FacilityType::FarmPlot, true) => NIGHT_FARM_PLOT,
+            (FacilityType::Sawmill, false) => DAY_SAWMILL,
+            (FacilityType::Sawmill, true) => NIGHT_SAWMILL,
+            (FacilityType::Mines, false) => DAY_MINES,
+            (FacilityType::Mines, true) => NIGHT_MINES,
+            (FacilityType::Barracks, false) => DAY_BARRACKS,
+            (FacilityType::Barracks, true) => NIGHT_BARRACKS,
+            (FacilityType::Shipyard, false) => DAY_SHIPYARD,
+            (FacilityType::Shipyard, true) => NIGHT_SHIPYARD,
         }
     }
 }
@@ -328,6 +330,344 @@ pub const NIGHT_FARM_PLOT: &[&[TermCell]] = &[
         TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
         TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
         TermCell::new('+', NIGHT_GREEN_0, NIGHT_GREEN_1),
+    ],
+];
+
+// +--X--+
+// |═▓░▓═|
+// +-----+
+pub const DAY_SAWMILL: &[&[TermCell]] = &[
+    &[
+        TermCell::new('+', DAY_BROWN, BLACK),
+        TermCell::new('-', DAY_BROWN, BLACK),
+        TermCell::new('-', DAY_BROWN, BLACK),
+        TermCell::new('X', DAY_WHITE, BLACK),
+        TermCell::new('-', DAY_BROWN, BLACK),
+        TermCell::new('-', DAY_BROWN, BLACK),
+        TermCell::new('+', DAY_BROWN, BLACK),
+    ],
+    &[
+        TermCell::new('|', DAY_BROWN, BLACK),
+        TermCell::new('═', DAY_GREEN_3, DAY_BROWN),
+        TermCell::new('▓', DAY_GREEN_3, DAY_BROWN),
+        TermCell::new('░', DAY_GREEN_3, DAY_BROWN),
+        TermCell::new('▓', DAY_GREEN_3, DAY_BROWN),
+        TermCell::new('═', DAY_GREEN_3, DAY_BROWN),
+        TermCell::new('|', DAY_BROWN, BLACK),
+    ],
+    &[
+        TermCell::new('+', DAY_BROWN, BLACK),
+        TermCell::new('-', DAY_BROWN, BLACK),
+        TermCell::new('-', DAY_BROWN, BLACK),
+        TermCell::new('-', DAY_BROWN, BLACK),
+        TermCell::new('-', DAY_BROWN, BLACK),
+        TermCell::new('-', DAY_BROWN, BLACK),
+        TermCell::new('+', DAY_BROWN, BLACK),
+    ],
+];
+
+pub const NIGHT_SAWMILL: &[&[TermCell]] = &[
+    &[
+        TermCell::new('+', NIGHT_BROWN, BLACK),
+        TermCell::new('-', NIGHT_BROWN, BLACK),
+        TermCell::new('-', NIGHT_BROWN, BLACK),
+        TermCell::new('X', NIGHT_WHITE, BLACK),
+        TermCell::new('-', NIGHT_BROWN, BLACK),
+        TermCell::new('-', NIGHT_BROWN, BLACK),
+        TermCell::new('+', NIGHT_BROWN, BLACK),
+    ],
+    &[
+        TermCell::new('|', NIGHT_BROWN, BLACK),
+        TermCell::new('═', NIGHT_GREEN_3, NIGHT_BROWN),
+        TermCell::new('▓', NIGHT_GREEN_3, NIGHT_BROWN),
+        TermCell::new('░', NIGHT_GREEN_3, NIGHT_BROWN),
+        TermCell::new('▓', NIGHT_GREEN_3, NIGHT_BROWN),
+        TermCell::new('═', NIGHT_GREEN_3, NIGHT_BROWN),
+        TermCell::new('|', NIGHT_BROWN, BLACK),
+    ],
+    &[
+        TermCell::new('+', NIGHT_BROWN, BLACK),
+        TermCell::new('-', NIGHT_BROWN, BLACK),
+        TermCell::new('-', NIGHT_BROWN, BLACK),
+        TermCell::new('-', NIGHT_BROWN, BLACK),
+        TermCell::new('-', NIGHT_BROWN, BLACK),
+        TermCell::new('-', NIGHT_BROWN, BLACK),
+        TermCell::new('+', NIGHT_BROWN, BLACK),
+    ],
+];
+
+// /^^^^^\
+// |░▓▒▓░|
+// +-----+
+pub const DAY_MINES: &[&[TermCell]] = &[
+    &[
+        TermCell::new('/', DAY_GREY_2, BLACK),
+        TermCell::new('^', DAY_GREY_0, BLACK),
+        TermCell::new('^', DAY_GREY_0, BLACK),
+        TermCell::new('^', DAY_GREY_0, BLACK),
+        TermCell::new('^', DAY_GREY_0, BLACK),
+        TermCell::new('^', DAY_GREY_0, BLACK),
+        TermCell::new('\\', DAY_GREY_2, BLACK),
+    ],
+    &[
+        TermCell::new('|', DAY_GREY_2, BLACK),
+        TermCell::new('░', DAY_GREY_0, DAY_GREY_2),
+        TermCell::new('▓', DAY_GREY_0, DAY_GREY_2),
+        TermCell::new('▒', DAY_GREY_0, DAY_GREY_2),
+        TermCell::new('▓', DAY_GREY_0, DAY_GREY_2),
+        TermCell::new('░', DAY_GREY_0, DAY_GREY_2),
+        TermCell::new('|', DAY_GREY_2, BLACK),
+    ],
+    &[
+        TermCell::new('+', DAY_GREY_2, BLACK),
+        TermCell::new('-', DAY_GREY_2, BLACK),
+        TermCell::new('-', DAY_GREY_2, BLACK),
+        TermCell::new('-', DAY_GREY_2, BLACK),
+        TermCell::new('-', DAY_GREY_2, BLACK),
+        TermCell::new('-', DAY_GREY_2, BLACK),
+        TermCell::new('+', DAY_GREY_2, BLACK),
+    ],
+];
+
+pub const NIGHT_MINES: &[&[TermCell]] = &[
+    &[
+        TermCell::new('/', NIGHT_GREY_2, BLACK),
+        TermCell::new('^', NIGHT_GREY_0, BLACK),
+        TermCell::new('^', NIGHT_GREY_0, BLACK),
+        TermCell::new('^', NIGHT_GREY_0, BLACK),
+        TermCell::new('^', NIGHT_GREY_0, BLACK),
+        TermCell::new('^', NIGHT_GREY_0, BLACK),
+        TermCell::new('\\', NIGHT_GREY_2, BLACK),
+    ],
+    &[
+        TermCell::new('|', NIGHT_GREY_2, BLACK),
+        TermCell::new('░', NIGHT_GREY_0, NIGHT_GREY_2),
+        TermCell::new('▓', NIGHT_GREY_0, NIGHT_GREY_2),
+        TermCell::new('▒', NIGHT_GREY_0, NIGHT_GREY_2),
+        TermCell::new('▓', NIGHT_GREY_0, NIGHT_GREY_2),
+        TermCell::new('░', NIGHT_GREY_0, NIGHT_GREY_2),
+        TermCell::new('|', NIGHT_GREY_2, BLACK),
+    ],
+    &[
+        TermCell::new('+', NIGHT_GREY_2, BLACK),
+        TermCell::new('-', NIGHT_GREY_2, BLACK),
+        TermCell::new('-', NIGHT_GREY_2, BLACK),
+        TermCell::new('-', NIGHT_GREY_2, BLACK),
+        TermCell::new('-', NIGHT_GREY_2, BLACK),
+        TermCell::new('-', NIGHT_GREY_2, BLACK),
+        TermCell::new('+', NIGHT_GREY_2, BLACK),
+    ],
+];
+
+// +▀+▀+▀+▀+
+// |▒▓▒▓▒▓▒|
+// |░░░♦░░░|
+// +-------+
+pub const DAY_BARRACKS: &[&[TermCell]] = &[
+    &[
+        TermCell::new('+', DAY_GREY_2, BLACK),
+        TermCell::new('▀', DAY_GREY_0, BLACK),
+        TermCell::new('+', DAY_GREY_2, BLACK),
+        TermCell::new('▀', DAY_GREY_0, BLACK),
+        TermCell::new('+', DAY_GREY_2, BLACK),
+        TermCell::new('▀', DAY_GREY_0, BLACK),
+        TermCell::new('+', DAY_GREY_2, BLACK),
+        TermCell::new('▀', DAY_GREY_0, BLACK),
+        TermCell::new('+', DAY_GREY_2, BLACK),
+    ],
+    &[
+        TermCell::new('|', DAY_GREY_2, BLACK),
+        TermCell::new('▒', DAY_GREY_0, DAY_GREY_1),
+        TermCell::new('▓', DAY_GREY_0, DAY_GREY_1),
+        TermCell::new('▒', DAY_GREY_0, DAY_GREY_1),
+        TermCell::new('▓', DAY_GREY_0, DAY_GREY_1),
+        TermCell::new('▒', DAY_GREY_0, DAY_GREY_1),
+        TermCell::new('▓', DAY_GREY_0, DAY_GREY_1),
+        TermCell::new('▒', DAY_GREY_0, DAY_GREY_1),
+        TermCell::new('|', DAY_GREY_2, BLACK),
+    ],
+    &[
+        TermCell::new('|', DAY_GREY_2, BLACK),
+        TermCell::new('░', DAY_GREY_0, DAY_GREY_1),
+        TermCell::new('░', DAY_GREY_0, DAY_GREY_1),
+        TermCell::new('░', DAY_GREY_0, DAY_GREY_1),
+        TermCell::new('♦', RED, DAY_GREY_1),
+        TermCell::new('░', DAY_GREY_0, DAY_GREY_1),
+        TermCell::new('░', DAY_GREY_0, DAY_GREY_1),
+        TermCell::new('░', DAY_GREY_0, DAY_GREY_1),
+        TermCell::new('|', DAY_GREY_2, BLACK),
+    ],
+    &[
+        TermCell::new('+', DAY_GREY_2, BLACK),
+        TermCell::new('-', DAY_GREY_2, BLACK),
+        TermCell::new('-', DAY_GREY_2, BLACK),
+        TermCell::new('-', DAY_GREY_2, BLACK),
+        TermCell::new('-', DAY_GREY_2, BLACK),
+        TermCell::new('-', DAY_GREY_2, BLACK),
+        TermCell::new('-', DAY_GREY_2, BLACK),
+        TermCell::new('-', DAY_GREY_2, BLACK),
+        TermCell::new('+', DAY_GREY_2, BLACK),
+    ],
+];
+
+pub const NIGHT_BARRACKS: &[&[TermCell]] = &[
+    &[
+        TermCell::new('+', NIGHT_GREY_2, BLACK),
+        TermCell::new('▀', NIGHT_GREY_0, BLACK),
+        TermCell::new('+', NIGHT_GREY_2, BLACK),
+        TermCell::new('▀', NIGHT_GREY_0, BLACK),
+        TermCell::new('+', NIGHT_GREY_2, BLACK),
+        TermCell::new('▀', NIGHT_GREY_0, BLACK),
+        TermCell::new('+', NIGHT_GREY_2, BLACK),
+        TermCell::new('▀', NIGHT_GREY_0, BLACK),
+        TermCell::new('+', NIGHT_GREY_2, BLACK),
+    ],
+    &[
+        TermCell::new('|', NIGHT_GREY_2, BLACK),
+        TermCell::new('▒', NIGHT_GREY_0, NIGHT_GREY_1),
+        TermCell::new('▓', NIGHT_GREY_0, NIGHT_GREY_1),
+        TermCell::new('▒', NIGHT_GREY_0, NIGHT_GREY_1),
+        TermCell::new('▓', NIGHT_GREY_0, NIGHT_GREY_1),
+        TermCell::new('▒', NIGHT_GREY_0, NIGHT_GREY_1),
+        TermCell::new('▓', NIGHT_GREY_0, NIGHT_GREY_1),
+        TermCell::new('▒', NIGHT_GREY_0, NIGHT_GREY_1),
+        TermCell::new('|', NIGHT_GREY_2, BLACK),
+    ],
+    &[
+        TermCell::new('|', NIGHT_GREY_2, BLACK),
+        TermCell::new('░', NIGHT_GREY_0, NIGHT_GREY_1),
+        TermCell::new('░', NIGHT_GREY_0, NIGHT_GREY_1),
+        TermCell::new('░', NIGHT_GREY_0, NIGHT_GREY_1),
+        TermCell::new('♦', RED, NIGHT_GREY_1),
+        TermCell::new('░', NIGHT_GREY_0, NIGHT_GREY_1),
+        TermCell::new('░', NIGHT_GREY_0, NIGHT_GREY_1),
+        TermCell::new('░', NIGHT_GREY_0, NIGHT_GREY_1),
+        TermCell::new('|', NIGHT_GREY_2, BLACK),
+    ],
+    &[
+        TermCell::new('+', NIGHT_GREY_2, BLACK),
+        TermCell::new('-', NIGHT_GREY_2, BLACK),
+        TermCell::new('-', NIGHT_GREY_2, BLACK),
+        TermCell::new('-', NIGHT_GREY_2, BLACK),
+        TermCell::new('-', NIGHT_GREY_2, BLACK),
+        TermCell::new('-', NIGHT_GREY_2, BLACK),
+        TermCell::new('-', NIGHT_GREY_2, BLACK),
+        TermCell::new('-', NIGHT_GREY_2, BLACK),
+        TermCell::new('+', NIGHT_GREY_2, BLACK),
+    ],
+];
+
+// ~~~|~|~~~~~
+// ~~/▓▓▓\~~~~
+// _[▓▓▓▓▓▓▓]_
+// ~~~~~~~~~~~
+pub const DAY_SHIPYARD: &[&[TermCell]] = &[
+    &[
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('|', DAY_WHITE, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('|', DAY_WHITE, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+    ],
+    &[
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('/', DAY_BROWN, DAY_BLUE_1),
+        TermCell::new('▓', DAY_WHITE, DAY_BROWN),
+        TermCell::new('▒', DAY_WHITE, DAY_BROWN),
+        TermCell::new('▓', DAY_WHITE, DAY_BROWN),
+        TermCell::new('\\', DAY_BROWN, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+    ],
+    &[
+        TermCell::new('_', DAY_BROWN, DAY_BLUE_1),
+        TermCell::new('[', DAY_WHITE, DAY_BROWN),
+        TermCell::new('▓', BLACK, DAY_BROWN),
+        TermCell::new('▒', BLACK, DAY_BROWN),
+        TermCell::new('▓', BLACK, DAY_BROWN),
+        TermCell::new('░', BLACK, DAY_BROWN),
+        TermCell::new('▓', BLACK, DAY_BROWN),
+        TermCell::new('▒', BLACK, DAY_BROWN),
+        TermCell::new('▓', BLACK, DAY_BROWN),
+        TermCell::new(']', DAY_WHITE, DAY_BROWN),
+        TermCell::new('_', DAY_BROWN, DAY_BLUE_1),
+    ],
+    &[
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
+    ],
+];
+
+pub const NIGHT_SHIPYARD: &[&[TermCell]] = &[
+    &[
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('|', NIGHT_WHITE, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('|', NIGHT_WHITE, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+    ],
+    &[
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('/', NIGHT_BROWN, NIGHT_BLUE_1),
+        TermCell::new('▓', NIGHT_WHITE, NIGHT_BROWN),
+        TermCell::new('▒', NIGHT_WHITE, NIGHT_BROWN),
+        TermCell::new('▓', NIGHT_WHITE, NIGHT_BROWN),
+        TermCell::new('\\', NIGHT_BROWN, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+    ],
+    &[
+        TermCell::new('_', NIGHT_BROWN, NIGHT_BLUE_1),
+        TermCell::new('[', NIGHT_WHITE, NIGHT_BROWN),
+        TermCell::new('▓', BLACK, NIGHT_BROWN),
+        TermCell::new('▒', BLACK, NIGHT_BROWN),
+        TermCell::new('▓', BLACK, NIGHT_BROWN),
+        TermCell::new('░', BLACK, NIGHT_BROWN),
+        TermCell::new('▓', BLACK, NIGHT_BROWN),
+        TermCell::new('▒', BLACK, NIGHT_BROWN),
+        TermCell::new('▓', BLACK, NIGHT_BROWN),
+        TermCell::new(']', NIGHT_WHITE, NIGHT_BROWN),
+        TermCell::new('_', NIGHT_BROWN, NIGHT_BLUE_1),
+    ],
+    &[
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
+        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
     ],
 ];
 

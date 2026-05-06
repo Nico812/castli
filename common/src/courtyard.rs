@@ -50,10 +50,10 @@ impl FacilityType {
     pub fn size(&self) -> GameCoord {
         match self {
             FacilityType::FarmPlot => FARM_PLOT_SIZE,
-            FacilityType::Sawmill => GameCoord::new(5, 5),
-            FacilityType::Mines => GameCoord::new(5, 5),
-            FacilityType::Barracks => GameCoord::new(5, 5),
-            FacilityType::Shipyard => GameCoord::new(5, 5),
+            FacilityType::Sawmill => GameCoord::new(6, 7),
+            FacilityType::Mines => GameCoord::new(6, 7),
+            FacilityType::Barracks => GameCoord::new(8, 9),
+            FacilityType::Shipyard => GameCoord::new(8, 11),
         }
     }
 
