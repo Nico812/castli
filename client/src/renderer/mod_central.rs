@@ -176,7 +176,7 @@ impl ModCentral {
 
     fn draw_courtyard(&mut self, camera: &Camera) {
         let drawable_size = self.module.drawable_size();
-        let camera_pos = camera.map;
+        let camera_pos = camera.courtyard;
 
         for tile_row in camera_pos.y..camera_pos.y + drawable_size.y * 2 {
             if tile_row & 1 == 1 {

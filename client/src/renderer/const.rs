@@ -3,13 +3,13 @@
 use crossterm::style::Color;
 
 use crate::{
-    ansi::{BK_DAY_GREEN_0, BK_DAY_GREEN_2, BK_NIGHT_BROWN, BLACK, FG_NIGHT_GREEN_0},
+    ansi::{BLACK, DAY_GREEN_0},
     assets::TermCell,
 };
 
 pub const FRAME_BK_COLOR: Color = BLACK;
 pub const MOD_BK_COLOR: Color = BLACK;
-pub const COURTYARD_BK_CELL: TermCell = TermCell::new('.', BK_DAY_GREEN_0, BK_DAY_GREEN_2);
+pub const COURTYARD_BK_CELL: TermCell = TermCell::new('.', DAY_GREEN_0, BLACK);
 
 pub const CANVAS_ROWS: usize = 60;
 pub const CANVAS_COLS: usize = 160;
