@@ -5,7 +5,11 @@ use common::{
     units::{UnitGroup, UnitType},
 };
 
-use crate::renderer::{ModRightTab, renderer::Renderer};
+use crate::renderer::{
+    ModRightTab,
+    r#const::{FOV_COLS, FOV_ROWS},
+    renderer::Renderer,
+};
 
 // State shared between input handler and renderer
 pub struct UiState {
@@ -45,14 +49,16 @@ impl Camera {
             }
         };
 
-        camera_pos.x = (camera_pos.x as isize + 2 * dx)
+        let new_x = (camera_pos.x as isize + 2 * dx)
             .max(0)
-            .min(bound_cols.saturating_sub(Renderer::FOV_COLS) as isize)
-            as usize;
-        camera_pos.y = (camera_pos.y as isize + 2 * dy)
+            .min(bound_cols.saturating_sub(FOV_COLS - 1) as isize) as usize;
+        let new_y = (camera_pos.y as isize + 2 * dy)
             .max(0)
-            .min(bound_rows.saturating_sub(Renderer::FOV_ROWS * 2) as isize)
-            as usize;
+            .min(bound_rows.saturating_sub(FOV_ROWS * 2 - 1) as isize) as usize;
+
+        // I'm angry at odd numbers
+        camera_pos.x = new_x - (new_x % 2);
+        camera_pos.y = new_y - (new_y % 2);
     }
 }
 

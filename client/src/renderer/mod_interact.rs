@@ -4,86 +4,70 @@ use crate::{
     ansi::BLACK,
     assets::{SELECTION_TERMCELL, TermCell},
     game_state::GameState,
-    renderer::{
-        r#const::MOD_INTERACT_COLS,
-        module_utility::{self, draw_text_in_row},
-    },
+    renderer::{r#const::MOD_INTERACT_COLS, module::Module},
     ui_state::{InteractTarget, UiMode, UiState},
 };
 
-pub struct ModInteract;
+pub struct ModInteract {
+    module: Module,
+}
 
 impl ModInteract {
-    const PADDING_HORI: usize = 2;
-    const PADDING_VERT: usize = 1;
-    const CONTENT_COLS: usize = MOD_INTERACT_COLS.saturating_sub(2);
+    pub fn new(module: Module) -> Self {
+        Self { module }
+    }
 
-    pub fn update(game_state: &GameState, ui_state: &UiState) -> Option<Vec<Vec<TermCell>>> {
+    pub fn render(
+        &mut self,
+        game_state: &GameState,
+        ui_state: &UiState,
+    ) -> Option<Vec<Vec<TermCell>>> {
         match ui_state.mode {
             UiMode::Interact(ref interact_target) => {
-                let mut renderable = Vec::new();
-
-                for _ in 0..Self::PADDING_VERT {
-                    Self::push_empty_row(&mut renderable);
-                }
-
                 match interact_target {
                     InteractTarget::GameObj(obj_id) => {
                         let obj = game_state.objs.get(&obj_id);
 
                         match obj {
                             Some(GameObjE::Castle(castle)) => {
-                                Self::push_row_with_text(&mut renderable, &castle.name);
-                                Self::push_row_with_text(&mut renderable, "a: attack");
+                                self.module.push_row_with_text(&castle.name);
+                                self.module.push_row_with_text("a: attack");
                             }
                             Some(GameObjE::Structure(_)) => {}
                             Some(GameObjE::DeployedUnits(_)) => {}
                             None => {
-                                Self::push_row_with_text(
-                                    &mut renderable,
-                                    "The object doesn't exist anymore",
-                                );
+                                self.module
+                                    .push_row_with_text("The object doesn't exist anymore");
                             }
                         }
                     }
                     InteractTarget::MapPos(pos) => {
                         let tile = game_state.get_tile(*pos);
-                        Self::push_row_with_text(&mut renderable, &format!("{:?}", tile));
-                        Self::push_row_with_text(&mut renderable, "a: send troops");
+                        self.module.push_row_with_text(&format!("{:?}", tile));
+                        self.module.push_row_with_text("a: send troops");
                     }
                     InteractTarget::Facility(facility_id) => {
                         let Some(facility) = game_state.get_facility(*facility_id) else {
                             return None;
                         };
-                        Self::push_row_with_text(
-                            &mut renderable,
-                            &format!("{:?}", facility.r#type),
-                        );
-                        Self::push_row_with_text(&mut renderable, &format!("lv {}", facility.lv));
+                        self.module
+                            .push_row_with_text(&format!("{:?}", facility.r#type));
+                        self.module
+                            .push_row_with_text(&format!("lv {}", facility.lv));
                     }
                     InteractTarget::CourtyardPos(_) => {
-                        Self::push_row_with_text(&mut renderable, "n: build");
+                        self.module.push_row_with_text("n: build");
                     }
                 }
 
-                for _ in 0..Self::PADDING_VERT {
-                    Self::push_empty_row(&mut renderable);
-                }
-
-                module_utility::add_frame("interact", &mut renderable);
-
-                Some(renderable)
+                self.module.set_name("interact".to_string());
+                Some(self.module.get_cells().clone())
             }
             UiMode::UnitSelection(ref selection) => {
                 let Some(ref castle) = game_state.castle else {
                     return None;
                 };
                 let all_units = all_units!();
-                let mut renderable = Vec::new();
-
-                for _ in 0..Self::PADDING_VERT {
-                    Self::push_empty_row(&mut renderable);
-                }
 
                 for (i, unit) in all_units.iter().enumerate() {
                     let is_active = selection.active_input.0 == *unit;
@@ -99,31 +83,23 @@ impl ModInteract {
 
                     let text = format!("{:?}: {}", unit, display_quantities);
 
-                    Self::push_row_with_text(&mut renderable, &text);
+                    self.module.push_row_with_text(&text);
+
                     if is_active {
-                        let marker_pos = Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1);
-                        renderable.last_mut().unwrap()[marker_pos] = SELECTION_TERMCELL;
+                        let selection_icon = SELECTION_TERMCELL;
+                        self.module
+                            .draw_cell_last_row(selection_icon, self.module.drawable_size().x - 1);
                     }
                 }
-                Self::push_empty_row(&mut renderable);
-                Self::push_row_with_text(&mut renderable, "enter: select/set amount");
-                Self::push_row_with_text(&mut renderable, "a: confirm");
+                self.module.push_empty_row();
+                self.module.push_row_with_text("enter: select/set amount");
+                self.module.push_row_with_text("a: confirm");
 
-                for _ in 0..Self::PADDING_VERT {
-                    Self::push_empty_row(&mut renderable);
-                }
-
-                module_utility::add_frame("units selection", &mut renderable);
-
-                Some(renderable)
+                self.module.set_name("unit selection".to_string());
+                Some(self.module.get_cells().clone())
             }
             UiMode::FacilitySelection(ref selection) => {
                 let all_facilities = all_facilities!();
-                let mut renderable = Vec::new();
-
-                for _ in 0..Self::PADDING_VERT {
-                    Self::push_empty_row(&mut renderable);
-                }
 
                 for facility_type in all_facilities.iter() {
                     let total = facility_type.max_count();
@@ -143,42 +119,23 @@ impl ModInteract {
                         facility_type.base_cost().stone
                     );
 
-                    Self::push_row_with_text(&mut renderable, &quantities_text);
+                    self.module.push_row_with_text(&quantities_text);
                     if is_active {
-                        let marker_pos = Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1);
-                        renderable.last_mut().unwrap()[marker_pos] = SELECTION_TERMCELL;
+                        self.module.draw_cell_last_row(
+                            SELECTION_TERMCELL,
+                            self.module.drawable_size().x - 1,
+                        );
                     }
-                    Self::push_row_with_text(&mut renderable, &price_text);
-                    Self::push_empty_row(&mut renderable);
+                    self.module.push_row_with_text(&price_text);
+                    self.module.push_empty_row();
                 }
-                Self::push_empty_row(&mut renderable);
-                Self::push_row_with_text(&mut renderable, "enter: build");
+                self.module.push_empty_row();
+                self.module.push_row_with_text("enter: build");
 
-                for _ in 0..Self::PADDING_VERT {
-                    Self::push_empty_row(&mut renderable);
-                }
-
-                module_utility::add_frame("facility selection", &mut renderable);
-
-                Some(renderable)
+                self.module.set_name("facility selection".to_string());
+                Some(self.module.get_cells().clone())
             }
             _ => None,
         }
-    }
-
-    fn push_empty_row(renderable: &mut Vec<Vec<TermCell>>) {
-        renderable.push(vec![TermCell::new(' ', BLACK, BLACK); Self::CONTENT_COLS]);
-    }
-
-    fn push_row_with_text(renderable: &mut Vec<Vec<TermCell>>, text: &str) {
-        renderable.push(vec![TermCell::new(' ', BLACK, BLACK); Self::CONTENT_COLS]);
-        let row_to_write = renderable.len() - 1;
-        draw_text_in_row(
-            renderable,
-            text,
-            row_to_write,
-            Self::PADDING_HORI,
-            Self::PADDING_HORI,
-        );
     }
 }

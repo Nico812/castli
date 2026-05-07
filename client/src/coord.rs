@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, Div, Mul, Sub};
 
 use common::{
     GameCoord,
@@ -7,7 +7,7 @@ use common::{
 
 use crate::{
     renderer::{
-        r#const::{CANVAS_COLS, CANVAS_ROWS, MOD_CENTRAL_POS},
+        r#const::{CANVAS_COLS, CANVAS_ROWS, MOD_CENTRAL_POS, ZOOM_FACTOR},
         renderer::Renderer,
     },
     ui_state::{Camera, CameraLocation},
@@ -28,8 +28,8 @@ impl TermCoord {
 
     pub fn from_game_coord(game_coord: GameCoord, camera: &Camera) -> Option<Self> {
         let (term_y, term_x) = if camera.location == CameraLocation::WorldMap {
-            let term_y = game_coord.y / 2 / Renderer::ZOOM_FACTOR;
-            let term_x = game_coord.x / Renderer::ZOOM_FACTOR;
+            let term_y = game_coord.y / 2 / ZOOM_FACTOR;
+            let term_x = game_coord.x / ZOOM_FACTOR;
 
             (term_y, term_x)
         } else {
@@ -58,8 +58,8 @@ impl TermCoord {
     pub fn to_game_coord(&self, camera: &Camera) -> Option<GameCoord> {
         if camera.location == CameraLocation::WorldMap {
             return Some(GameCoord::new(
-                self.y * Renderer::ZOOM_FACTOR * 2,
-                self.x * Renderer::ZOOM_FACTOR,
+                self.y * ZOOM_FACTOR * 2,
+                self.x * ZOOM_FACTOR,
             ));
         } else {
             let camera_pos = camera.get_pos();
@@ -96,8 +96,8 @@ impl Sub for TermCoord {
 
     fn sub(self, other: Self) -> Self {
         Self {
-            x: self.x - other.x,
-            y: self.y - other.y,
+            x: self.x.saturating_sub(other.x),
+            y: self.y.saturating_sub(other.y),
         }
     }
 }
@@ -109,6 +109,17 @@ impl Mul<usize> for TermCoord {
         Self {
             x: self.x * scalar,
             y: self.y * scalar,
+        }
+    }
+}
+
+impl Div<usize> for TermCoord {
+    type Output = Self;
+
+    fn div(self, scalar: usize) -> Self {
+        Self {
+            x: self.x / scalar,
+            y: self.y / scalar,
         }
     }
 }

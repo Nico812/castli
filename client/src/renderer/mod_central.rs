@@ -9,6 +9,7 @@ use common::{GameCoord, GameId};
 use crate::assets::*;
 use crate::coord::TermCoord;
 use crate::game_state::GameState;
+use crate::renderer::r#const::{COURTYARD_BK_CELL, FOV_COLS, FOV_ROWS};
 use crate::renderer::map_data::MapData;
 use crate::renderer::module::Module;
 use crate::renderer::renderer::Renderer;
@@ -55,7 +56,11 @@ impl ModCentral {
                     game_state.time.night,
                 );
 
-                self.draw_world_objs(&game_state.player.castle_id, &game_state.objs);
+                self.draw_world_objs(
+                    &game_state.player.castle_id,
+                    &game_state.objs,
+                    &ui_state.camera,
+                );
                 title
             }
             CameraLocation::Courtyard => {
@@ -78,6 +83,7 @@ impl ModCentral {
         }
 
         self.module.set_name(title);
+        self.module.center();
         self.module.get_cells()
     }
 
@@ -92,7 +98,7 @@ impl ModCentral {
         let camera_pos = camera.map;
 
         for tile_row in camera_pos.y..camera_pos.y + drawable_size.y * 2 {
-            if tile_row & 0 == 0 {
+            if tile_row & 1 == 1 {
                 continue;
             }
             for tile_col in camera_pos.x..camera_pos.x + drawable_size.x {
@@ -134,7 +140,7 @@ impl ModCentral {
         let drawable_size = self.module.drawable_size();
 
         for tile_row in 0..drawable_size.y * 2 {
-            if tile_row & 0 == 0 {
+            if tile_row & 1 == 1 {
                 continue;
             }
             for tile_col in 0..drawable_size.x {
@@ -173,7 +179,7 @@ impl ModCentral {
         let camera_pos = camera.map;
 
         for tile_row in camera_pos.y..camera_pos.y + drawable_size.y * 2 {
-            if tile_row & 0 == 0 {
+            if tile_row & 1 == 1 {
                 continue;
             }
             for tile_col in camera_pos.x..camera_pos.x + drawable_size.x {
@@ -184,7 +190,7 @@ impl ModCentral {
                 };
 
                 if tile_row < COURTYARD_ROWS && tile_col < COURTYARD_COLS {
-                    self.module.draw_cell(NIGHT_GRASS.std, term_pos);
+                    self.module.draw_cell(COURTYARD_BK_CELL, term_pos);
                 }
             }
         }
@@ -225,18 +231,18 @@ impl ModCentral {
         &mut self,
         castle_id: &Option<GameId>,
         world_objs: &HashMap<GameId, GameObjE>,
+        camera: &Camera,
     ) {
         let drawable_size = self.module.drawable_size();
         for (id, obj) in world_objs.iter() {
             let pos = obj.get_pos();
-            if pos.y >= (drawable_size.y * Renderer::FOV_ROWS) * 2
-                || pos.x >= drawable_size.x * Renderer::FOV_COLS
-            {
+            if pos.y >= (drawable_size.y * FOV_ROWS) * 2 || pos.x >= drawable_size.x * FOV_COLS {
                 continue;
             };
 
-            let term_coord =
-                TermCoord::new(pos.y / 2 / Renderer::FOV_ROWS, pos.x / Renderer::FOV_COLS);
+            let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
+                continue;
+            };
 
             let owned = match obj {
                 GameObjE::Castle(_) => *castle_id == Some(*id),

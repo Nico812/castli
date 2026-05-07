@@ -8,13 +8,15 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::client::{ShutdownChannel, ShutdownReason};
 use crate::game_state::GameState;
+use crate::renderer::r#const::{FOV_COLS, FOV_ROWS, ZOOM_FACTOR};
 use crate::renderer::renderer::Renderer;
 use crate::tui::{T2C, Tui};
 use crate::ui_state::{
-    CameraLocation, FacilitySelection, Inspect, InteractTarget, UiMode, UiState, UnitSelection,
+    Camera, CameraLocation, FacilitySelection, Inspect, InteractTarget, UiMode, UiState,
+    UnitSelection,
 };
 use common::GameCoord;
-use common::r#const::{MAP_COLS, MAP_ROWS};
+use common::r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS};
 
 pub struct InputHandler;
 
@@ -83,7 +85,6 @@ impl InputHandler {
             },
             UiMode::Inspect(ref mut inspect) => match (key.code, key.modifiers) {
                 (KeyCode::Esc, _) => ui_state.mode = UiMode::Std,
-                (KeyCode::Char('n'), _) => Self::handle_new_castle(&tx, inspect),
                 (KeyCode::Char('M'), _) => {
                     Self::change_camera_location(
                         &mut ui_state.camera.location,
@@ -111,72 +112,130 @@ impl InputHandler {
                 (KeyCode::Char('l'), _) => {
                     Self::toggle_inspect(ui_state);
                 }
-                (KeyCode::Enter, _) => {
-                    if game_state.player.castle_id.is_none() {
-                        return;
-                    }
-                    match ui_state.camera.location {
-                        CameraLocation::Map | CameraLocation::WorldMap => {
-                            let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
-                            let looked_objs =
-                                Tui::get_looked_objs(inspect.coord, &game_state.objs, in_world_map);
+                (KeyCode::Enter, _) => match ui_state.camera.location {
+                    CameraLocation::Map | CameraLocation::WorldMap => {
+                        let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
 
-                            if looked_objs.len() > 1 && inspect.selection.is_none() {
-                                inspect.selection = Some(looked_objs[0].0);
-                            } else {
-                                let interact_target = match looked_objs.len() {
-                                    0 => InteractTarget::MapPos(inspect.coord),
-                                    1 => InteractTarget::GameObj(looked_objs[0].0),
-                                    _ => InteractTarget::GameObj(inspect.selection.unwrap()),
-                                };
-
-                                ui_state.mode = UiMode::Interact(interact_target);
+                        if game_state.player.castle_id.is_none() {
+                            if !in_world_map {
+                                Self::handle_new_castle(&tx, inspect)
                             }
+                            return;
                         }
-                        CameraLocation::Courtyard => {
-                            let looked_facility =
-                                Tui::get_looked_facility(inspect.coord, &game_state.facilities);
-                            if let Some(looked_facility) = looked_facility {
-                                ui_state.mode =
-                                    UiMode::Interact(InteractTarget::Facility(*looked_facility.0));
-                            } else {
-                                ui_state.mode =
-                                    UiMode::Interact(InteractTarget::CourtyardPos(inspect.coord));
-                            }
+                        let looked_objs =
+                            Tui::get_looked_objs(inspect.coord, &game_state.objs, in_world_map);
+
+                        if looked_objs.len() > 1 && inspect.selection.is_none() {
+                            inspect.selection = Some(looked_objs[0].0);
+                        } else {
+                            let interact_target = match looked_objs.len() {
+                                0 => InteractTarget::MapPos(inspect.coord),
+                                1 => InteractTarget::GameObj(looked_objs[0].0),
+                                _ => InteractTarget::GameObj(inspect.selection.unwrap()),
+                            };
+
+                            ui_state.mode = UiMode::Interact(interact_target);
                         }
                     }
-                }
+                    CameraLocation::Courtyard => {
+                        let looked_facility =
+                            Tui::get_looked_facility(inspect.coord, &game_state.facilities);
+                        if let Some(looked_facility) = looked_facility {
+                            ui_state.mode =
+                                UiMode::Interact(InteractTarget::Facility(*looked_facility.0));
+                        } else {
+                            ui_state.mode =
+                                UiMode::Interact(InteractTarget::CourtyardPos(inspect.coord));
+                        }
+                    }
+                },
                 (KeyCode::Up, KeyModifiers::NONE) => {
                     let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
-                    Self::move_inspect(0, -2, inspect, &game_state.objs, in_world_map)
+                    Self::move_inspect(
+                        0,
+                        -2,
+                        inspect,
+                        &game_state.objs,
+                        in_world_map,
+                        &ui_state.camera,
+                    )
                 }
                 (KeyCode::Down, KeyModifiers::NONE) => {
                     let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
-                    Self::move_inspect(0, 2, inspect, &game_state.objs, in_world_map)
+                    Self::move_inspect(
+                        0,
+                        2,
+                        inspect,
+                        &game_state.objs,
+                        in_world_map,
+                        &ui_state.camera,
+                    )
                 }
                 (KeyCode::Right, KeyModifiers::NONE) => {
                     let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
-                    Self::move_inspect(2, 0, inspect, &game_state.objs, in_world_map)
+                    Self::move_inspect(
+                        2,
+                        0,
+                        inspect,
+                        &game_state.objs,
+                        in_world_map,
+                        &ui_state.camera,
+                    )
                 }
                 (KeyCode::Left, KeyModifiers::NONE) => {
                     let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
-                    Self::move_inspect(-2, 0, inspect, &game_state.objs, in_world_map)
+                    Self::move_inspect(
+                        -2,
+                        0,
+                        inspect,
+                        &game_state.objs,
+                        in_world_map,
+                        &ui_state.camera,
+                    )
                 }
                 (KeyCode::Up, KeyModifiers::CONTROL) => {
                     let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
-                    Self::move_inspect(0, -8, inspect, &game_state.objs, in_world_map)
+                    Self::move_inspect(
+                        0,
+                        -8,
+                        inspect,
+                        &game_state.objs,
+                        in_world_map,
+                        &ui_state.camera,
+                    )
                 }
                 (KeyCode::Down, KeyModifiers::CONTROL) => {
                     let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
-                    Self::move_inspect(0, 8, inspect, &game_state.objs, in_world_map)
+                    Self::move_inspect(
+                        0,
+                        8,
+                        inspect,
+                        &game_state.objs,
+                        in_world_map,
+                        &ui_state.camera,
+                    )
                 }
                 (KeyCode::Right, KeyModifiers::CONTROL) => {
                     let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
-                    Self::move_inspect(8, 0, inspect, &game_state.objs, in_world_map)
+                    Self::move_inspect(
+                        8,
+                        0,
+                        inspect,
+                        &game_state.objs,
+                        in_world_map,
+                        &ui_state.camera,
+                    )
                 }
                 (KeyCode::Left, KeyModifiers::CONTROL) => {
                     let in_world_map = ui_state.camera.location == CameraLocation::WorldMap;
-                    Self::move_inspect(-8, 0, inspect, &game_state.objs, in_world_map)
+                    Self::move_inspect(
+                        -8,
+                        0,
+                        inspect,
+                        &game_state.objs,
+                        in_world_map,
+                        &ui_state.camera,
+                    )
                 }
                 _ => {}
             },
@@ -298,8 +357,8 @@ impl InputHandler {
             && *curr == CameraLocation::Map
             && let Some(ref mut inspect) = inspect
         {
-            inspect.coord.y -= inspect.coord.y % Renderer::ZOOM_FACTOR;
-            inspect.coord.x -= inspect.coord.x % Renderer::ZOOM_FACTOR;
+            inspect.coord.y -= inspect.coord.y % ZOOM_FACTOR;
+            inspect.coord.x -= inspect.coord.x % ZOOM_FACTOR;
         }
         *curr = new;
     }
@@ -338,6 +397,7 @@ impl InputHandler {
         inspect: &mut Inspect,
         objs: &HashMap<GameId, GameObjE>,
         in_world_map: bool,
+        camera: &Camera,
     ) {
         if let Some(ref mut selection) = inspect.selection {
             let looked_objs = Tui::get_looked_objs(inspect.coord, &objs, in_world_map);
@@ -360,16 +420,43 @@ impl InputHandler {
                 *selection = new_id;
             }
         } else {
-            if in_world_map {
-                dx *= Renderer::ZOOM_FACTOR as isize;
-                dy *= Renderer::ZOOM_FACTOR as isize;
-            };
-            inspect.coord.x = (inspect.coord.x as isize + dx)
-                .max(0)
-                .min(MAP_COLS as isize - 1) as usize;
-            inspect.coord.y = (inspect.coord.y as isize + dy)
-                .max(0)
-                .min(MAP_ROWS as isize - 1) as usize;
+            match camera.location {
+                CameraLocation::WorldMap => {
+                    dx *= ZOOM_FACTOR as isize;
+                    dy *= ZOOM_FACTOR as isize;
+                    inspect.coord.x = (inspect.coord.x as isize + dx)
+                        .max(0)
+                        .min((FOV_COLS * ZOOM_FACTOR - 1) as isize)
+                        as usize;
+                    inspect.coord.y = (inspect.coord.y as isize + dy)
+                        .max(0)
+                        .min((FOV_ROWS * ZOOM_FACTOR * 2 - 1) as isize)
+                        as usize;
+                }
+                CameraLocation::Map => {
+                    inspect.coord.x = (inspect.coord.x as isize + dx)
+                        .max(camera.map.x as isize)
+                        .min((camera.map.x + FOV_COLS - 1) as isize)
+                        as usize;
+                    inspect.coord.y = (inspect.coord.y as isize + dy)
+                        .max(camera.map.y as isize)
+                        .min((camera.map.y + FOV_ROWS * 2 - 1) as isize)
+                        as usize;
+                }
+                CameraLocation::Courtyard => {
+                    inspect.coord.x = (inspect.coord.x as isize + dx)
+                        .max(camera.courtyard.x as isize)
+                        .min((camera.courtyard.x + FOV_COLS.min(COURTYARD_COLS) - 1) as isize)
+                        as usize;
+                    inspect.coord.y = (inspect.coord.y as isize + dy)
+                        .max(camera.courtyard.y as isize)
+                        .min((camera.courtyard.y + (FOV_ROWS * 2).min(COURTYARD_ROWS) - 1) as isize)
+                        as usize;
+                }
+            }
+            // I'm angry at odd numbers
+            inspect.coord.x = inspect.coord.x - (inspect.coord.x % 2);
+            inspect.coord.y = inspect.coord.y - (inspect.coord.y % 2);
         }
     }
 

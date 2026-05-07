@@ -8,7 +8,7 @@ pub const RED: Color = Color::Red;
 pub const WHITE: Color = Color::White;
 pub const GREEN: Color = Color::Green;
 
-// DAY PALETTE (WARMER)
+// DAY PALETTE (WARMER
 pub const FG_DAY_BROWN: Color = Color::Rgb {
     r: 180,
     g: 110,

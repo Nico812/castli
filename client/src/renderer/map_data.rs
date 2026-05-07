@@ -4,7 +4,7 @@ use common::{
 };
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 
-use crate::renderer::renderer::Renderer;
+use crate::renderer::{r#const::ZOOM_FACTOR, renderer::Renderer};
 
 pub struct MapData {
     pub tiles_wor: Vec<Vec<Tile>>,
@@ -18,16 +18,16 @@ impl MapData {
     pub fn new(tiles: Vec<Vec<Tile>>) -> Self {
         let mut rng = SmallRng::seed_from_u64(1);
 
-        let tiles_wor = (0..MAP_ROWS / Renderer::ZOOM_FACTOR)
+        let tiles_wor = (0..MAP_ROWS / ZOOM_FACTOR)
             .map(|world_map_row| {
-                (0..MAP_COLS / Renderer::ZOOM_FACTOR)
+                (0..MAP_COLS / ZOOM_FACTOR)
                     .map(|world_map_col| {
-                        let top_left_row = world_map_row * Renderer::ZOOM_FACTOR;
-                        let top_left_col = world_map_col * Renderer::ZOOM_FACTOR;
+                        let top_left_row = world_map_row * ZOOM_FACTOR;
+                        let top_left_col = world_map_col * ZOOM_FACTOR;
                         let bottom_right_row =
-                            ((world_map_row + 1) * Renderer::ZOOM_FACTOR).min(MAP_ROWS) - 1;
+                            ((world_map_row + 1) * ZOOM_FACTOR).min(MAP_ROWS) - 1;
                         let bottom_right_col =
-                            ((world_map_col + 1) * Renderer::ZOOM_FACTOR).min(MAP_COLS) - 1;
+                            ((world_map_col + 1) * ZOOM_FACTOR).min(MAP_COLS) - 1;
 
                         let mut grass_count = 0;
                         let mut water_count = 0;

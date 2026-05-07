@@ -5,7 +5,6 @@ mod mod_inspect;
 mod mod_interact;
 mod mod_right;
 mod module;
-mod module_utility;
 pub mod renderer;
 
 #[derive(Copy, Clone)]

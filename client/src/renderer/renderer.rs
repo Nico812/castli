@@ -8,16 +8,14 @@ use crossterm::style::PrintStyledContent;
 use crossterm::terminal;
 
 use crate::assets;
-use crate::assets::CURSOR;
-use crate::assets::TermCell;
 use crate::coord::TermCoord;
 use crate::game_state::GameState;
 use crate::renderer::r#const::*;
 use crate::renderer::map_data::MapData;
 use crate::renderer::mod_inspect::ModInspect;
 use crate::renderer::mod_interact::ModInteract;
+use crate::renderer::module::Module;
 use crate::renderer::{mod_central::ModCentral, mod_right::ModRight};
-use crate::ui_state::UiMode;
 use crate::ui_state::UiState;
 
 pub struct Renderer {
@@ -29,10 +27,6 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub const FOV_ROWS: usize = MOD_CENTRAL_ROWS - 2 - ModCentral::PADDING_VERT * 2;
-    pub const FOV_COLS: usize = MOD_CENTRAL_COLS - 2 - ModCentral::PADDING_HORI * 2;
-    pub const ZOOM_FACTOR: usize = 8;
-
     pub fn new(map_tiles: Vec<Vec<Tile>>) -> Result<Self, ()> {
         let canvas_pos = if let Ok((w, h)) = terminal::size()
             && (h as usize) >= CANVAS_ROWS
@@ -66,10 +60,15 @@ impl Renderer {
         frame_dt: u64,
     ) {
         // Right module
+        let mut mod_right = ModRight::new(Module::new(
+            TermCoord::new(MOD_RIGHT_ROWS, MOD_RIGHT_COLS),
+            TermCoord::new(1, 2),
+        ));
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
 
-        for (row, line_contents) in ModRight::update(frame_dt, game_state, ui_state)
+        for (row, line_contents) in mod_right
+            .render(frame_dt, game_state, ui_state)
             .iter()
             .enumerate()
         {
@@ -83,7 +82,15 @@ impl Renderer {
         }
 
         // Central module
-        for (row, line_contents) in ModCentral::update(game_state, ui_state, &self.map_data)
+        let mut mod_central = ModCentral::new(Module::new(
+            TermCoord::new(MOD_CENTRAL_ROWS, MOD_CENTRAL_COLS),
+            TermCoord::new(
+                (MOD_CENTRAL_ROWS - FOV_ROWS) / 2 - FRAME_WIDTH,
+                (MOD_CENTRAL_COLS - FOV_COLS) / 2 - FRAME_WIDTH,
+            ),
+        ));
+        for (row, line_contents) in mod_central
+            .render(game_state, ui_state, &self.map_data)
             .iter()
             .enumerate()
         {
@@ -97,20 +104,24 @@ impl Renderer {
         }
 
         // Inspect module
-        if let Some(renderable) = ModInspect::update(game_state, ui_state) {
-            // TODO: Here pos_col should change based on look_coord
-            let pos_row = MOD_CENTRAL_POS.0 + 2;
-            let pos_col = MOD_CENTRAL_POS.1 + MOD_CENTRAL_COLS - MOD_INSPECT_COLS - 4;
-
+        let mut mod_inspect = ModInspect::new(Module::new(
+            TermCoord::new(0, MOD_INSPECT_COLS),
+            TermCoord::new(1, 2),
+        ));
+        if let Some(renderable) = mod_inspect.render(game_state, ui_state) {
             for (row, line_contents) in renderable.iter().enumerate() {
                 for (col, cell) in line_contents.iter().enumerate() {
-                    new_frame[row + pos_row][col + pos_col] = *cell;
+                    new_frame[row + MOD_INSPECT_POS.0][col + MOD_INSPECT_POS.1] = *cell;
                 }
             }
         }
 
         //Interact module
-        if let Some(renderable) = ModInteract::update(game_state, ui_state) {
+        let mut mod_interact = ModInteract::new(Module::new(
+            TermCoord::new(0, MOD_INTERACT_COLS),
+            TermCoord::new(1, 2),
+        ));
+        if let Some(renderable) = mod_interact.render(game_state, ui_state) {
             let pos_row = MOD_INTERACT_POS.0;
             let pos_col = MOD_INTERACT_POS.1;
 

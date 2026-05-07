@@ -3,7 +3,7 @@ use crate::{
     r#const::CURSOR_SIZE,
     game_state::GameState,
     input_handler::InputHandler,
-    renderer::renderer::Renderer,
+    renderer::{r#const::ZOOM_FACTOR, renderer::Renderer},
     ui_state::UiState,
 };
 use common::{
@@ -127,8 +127,8 @@ impl Tui {
                     || (in_world_map
                         && game_obj.get_pos().y >= coord.y
                         && game_obj.get_pos().x >= coord.x
-                        && game_obj.get_pos().y < coord.y + Renderer::ZOOM_FACTOR * CURSOR_SIZE.y
-                        && game_obj.get_pos().x < coord.x + Renderer::ZOOM_FACTOR * CURSOR_SIZE.x)
+                        && game_obj.get_pos().y < coord.y + ZOOM_FACTOR * CURSOR_SIZE.y
+                        && game_obj.get_pos().x < coord.x + ZOOM_FACTOR * CURSOR_SIZE.x)
                 {
                     Some((*game_id, game_obj))
                 } else {

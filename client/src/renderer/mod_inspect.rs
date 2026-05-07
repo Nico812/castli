@@ -1,8 +1,7 @@
 use crate::{
-    ansi::BLACK,
     assets::{GameObjAsset, SELECTION_TERMCELL, TermCell, TileAsset},
     game_state::GameState,
-    renderer::{r#const::MOD_INSPECT_COLS, module::Module, module_utility::draw_text_in_row},
+    renderer::module::Module,
     tui::Tui,
     ui_state::{CameraLocation, UiMode, UiState},
 };
@@ -13,11 +12,15 @@ pub struct ModInspect {
 }
 
 impl ModInspect {
-    const PADDING_HORI: usize = 2;
-    const PADDING_VERT: usize = 1;
-    const CONTENT_COLS: usize = MOD_INSPECT_COLS - 2;
+    pub fn new(module: Module) -> Self {
+        Self { module }
+    }
 
-    pub fn update(game_state: &GameState, ui_state: &UiState) -> Option<Vec<Vec<TermCell>>> {
+    pub fn render(
+        &mut self,
+        game_state: &GameState,
+        ui_state: &UiState,
+    ) -> Option<Vec<Vec<TermCell>>> {
         if let UiMode::Inspect(ref inspect) = ui_state.mode {
             match ui_state.camera.location {
                 CameraLocation::Map | CameraLocation::WorldMap => {
@@ -25,158 +28,117 @@ impl ModInspect {
                     let night = game_state.time.night;
                     let looked_tile = game_state.get_tile(inspect.coord);
 
-                    let mut renderable = Vec::new();
-
-                    for _ in 0..Self::PADDING_VERT {
-                        Self::push_empty_row(&mut renderable);
-                    }
-
-                    let looked_objs =
+                    let mut looked_objs =
                         Tui::get_looked_objs(inspect.coord, &game_state.objs, is_world_map);
                     let selected_id = inspect.selection;
 
-                    if !looked_objs.is_empty() {
-                        let mut objs_comp = Self::create_objs_component(
-                            &game_state.player.castle_id,
-                            selected_id,
-                            looked_objs,
-                        );
-                        renderable.append(&mut objs_comp);
-                    }
+                    self.draw_objs_component(
+                        &game_state.player.castle_id,
+                        selected_id,
+                        &mut looked_objs,
+                    );
 
-                    let mut tile_comp = Self::create_tile_component(looked_tile, night);
-                    renderable.append(&mut tile_comp);
-
-                    for _ in 0..Self::PADDING_VERT {
-                        Self::push_empty_row(&mut renderable);
-                    }
-
-                    add_frame(&format!("inspect: {}", inspect.coord), &mut renderable);
-                    Some(renderable)
+                    self.draw_tile_component(looked_tile, night);
                 }
                 CameraLocation::Courtyard => {
-                    let mut renderable = Vec::new();
-
-                    for _ in 0..Self::PADDING_VERT {
-                        Self::push_empty_row(&mut renderable);
-                    }
-
                     if let Some(looked_facility) =
                         Tui::get_looked_facility(inspect.coord, &game_state.facilities)
                     {
-                        let mut facility_comp = Self::create_facility_component(looked_facility.1);
-                        renderable.append(&mut facility_comp);
+                        self.draw_facility_component(looked_facility.1);
                     };
-
-                    for _ in 0..Self::PADDING_VERT {
-                        Self::push_empty_row(&mut renderable);
-                    }
-
-                    add_frame(&format!("inspect: {}", inspect.coord), &mut renderable);
-                    Some(renderable)
                 }
             }
+            self.module.set_name(format!("inspect | {}", inspect.coord));
+            Some(self.module.get_cells().clone())
         } else {
             None
         }
     }
 
-    fn create_objs_component(
+    fn draw_objs_component(
+        &mut self,
         owned_castle: &Option<GameId>,
         selected_id: Option<GameId>,
-        objs: Vec<(GameId, &GameObjE)>,
-    ) -> Vec<Vec<TermCell>> {
-        let mut castles_component = Vec::new();
-        let mut units_component = Vec::new();
-        let mut structures_component = Vec::new();
+        objs: &mut Vec<(GameId, &GameObjE)>,
+    ) {
+        if objs.is_empty() {
+            return;
+        }
+        fn sort_priority(obj: &(GameId, &GameObjE)) -> u8 {
+            match obj.1 {
+                GameObjE::Castle(_) => 0,
+                GameObjE::Structure(_) => 1,
+                GameObjE::DeployedUnits(_) => 2,
+            }
+        }
+        objs.sort_by_key(|obj| sort_priority(obj));
 
         for (id, obj) in objs.iter() {
             let selected = selected_id.is_some_and(|id_| id_ == *id);
+            let selected_icon = SELECTION_TERMCELL;
             match obj {
                 GameObjE::Castle(castle) => {
-                    let mut alive_str = "Alive".to_string();
-                    if !castle.alive {
-                        alive_str = "Dead".to_string();
-                    }
-
-                    Self::push_row_with_text(
-                        &mut castles_component,
-                        &format!(" : {}", castle.name),
-                    );
-
                     let owned = *owned_castle == Some(*id);
-                    castles_component.last_mut().unwrap()[Self::PADDING_HORI] =
-                        GameObjAsset::get_asset(obj, owned)[0][0];
+                    let icon = GameObjAsset::get_asset(obj, owned)[0][0];
+                    let name_string = format!(" : {}", castle.name).to_string();
 
+                    self.module.push_row_with_text(&name_string);
+                    self.module.draw_cell_last_row(icon, 0);
                     if selected {
-                        castles_component.last_mut().unwrap()
-                            [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1)] =
-                            SELECTION_TERMCELL;
-                    }
+                        self.module
+                            .draw_cell_last_row(selected_icon, self.module.drawable_size().x - 1)
+                    };
 
-                    Self::push_row_with_text(
-                        &mut castles_component,
-                        &format!("   {}, ID({})", alive_str, id),
-                    );
+                    let info_string = if castle.alive {
+                        format!("  alive, id {}", id).to_string()
+                    } else {
+                        format!("  dead, id: {}", id).to_string()
+                    };
+
+                    self.module.push_row_with_text(&info_string);
                 }
                 GameObjE::Structure(structure) => {
-                    Self::push_row_with_text(
-                        &mut structures_component,
-                        &format!("T: {:?}", structure.r#type),
-                    );
+                    let owned = *owned_castle == Some(*id);
+                    let icon = GameObjAsset::get_asset(obj, owned)[0][0];
+                    let name_string = format!(" : {}", structure.name).to_string();
+
+                    self.module.push_row_with_text(&name_string);
+                    self.module.draw_cell_last_row(icon, 0);
                     if selected {
-                        structures_component.last_mut().unwrap()
-                            [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1)] =
-                            SELECTION_TERMCELL;
-                    }
-                    Self::push_row_with_text(&mut structures_component, &format!("ID: {}", id));
+                        self.module
+                            .draw_cell_last_row(selected_icon, self.module.drawable_size().x - 1)
+                    };
                 }
                 GameObjE::DeployedUnits(units) => {
-                    Self::push_row_with_text(
-                        &mut units_component,
-                        &format!(" : OwnerID({}), ID({})", units.owner_id, id),
-                    );
+                    let owned = *owned_castle == Some(*id);
+                    let icon = GameObjAsset::get_asset(obj, owned)[0][0];
+                    let name_string = "{Units}".to_string();
 
-                    let owned = *owned_castle == Some(units.owner_id);
-                    units_component.last_mut().unwrap()[Self::PADDING_HORI] =
-                        GameObjAsset::get_asset(obj, owned)[0][0];
-
+                    self.module.push_row_with_text(&name_string);
+                    self.module.draw_cell_last_row(icon, 0);
                     if selected {
-                        units_component.last_mut().unwrap()
-                            [Self::CONTENT_COLS.saturating_sub(Self::PADDING_HORI + 1)] =
-                            SELECTION_TERMCELL;
-                    }
+                        self.module
+                            .draw_cell_last_row(selected_icon, self.module.drawable_size().x - 1)
+                    };
+
+                    let info_string = format!("  owner {}, id {}", units.owner_id, id).to_string();
+
+                    self.module.push_row_with_text(&info_string);
                 }
             }
         }
-
-        let mut renderable = Vec::new();
-
-        if !castles_component.is_empty() {
-            renderable.append(&mut castles_component);
-        }
-        if !structures_component.is_empty() {
-            renderable.append(&mut structures_component);
-        }
-        if !units_component.is_empty() {
-            renderable.append(&mut units_component);
-        }
-
-        renderable
     }
 
-    fn create_tile_component(tile: Tile, night: bool) -> Vec<Vec<TermCell>> {
-        let mut tile_component = Vec::new();
-        Self::push_row_with_text(&mut tile_component, &format!(" : {:?}", tile));
-        tile_component.last_mut().unwrap()[Self::PADDING_HORI] =
-            TileAsset::get_asset(tile, night).std;
-        tile_component
+    fn draw_tile_component(&mut self, tile: Tile, night: bool) {
+        let icon = TileAsset::get_asset(tile, night).std;
+        self.module.push_row_with_text(&format!(" : {:?}", tile));
+        self.module.draw_cell_last_row(icon, 0);
     }
 
-    fn create_facility_component(facility: &Facility) -> Vec<Vec<TermCell>> {
-        let mut component = Vec::new();
-        Self::push_row_with_text(&mut component, &format!("{:?}", facility.r#type));
-        Self::push_row_with_text(&mut component, &format!("lv {}", facility.lv));
-        component
+    fn draw_facility_component(&mut self, facility: &Facility) {
+        self.module
+            .push_row_with_text(&format!("{:?}", facility.r#type));
+        self.module
+            .push_row_with_text(&format!("lv {}", facility.lv));
     }
 }
