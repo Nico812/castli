@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::r#const::{DRAGON_STR, KNIGHT_STR, MAGE_STR, SHIP_STR};
+use crate::config::config;
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum UnitType {
@@ -44,11 +44,12 @@ impl UnitType {
     }
 
     pub fn get_strength(&self) -> u32 {
+        let units = &config().units;
         match self {
-            Self::Knight => KNIGHT_STR,
-            Self::Mage => MAGE_STR,
-            Self::Dragon => DRAGON_STR,
-            Self::Ship => SHIP_STR,
+            Self::Knight => units.knight_strength,
+            Self::Mage => units.mage_strength,
+            Self::Dragon => units.dragon_strength,
+            Self::Ship => units.ship_strength,
         }
     }
 

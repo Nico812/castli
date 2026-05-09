@@ -6,12 +6,11 @@ use std::{
 };
 
 use common::{
-    r#const::MAX_LOBBY_PLAYERS,
+    config::config,
     packets::{C2S4L, CourtyardPacket, L2S4C, LogE, MainPacket},
 };
 
 use crate::{
-    r#const::{GAME_TICK, LOBBY_POOL_LEN},
     game::game::Game,
     player::Player,
     server::{Client, ClientId, S2L},
@@ -40,12 +39,12 @@ impl Lobby {
             clients_ch: HashMap::new(),
             num_players: 0,
             game: None,
-            pool: ThreadPool::new(LOBBY_POOL_LEN),
+            pool: ThreadPool::new(config().lobby.pool_size),
         }
     }
 
     pub fn run(mut self, mut main_rx: Receiver<S2L>) {
-        let tick_duration = Duration::from_millis(GAME_TICK);
+        let tick_duration = Duration::from_millis(config().lobby.tick_ms);
         let mut next_tick = Instant::now();
         let mut running = true;
 
@@ -255,6 +254,6 @@ impl Lobby {
     }
 
     pub fn is_full(&self) -> bool {
-        self.num_players >= MAX_LOBBY_PLAYERS
+        self.num_players >= config().lobby.max_players
     }
 }

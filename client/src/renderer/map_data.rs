@@ -1,7 +1,4 @@
-use common::{
-    r#const::{MAP_COLS, MAP_ROWS},
-    map::Tile,
-};
+use common::{config::config, map::Tile};
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 
 use crate::renderer::r#const::ZOOM_FACTOR;
@@ -12,22 +9,23 @@ pub struct MapData {
 }
 
 impl MapData {
-    pub const WIND_ROWS: usize = MAP_ROWS / 2;
-    pub const WIND_COLS: usize = MAP_COLS;
-
     pub fn new(tiles: Vec<Vec<Tile>>) -> Self {
         let mut rng = SmallRng::seed_from_u64(1);
+        let map_rows = config().world.map_rows;
+        let map_cols = config().world.map_cols;
+        let wind_rows = map_rows / 2;
+        let wind_cols = map_cols;
 
-        let tiles_wor = (0..MAP_ROWS / ZOOM_FACTOR)
+        let tiles_wor = (0..map_rows / ZOOM_FACTOR)
             .map(|world_map_row| {
-                (0..MAP_COLS / ZOOM_FACTOR)
+                (0..map_cols / ZOOM_FACTOR)
                     .map(|world_map_col| {
                         let top_left_row = world_map_row * ZOOM_FACTOR;
                         let top_left_col = world_map_col * ZOOM_FACTOR;
                         let bottom_right_row =
-                            ((world_map_row + 1) * ZOOM_FACTOR).min(MAP_ROWS) - 1;
+                            ((world_map_row + 1) * ZOOM_FACTOR).min(map_rows) - 1;
                         let bottom_right_col =
-                            ((world_map_col + 1) * ZOOM_FACTOR).min(MAP_COLS) - 1;
+                            ((world_map_col + 1) * ZOOM_FACTOR).min(map_cols) - 1;
 
                         let mut grass_count = 0;
                         let mut water_count = 0;
@@ -51,7 +49,7 @@ impl MapData {
             })
             .collect();
 
-        let mut variants = vec![vec![false; Self::WIND_COLS]; Self::WIND_ROWS];
+        let mut variants = vec![vec![false; wind_cols]; wind_rows];
         for cell in variants.iter_mut().flat_map(|row| row.iter_mut()) {
             *cell = rng.random_bool(0.1);
         }

@@ -1,9 +1,4 @@
-use common::{
-    GameCoord,
-    r#const::{MAP_COLS, MAP_ROWS},
-    map::Tile,
-    packets::MapPayload,
-};
+use common::{GameCoord, config::config, map::Tile, packets::MapPayload};
 
 use crate::game::map_gen;
 
@@ -20,7 +15,7 @@ impl Map {
             .iter()
             .map(|row| row.iter().map(|t| *t == Tile::Water).collect())
             .collect();
-        let occupied = vec![vec![false; MAP_COLS]; MAP_ROWS];
+        let occupied = vec![vec![false; config().world.map_cols]; config().world.map_rows];
 
         println!("mappa caricata LOL");
         Self {
@@ -68,13 +63,15 @@ impl Map {
     pub fn set_occupied(&mut self, pos: GameCoord, size: GameCoord) {
         let end_y = pos.y.saturating_add(size.y);
         let end_x = pos.x.saturating_add(size.x);
+        let map_rows = config().world.map_rows;
+        let map_cols = config().world.map_cols;
 
         for row in pos.y..end_y {
-            if row >= MAP_ROWS {
+            if row >= map_rows {
                 continue;
             }
             for col in pos.x..end_x {
-                if col >= MAP_COLS {
+                if col >= map_cols {
                     continue;
                 }
                 self.occupied[row][col] = true;

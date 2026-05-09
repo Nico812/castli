@@ -2,7 +2,8 @@ use std::ops::{Add, Div, Mul, Sub};
 
 use common::{
     GameCoord,
-    r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS},
+    config::config,
+    r#const::{COURTYARD_COLS, COURTYARD_ROWS},
 };
 
 use crate::{
@@ -64,8 +65,9 @@ impl TermCoord {
             let game_x = camera_pos.x + self.x;
 
             // Checking if GameCoord is out of bounds
+            let world = &config().world;
             if (camera.location == CameraLocation::Map
-                && (game_y >= MAP_ROWS || game_x >= MAP_COLS))
+                && (game_y >= world.map_rows || game_x >= world.map_cols))
                 || (camera.location == CameraLocation::Courtyard
                     && (game_y >= COURTYARD_ROWS || game_x >= COURTYARD_COLS))
             {

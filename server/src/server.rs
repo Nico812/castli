@@ -4,9 +4,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::{connection::Connection, r#const::SERVER_TICK, lobby::Lobby, thread_pool::ThreadPool};
+use crate::{connection::Connection, lobby::Lobby, thread_pool::ThreadPool};
 use common::{
-    r#const::{IP_LOCAL, MAX_LOBBIES},
+    config::config,
+    r#const::MAX_LOBBIES,
     packets::{C2S, C2S4L, L2S4C, S2C},
     stream::StreamErr,
 };
@@ -75,11 +76,12 @@ impl Server {
     }
 
     pub fn run(&mut self) {
-        let listener = TcpListener::bind(IP_LOCAL).unwrap();
+        let address = config().network.address.as_str();
+        let listener = TcpListener::bind(address).unwrap();
         listener.set_nonblocking(true).unwrap();
-        println!("[server] Server started and listening on {}", IP_LOCAL);
+        println!("[server] Server started and listening on {}", address);
 
-        let tick_duration = Duration::from_millis(SERVER_TICK);
+        let tick_duration = Duration::from_millis(config().server.tick_ms);
         let mut loop_count = 0;
         let mut total_loop_time = Duration::new(0, 0);
 

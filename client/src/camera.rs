@@ -1,6 +1,7 @@
 use common::{
     GameCoord,
-    r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS},
+    config::config,
+    r#const::{COURTYARD_COLS, COURTYARD_ROWS},
 };
 
 use crate::renderer::r#const::{FOV_COLS, FOV_ROWS};
@@ -37,7 +38,11 @@ impl Camera {
 
     pub fn move_camera(&mut self, dx: isize, dy: isize) {
         let (bound_rows, bound_cols, camera_pos) = match self.location {
-            CameraLocation::Map => (MAP_ROWS, MAP_COLS, &mut self.map),
+            CameraLocation::Map => (
+                config().world.map_rows,
+                config().world.map_cols,
+                &mut self.map,
+            ),
             CameraLocation::Courtyard => (COURTYARD_ROWS, COURTYARD_COLS, &mut self.courtyard),
             CameraLocation::WorldMap => {
                 return;

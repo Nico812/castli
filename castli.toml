@@ -1,0 +1,49 @@
+[network]
+address = "127.0.0.1:7878"
+online = false
+
+[world]
+map_rows = 400
+map_cols = 800
+
+[server]
+tick_ms = 30
+
+[lobby]
+max_players = 15
+tick_ms = 1000
+pool_size = 4
+
+[units]
+knight_strength = 1
+mage_strength = 3
+dragon_strength = 10
+ship_strength = 0
+
+[client]
+logs_capacity = 5
+debug_mode = false
+
+[map_gen.water]
+iterations = 15
+percent = 45
+counts_to_spread = 5
+counts_to_survive = 4
+
+[map_gen.woods]
+iterations = 10
+percent = 35
+counts_to_spread = 4
+counts_to_survive = 4
+
+[map_gen.mountain]
+iterations = 10
+percent = 99
+counts_to_spread = 7
+counts_to_survive = 6
+
+[map_gen.high_mountain]
+iterations = 7
+percent = 30
+counts_to_spread = 4
+counts_to_survive = 4

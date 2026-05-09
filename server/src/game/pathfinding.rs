@@ -3,7 +3,7 @@ use std::collections::BinaryHeap;
 use std::collections::{HashMap, VecDeque};
 
 use common::GameCoord;
-use common::r#const::{MAP_COLS, MAP_ROWS};
+use common::config::config;
 
 #[derive(Clone)]
 struct Node {
@@ -73,6 +73,9 @@ pub fn a_star(
     open_ord_list.push(Reverse(start_node.clone()));
     open_list.insert(start, start_node);
 
+    let map_cols = config().world.map_cols;
+    let map_rows = config().world.map_rows;
+
     while !open_ord_list.is_empty() {
         let Reverse(current) = open_ord_list.pop().unwrap();
         let current_coord = current.coord;
@@ -81,10 +84,10 @@ pub fn a_star(
         let current_g = current.g;
         closed_list.insert(current_coord, current);
         for new_x in
-            current_coord.x.saturating_sub(1)..=current_coord.x.saturating_add(1).min(MAP_COLS - 1)
+            current_coord.x.saturating_sub(1)..=current_coord.x.saturating_add(1).min(map_cols - 1)
         {
             for new_y in current_coord.y.saturating_sub(1)
-                ..=current_coord.y.saturating_add(1).min(MAP_ROWS - 1)
+                ..=current_coord.y.saturating_add(1).min(map_rows - 1)
             {
                 let new_coord = GameCoord { x: new_x, y: new_y };
                 if new_coord == current_coord {

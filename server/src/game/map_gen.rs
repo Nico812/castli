@@ -1,14 +1,7 @@
 use rand::Rng;
 
-use crate::r#const::{
-    CA_ITER_HIGH_MOUNTAINS, CA_ITER_MOUNTAINS, CA_ITER_WATER, CA_ITER_WOODS,
-    COUNTS_TO_SPREAD_HIGH_MOUNTAINS, COUNTS_TO_SPREAD_MOUNTAINS, COUNTS_TO_SPREAD_WATER,
-    COUNTS_TO_SPREAD_WOODS, COUNTS_TO_SURVIVE_HIGH_MOUNTAINS, COUNTS_TO_SURVIVE_MOUNTAINS,
-    COUNTS_TO_SURVIVE_WATER, COUNTS_TO_SURVIVE_WOODS, PERCENT_IS_HIGH_MOUNTAINS,
-    PERCENT_IS_MOUNTAINS, PERCENT_IS_WATER, PERCENT_IS_WOODS,
-};
 use common::{
-    r#const::{MAP_COLS, MAP_ROWS},
+    config::{TerrainGenConfig, config},
     map::Tile,
 };
 
@@ -21,68 +14,85 @@ struct TerrainParams {
     counts_to_survive: u8,
 }
 
+impl TerrainParams {
+    fn from_config(spreading: Tile, spreads_on: &'static [Tile], cfg: &TerrainGenConfig) -> Self {
+        Self {
+            spreading,
+            spreads_on,
+            iters: cfg.iterations,
+            percent: cfg.percent,
+            counts_to_spread: cfg.counts_to_spread,
+            counts_to_survive: cfg.counts_to_survive,
+        }
+    }
+}
+
 pub fn generate_tiles() -> Vec<Vec<Tile>> {
-    let mut a = vec![vec![Tile::Grass; MAP_COLS]; MAP_ROWS];
+    let map_rows = config().world.map_rows;
+    let map_cols = config().world.map_cols;
+
+    let mut a = vec![vec![Tile::Grass; map_cols]; map_rows];
     let mut b = a.clone();
 
+    let map_gen = &config().map_gen;
     let terrains = [
-        TerrainParams {
-            spreading: Tile::Water,
-            spreads_on: &[Tile::Grass],
-            iters: CA_ITER_WATER,
-            percent: PERCENT_IS_WATER,
-            counts_to_spread: COUNTS_TO_SPREAD_WATER,
-            counts_to_survive: COUNTS_TO_SURVIVE_WATER,
-        },
-        TerrainParams {
-            spreading: Tile::Woods,
-            spreads_on: &[Tile::Grass],
-            iters: CA_ITER_WOODS,
-            percent: PERCENT_IS_WOODS,
-            counts_to_spread: COUNTS_TO_SPREAD_WOODS,
-            counts_to_survive: COUNTS_TO_SURVIVE_WOODS,
-        },
-        TerrainParams {
-            spreading: Tile::Mountain,
-            spreads_on: &[Tile::Grass, Tile::Woods],
-            iters: CA_ITER_MOUNTAINS,
-            percent: PERCENT_IS_MOUNTAINS,
-            counts_to_spread: COUNTS_TO_SPREAD_MOUNTAINS,
-            counts_to_survive: COUNTS_TO_SURVIVE_MOUNTAINS,
-        },
-        TerrainParams {
-            spreading: Tile::HighMountain,
-            spreads_on: &[Tile::Mountain],
-            iters: CA_ITER_HIGH_MOUNTAINS,
-            percent: PERCENT_IS_HIGH_MOUNTAINS,
-            counts_to_spread: COUNTS_TO_SPREAD_HIGH_MOUNTAINS,
-            counts_to_survive: COUNTS_TO_SURVIVE_HIGH_MOUNTAINS,
-        },
+        TerrainParams::from_config(Tile::Water, &[Tile::Grass], &map_gen.water),
+        TerrainParams::from_config(Tile::Woods, &[Tile::Grass], &map_gen.woods),
+        TerrainParams::from_config(
+            Tile::Mountain,
+            &[Tile::Grass, Tile::Woods],
+            &map_gen.mountain,
+        ),
+        TerrainParams::from_config(
+            Tile::HighMountain,
+            &[Tile::Mountain],
+            &map_gen.high_mountain,
+        ),
     ];
 
     for params in &terrains {
-        run_terrain(&mut a, &mut b, params);
+        run_terrain(&mut a, &mut b, params, map_rows, map_cols);
     }
 
     a
 }
 
-fn run_terrain(a: &mut Vec<Vec<Tile>>, b: &mut Vec<Vec<Tile>>, params: &TerrainParams) {
+fn run_terrain(
+    a: &mut Vec<Vec<Tile>>,
+    b: &mut Vec<Vec<Tile>>,
+    params: &TerrainParams,
+    map_rows: usize,
+    map_cols: usize,
+) {
     let before_add_random = a.clone();
-    add_random(a, params.spreading, params.spreads_on, params.percent);
+    add_random(
+        a,
+        params.spreading,
+        params.spreads_on,
+        params.percent,
+        map_rows,
+        map_cols,
+    );
     b.clone_from(a);
 
     for _ in 0..params.iters {
-        step_life(a, b, &before_add_random, params);
+        step_life(a, b, &before_add_random, params, map_rows, map_cols);
         std::mem::swap(a, b);
     }
 }
 
-fn add_random(tiles: &mut [Vec<Tile>], add_type: Tile, add_on: &[Tile], percent: u8) {
+fn add_random(
+    tiles: &mut [Vec<Tile>],
+    add_type: Tile,
+    add_on: &[Tile],
+    percent: u8,
+    map_rows: usize,
+    map_cols: usize,
+) {
     tiles.iter_mut().enumerate().for_each(|(row, tile_row)| {
         let mut rng = rand::rng();
         for (col, tile) in tile_row.iter_mut().enumerate() {
-            let is_edge = row == 0 || col == 0 || row == MAP_ROWS - 1 || col == MAP_COLS - 1;
+            let is_edge = row == 0 || col == 0 || row == map_rows - 1 || col == map_cols - 1;
             let random_hit = rng.random_range(1..=100) <= percent;
             let is_valid_tile = add_on.contains(tile);
 
@@ -98,6 +108,8 @@ fn step_life(
     b: &mut [Vec<Tile>],
     before_add_random: &[Vec<Tile>],
     params: &TerrainParams,
+    map_rows: usize,
+    map_cols: usize,
 ) {
     let spreading = params.spreading;
     let spreads_on = params.spreads_on;
@@ -105,14 +117,14 @@ fn step_life(
     let counts_to_survive = params.counts_to_survive;
 
     b.iter_mut().enumerate().for_each(|(row, b_row)| {
-        if row == 0 || row == MAP_ROWS - 1 {
+        if row == 0 || row == map_rows - 1 {
             return;
         }
         let prev = &a[row - 1];
         let curr = &a[row];
         let next = &a[row + 1];
         let before_row = &before_add_random[row];
-        for col in 1..MAP_COLS - 1 {
+        for col in 1..map_cols - 1 {
             let mut neightb_count = 0u8;
             for c in (col - 1)..=(col + 1) {
                 if prev[c] == spreading {

@@ -1,21 +1,12 @@
 use crate::GameCoord;
 
-pub const MAP_ROWS: usize = 400;
-pub const MAP_COLS: usize = 800;
-
+// Used as the array dimensions of the courtyard occupancy grid.
 pub const COURTYARD_ROWS: usize = 60;
 pub const COURTYARD_COLS: usize = 60;
 
-pub const MAX_LOBBY_PLAYERS: usize = 15;
+// Used to size the per-server fixed-size lobby table.
 pub const MAX_LOBBIES: usize = 10;
 
-pub const ONLINE: bool = false;
-pub const IP_LOCAL: &str = "127.0.0.1:7878";
-
-pub const KNIGHT_STR: u32 = 1;
-pub const MAGE_STR: u32 = 3;
-pub const DRAGON_STR: u32 = 10;
-pub const SHIP_STR: u32 = 0;
-
+// Sizes consumed by const fns (e.g. FacilityType::size).
 pub const CASTLE_SIZE: GameCoord = GameCoord::new(2, 1);
 pub const FARM_PLOT_SIZE: GameCoord = GameCoord::new(8, 6);

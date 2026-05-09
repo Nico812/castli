@@ -1,3 +1,4 @@
+pub mod config;
 pub mod r#const;
 pub mod courtyard;
 pub mod game_objs;

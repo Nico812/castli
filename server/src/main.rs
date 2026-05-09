@@ -1,5 +1,4 @@
 mod connection;
-mod r#const;
 mod game;
 mod lobby;
 mod player;

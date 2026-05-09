@@ -8,11 +8,7 @@ use tokio::{
 use crate::connection::Connection;
 use crate::shutdown::ShutdownChannel;
 use crate::tui::Tui;
-use common::{
-    r#const::{IP_LOCAL, ONLINE},
-    packets::C2S,
-    stream,
-};
+use common::{config::config, packets::C2S, stream};
 
 pub struct Client {
     shutdown: ShutdownChannel,
@@ -26,7 +22,7 @@ impl Client {
 
     /// Runs the main client application.
     pub async fn run(&mut self) {
-        let addr = if ONLINE { IP_LOCAL } else { IP_LOCAL };
+        let addr = config().network.address.as_str();
         let stream = match TcpStream::connect(addr).await {
             Ok(s) => s,
             Err(e) => {

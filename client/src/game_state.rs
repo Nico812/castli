@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use common::{
     GameCoord, GameId, Time,
+    config::config,
     courtyard::Facility,
     game_objs::{GameObjE, OwnedCastleE},
     map::Tile,
     player::PlayerE,
 };
 
-use crate::r#const::LOGS_CAPACITY;
 use crate::logs::Logs;
 
 pub struct GameState {
@@ -36,7 +36,7 @@ impl GameState {
             castle,
             facilities: HashMap::new(),
             objs,
-            logs: Logs::new(LOGS_CAPACITY),
+            logs: Logs::new(config().client.logs_capacity),
         }
     }
 
