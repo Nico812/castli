@@ -1,8 +1,9 @@
 use crate::{
     ansi::{BLACK, WHITE},
     assets::TermCell,
+    config::config,
     coord::TermCoord,
-    renderer::r#const::{FRAME_BK_COLOR, FRAME_WIDTH, MOD_BK_COLOR},
+    renderer::r#const::{FRAME_BK_COLOR, MOD_BK_COLOR},
 };
 
 pub struct Module {
@@ -102,9 +103,10 @@ impl Module {
         let content_width = last_drawn_col - first_drawn_col + 1;
 
         let drawable_size = self.drawable_size();
+        let frame_width = config().ui.frame_width;
         let target_start_row =
-            (drawable_size.y - content_height) / 2 + self.padding.y + FRAME_WIDTH;
-        let target_start_col = (drawable_size.x - content_width) / 2 + self.padding.x + FRAME_WIDTH;
+            (drawable_size.y - content_height) / 2 + self.padding.y + frame_width;
+        let target_start_col = (drawable_size.x - content_width) / 2 + self.padding.x + frame_width;
 
         // TODO: maybe i shouldnt rewrite this code here
         let mut cells_new = vec![

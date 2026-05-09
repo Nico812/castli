@@ -1,10 +1,10 @@
 use common::{
     GameCoord,
-    config::config,
+    config::config as common_config,
     r#const::{COURTYARD_COLS, COURTYARD_ROWS},
 };
 
-use crate::renderer::r#const::{FOV_COLS, FOV_ROWS};
+use crate::config::config as client_config;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum CameraLocation {
@@ -39,8 +39,8 @@ impl Camera {
     pub fn move_camera(&mut self, dx: isize, dy: isize) {
         let (bound_rows, bound_cols, camera_pos) = match self.location {
             CameraLocation::Map => (
-                config().world.map_rows,
-                config().world.map_cols,
+                common_config().world.map_rows,
+                common_config().world.map_cols,
                 &mut self.map,
             ),
             CameraLocation::Courtyard => (COURTYARD_ROWS, COURTYARD_COLS, &mut self.courtyard),
@@ -49,13 +49,17 @@ impl Camera {
             }
         };
 
+        let ui = &client_config().ui;
         let new_x = (camera_pos.x as isize + 2 * dx)
             .max(0)
-            .min(bound_cols.saturating_sub(FOV_COLS - 1) as isize) as usize;
+            .min(bound_cols.saturating_sub(ui.fov_cols() - 1) as isize)
+            as usize;
         let new_y = (camera_pos.y as isize + 2 * dy)
             .max(0)
-            .min(bound_rows.saturating_sub(FOV_ROWS * 2 - 1) as isize) as usize;
+            .min(bound_rows.saturating_sub(ui.fov_rows() * 2 - 1) as isize)
+            as usize;
 
+        // I'm angry at odd numbers
         camera_pos.x = new_x - (new_x % 2);
         camera_pos.y = new_y - (new_y % 2);
     }

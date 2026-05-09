@@ -1,0 +1,12 @@
+[network]
+address = "127.0.0.1:7878"
+
+[world]
+map_rows = 400
+map_cols = 800
+
+[units]
+knight_strength = 1
+mage_strength = 3
+dragon_strength = 10
+ship_strength = 0

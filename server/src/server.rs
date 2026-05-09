@@ -4,9 +4,11 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::{connection::Connection, lobby::Lobby, thread_pool::ThreadPool};
+use crate::{
+    config::config as server_config, connection::Connection, lobby::Lobby, thread_pool::ThreadPool,
+};
 use common::{
-    config::config,
+    config::config as common_config,
     r#const::MAX_LOBBIES,
     packets::{C2S, C2S4L, L2S4C, S2C},
     stream::StreamErr,
@@ -76,12 +78,13 @@ impl Server {
     }
 
     pub fn run(&mut self) {
-        let address = config().network.address.as_str();
+        let address = common_config().network.address.as_str();
         let listener = TcpListener::bind(address).unwrap();
         listener.set_nonblocking(true).unwrap();
         println!("[server] Server started and listening on {}", address);
 
-        let tick_duration = Duration::from_millis(config().server.tick_ms);
+        // Performance tracking
+        let tick_duration = Duration::from_millis(server_config().server.tick_ms);
         let mut loop_count = 0;
         let mut total_loop_time = Duration::new(0, 0);
 
@@ -89,12 +92,14 @@ impl Server {
             let loop_start = Instant::now();
             let mut ended_conns = Vec::new();
 
+            // Checks if there are new connections and handles them
             if let Ok((stream, socket_addr)) = listener.accept() {
                 stream.set_nonblocking(true).unwrap();
                 self.handle_connection(stream);
                 println!("A weirdo connceted with socket_addr: {}", socket_addr);
             }
 
+            // Iters trough the connections and listens to them
             for (i, ref mut conn) in self.conns.iter_mut().enumerate() {
                 match conn.try_get_msg() {
                     Ok(Some(C2S::C2S4L(msg))) => {
@@ -143,6 +148,7 @@ impl Server {
                     Ok(None) => {}
                 }
 
+                // Listen to associated lobby for updates to send to client
                 let pending = if let Some(ref lobby_link) = conn.lobby_link {
                     lobby_link.1.try_recv().ok()
                 } else {
@@ -165,10 +171,12 @@ impl Server {
                 }
             }
 
+            // Removing disconnected clients from the active connections
             for i in ended_conns {
                 self.conns.remove(i);
             }
 
+            // Performace tracking
             let loop_time = loop_start.elapsed();
             loop_count += 1;
             total_loop_time += loop_time;
@@ -182,6 +190,7 @@ impl Server {
                 total_loop_time = Duration::new(0, 0);
             }
 
+            // Small tick to prevent CPU overuse
             let elapsed = loop_start.elapsed();
             if elapsed < tick_duration {
                 std::thread::sleep(tick_duration - elapsed);

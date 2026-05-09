@@ -1,8 +1,9 @@
 use crate::{
+    config::config,
     r#const::CURSOR_SIZE,
     game_state::GameState,
     input_handler::InputHandler,
-    renderer::{r#const::ZOOM_FACTOR, renderer::Renderer},
+    renderer::renderer::Renderer,
     shutdown::{ShutdownChannel, ShutdownReason},
     ui_state::UiState,
 };
@@ -76,6 +77,9 @@ impl Tui {
         Self::clear_screen();
 
         while !shutdown.is_shutdown() {
+            // Convert the MutexGuard into &mut.
+            // This helps the borrow checker perform field-level borrowing more precisely
+            // (borrow splitting works better on &mut T than on MutexGuard<T> in complex flows).
             let mut game_guard = game_state.lock().await;
             let game_state = game_guard.deref_mut();
 
@@ -91,7 +95,9 @@ impl Tui {
                 }
             }
 
-            // Cap render fps and skip frames where dt is suspiciously short.
+            // Rendering fps
+            // There's a problem that the frames can go really fast when there is delay
+            // so i take only the frames with a reasonable high dt.
             let now = time::Instant::now();
             let dt = now.duration_since(last_frame).as_millis() as u64;
             if dt >= 10 {
@@ -111,6 +117,7 @@ impl Tui {
         game_objs: &'a HashMap<GameId, GameObjE>,
         in_world_map: bool,
     ) -> Vec<(GameId, &'a GameObjE)> {
+        let zoom = config().ui.zoom_factor;
         let mut looked_objs: Vec<(GameId, &GameObjE)> = game_objs
             .iter()
             .filter_map(|(game_id, game_obj)| {
@@ -122,8 +129,8 @@ impl Tui {
                     || (in_world_map
                         && game_obj.get_pos().y >= coord.y
                         && game_obj.get_pos().x >= coord.x
-                        && game_obj.get_pos().y < coord.y + ZOOM_FACTOR * CURSOR_SIZE.y
-                        && game_obj.get_pos().x < coord.x + ZOOM_FACTOR * CURSOR_SIZE.x)
+                        && game_obj.get_pos().y < coord.y + zoom * CURSOR_SIZE.y
+                        && game_obj.get_pos().x < coord.x + zoom * CURSOR_SIZE.x)
                 {
                     Some((*game_id, game_obj))
                 } else {

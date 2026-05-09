@@ -2,6 +2,7 @@ mod ansi;
 mod assets;
 mod camera;
 mod client;
+mod config;
 mod connection;
 mod r#const;
 mod coord;

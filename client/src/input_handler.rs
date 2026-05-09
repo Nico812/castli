@@ -7,9 +7,9 @@ use std::collections::HashMap;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::camera::{Camera, CameraLocation};
+use crate::config::config;
 use crate::game_state::GameState;
 use crate::renderer::ModPlayerInfoTab;
-use crate::renderer::r#const::{FOV_COLS, FOV_ROWS, ZOOM_FACTOR};
 use crate::shutdown::{ShutdownChannel, ShutdownReason};
 use crate::tui::{T2C, Tui};
 use crate::ui_state::{FacilitySelection, Inspect, InteractTarget, UiMode, UiState, UnitSelection};
@@ -30,6 +30,7 @@ impl InputHandler {
             return;
         }
 
+        // Keys that work for any UI mode
         match key.code {
             KeyCode::Char('q') => {
                 shutdown.shutdown(ShutdownReason::Key);
@@ -40,6 +41,7 @@ impl InputHandler {
             _ => {}
         }
 
+        // Custom keybinds for each UI mode
         match ui_state.mode {
             UiMode::Std => match (key.code, key.modifiers) {
                 (KeyCode::Char('M'), _) => {
@@ -353,8 +355,9 @@ impl InputHandler {
             && *curr == CameraLocation::Map
             && let Some(ref mut inspect) = inspect
         {
-            inspect.coord.y -= inspect.coord.y % ZOOM_FACTOR;
-            inspect.coord.x -= inspect.coord.x % ZOOM_FACTOR;
+            let zoom = config().ui.zoom_factor;
+            inspect.coord.y -= inspect.coord.y % zoom;
+            inspect.coord.x -= inspect.coord.x % zoom;
         }
         *curr = new;
     }
@@ -416,40 +419,45 @@ impl InputHandler {
                 *selection = new_id;
             }
         } else {
+            let ui = &config().ui;
+            let zoom = ui.zoom_factor;
+            let fov_rows = ui.fov_rows();
+            let fov_cols = ui.fov_cols();
             match camera.location {
                 CameraLocation::WorldMap => {
-                    dx *= ZOOM_FACTOR as isize;
-                    dy *= ZOOM_FACTOR as isize;
+                    dx *= zoom as isize;
+                    dy *= zoom as isize;
                     inspect.coord.x = (inspect.coord.x as isize + dx)
                         .max(0)
-                        .min((FOV_COLS * ZOOM_FACTOR - 1) as isize)
+                        .min((fov_cols * zoom - 1) as isize)
                         as usize;
                     inspect.coord.y = (inspect.coord.y as isize + dy)
                         .max(0)
-                        .min((FOV_ROWS * ZOOM_FACTOR * 2 - 1) as isize)
+                        .min((fov_rows * zoom * 2 - 1) as isize)
                         as usize;
                 }
                 CameraLocation::Map => {
                     inspect.coord.x = (inspect.coord.x as isize + dx)
                         .max(camera.map.x as isize)
-                        .min((camera.map.x + FOV_COLS - 1) as isize)
+                        .min((camera.map.x + fov_cols - 1) as isize)
                         as usize;
                     inspect.coord.y = (inspect.coord.y as isize + dy)
                         .max(camera.map.y as isize)
-                        .min((camera.map.y + FOV_ROWS * 2 - 1) as isize)
+                        .min((camera.map.y + fov_rows * 2 - 1) as isize)
                         as usize;
                 }
                 CameraLocation::Courtyard => {
                     inspect.coord.x = (inspect.coord.x as isize + dx)
                         .max(camera.courtyard.x as isize)
-                        .min((camera.courtyard.x + FOV_COLS.min(COURTYARD_COLS) - 1) as isize)
+                        .min((camera.courtyard.x + fov_cols.min(COURTYARD_COLS) - 1) as isize)
                         as usize;
                     inspect.coord.y = (inspect.coord.y as isize + dy)
                         .max(camera.courtyard.y as isize)
-                        .min((camera.courtyard.y + (FOV_ROWS * 2).min(COURTYARD_ROWS) - 1) as isize)
+                        .min((camera.courtyard.y + (fov_rows * 2).min(COURTYARD_ROWS) - 1) as isize)
                         as usize;
                 }
             }
+            // I'm angry at odd numbers
             inspect.coord.x -= inspect.coord.x % 2;
             inspect.coord.y -= inspect.coord.y % 2;
         }

@@ -1,3 +1,4 @@
+mod config;
 mod connection;
 mod game;
 mod lobby;

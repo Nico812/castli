@@ -2,13 +2,13 @@ use std::ops::{Add, Div, Mul, Sub};
 
 use common::{
     GameCoord,
-    config::config,
+    config::config as common_config,
     r#const::{COURTYARD_COLS, COURTYARD_ROWS},
 };
 
 use crate::{
     camera::{Camera, CameraLocation},
-    renderer::r#const::{CANVAS_COLS, CANVAS_ROWS, ZOOM_FACTOR},
+    config::config as client_config,
 };
 
 // TermCoord are the 1-indexed terminal coordinates with origin at CANVAS_POS
@@ -25,9 +25,10 @@ impl TermCoord {
     }
 
     pub fn from_game_coord(game_coord: GameCoord, camera: &Camera) -> Option<Self> {
+        let zoom = client_config().ui.zoom_factor;
         let (term_y, term_x) = if camera.location == CameraLocation::WorldMap {
-            let term_y = game_coord.y / 2 / ZOOM_FACTOR;
-            let term_x = game_coord.x / ZOOM_FACTOR;
+            let term_y = game_coord.y / 2 / zoom;
+            let term_x = game_coord.x / zoom;
 
             (term_y, term_x)
         } else {
@@ -42,7 +43,8 @@ impl TermCoord {
         };
 
         // Check out of boundary
-        if term_y >= CANVAS_ROWS || term_x >= CANVAS_COLS {
+        let ui = &client_config().ui;
+        if term_y >= ui.canvas_rows || term_x >= ui.canvas_cols {
             return None;
         };
 
@@ -54,18 +56,16 @@ impl TermCoord {
     // If are_mod_central_relative it takes the given TermCoord as having origin at top left of ModCentral content
     // Returns None if the GameCoords are out of bounds
     pub fn to_game_coord(&self, camera: &Camera) -> Option<GameCoord> {
+        let zoom = client_config().ui.zoom_factor;
         if camera.location == CameraLocation::WorldMap {
-            return Some(GameCoord::new(
-                self.y * ZOOM_FACTOR * 2,
-                self.x * ZOOM_FACTOR,
-            ));
+            return Some(GameCoord::new(self.y * zoom * 2, self.x * zoom));
         } else {
             let camera_pos = camera.get_pos();
             let game_y = camera_pos.y + self.y * 2;
             let game_x = camera_pos.x + self.x;
 
             // Checking if GameCoord is out of bounds
-            let world = &config().world;
+            let world = &common_config().world;
             if (camera.location == CameraLocation::Map
                 && (game_y >= world.map_rows || game_x >= world.map_cols))
                 || (camera.location == CameraLocation::Courtyard

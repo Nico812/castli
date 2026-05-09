@@ -7,6 +7,7 @@ use common::{
 use crate::camera::Camera;
 use crate::renderer::ModPlayerInfoTab;
 
+// State shared between input handler and renderer
 pub struct UiState {
     pub camera: Camera,
     pub tab: ModPlayerInfoTab,
@@ -41,6 +42,7 @@ pub enum InteractTarget {
     MapPos(GameCoord),
     CourtyardPos(GameCoord),
     GameObj(GameId),
+    // TODO: change this to take a facility id.
     Facility(u8),
 }
 

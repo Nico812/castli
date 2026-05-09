@@ -2,7 +2,7 @@ use common::{GameId, player::PlayerE};
 
 use crate::server::Client;
 
-// Players are managed at the Lobby level. Their info is not needed for the game.
+// Players are managed at the Lobby level. Theyr info is not needed for the game. Data is retrieved when he ocnnects (TODO)
 pub struct Player {
     pub client: Client,
     pub name: String,

@@ -1,0 +1,14 @@
+[client]
+logs_capacity = 5
+
+[ui]
+canvas_rows = 60
+canvas_cols = 160
+zoom_factor = 8
+frame_width = 1
+mod_central_rows = 44
+mod_inspect_cols = 30
+mod_inspect_col = 120
+mod_interact_row_offset = 10
+mod_interact_col_num = 2
+mod_interact_col_den = 5

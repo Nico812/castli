@@ -41,6 +41,7 @@ impl ModPlayerInfo {
         self.module.draw_text_in_row(&lobby_str, 0);
         let id_str = format!("Castle ID: {:?}", player.castle_id);
         self.module.draw_text_in_row(&id_str, 1);
+        // Show FPS
         let dt_str = format!("Frame dt: {} ms", frame_dt);
         self.module.draw_text_in_row(&dt_str, 2);
         let tick_str = format!("Tick: {}", time.tick_cnt);
@@ -92,6 +93,7 @@ impl ModPlayerInfo {
         let drawable_size = self.module.drawable_size();
         let tab_width = 4;
 
+        // First, expand all logs into individual lines (oldest first)
         let mut all_lines: Vec<String> = Vec::new();
 
         for log in logs.content.iter() {
@@ -122,6 +124,7 @@ impl ModPlayerInfo {
             }
         }
 
+        // Take only the most recent lines that fit (drop oldest from the beginning)
         let start_index = if all_lines.len() > drawable_size.y {
             all_lines.len() - drawable_size.y
         } else {
@@ -130,6 +133,7 @@ impl ModPlayerInfo {
 
         let recent_lines = &all_lines[start_index..];
 
+        // Add the content rows (oldest to newest from top to bottom)
         for line in recent_lines {
             self.module.push_empty_row();
 

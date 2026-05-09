@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use common::{
     GameCoord, GameId, Time,
-    config::config,
     courtyard::Facility,
     game_objs::{GameObjE, OwnedCastleE},
     map::Tile,
     player::PlayerE,
 };
 
+use crate::config::config;
 use crate::logs::Logs;
 
 pub struct GameState {

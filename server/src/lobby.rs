@@ -5,12 +5,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use common::{
-    config::config,
-    packets::{C2S4L, CourtyardPacket, L2S4C, LogE, MainPacket},
-};
+use common::packets::{C2S4L, CourtyardPacket, L2S4C, LogE, MainPacket};
 
 use crate::{
+    config::config,
     game::game::Game,
     player::Player,
     server::{Client, ClientId, S2L},
@@ -48,6 +46,7 @@ impl Lobby {
         let mut next_tick = Instant::now();
         let mut running = true;
 
+        // Performance tracking
         let mut tick_count = 0;
         let mut total_comput = Duration::new(0, 0);
 
@@ -70,6 +69,7 @@ impl Lobby {
 
             self.send_updates();
 
+            // Performance tracking
             let comput_time = tick_start.elapsed();
             tick_count += 1;
             total_comput += comput_time;

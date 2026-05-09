@@ -34,11 +34,13 @@ impl Connection {
             }
 
             tokio::select! {
+                // Check for messages from the TUI to send to the server
                 Some(msg_from_tui) = t2c_rx.recv() => {
                     let msg = C2S::C2S4L(t2c_to_c2s4l(msg_from_tui));
                     let _ = send_msg_to_server(&mut self.writer, &msg).await;
                 },
 
+                // Check for messages from the server and redirects them to the TUI
                 // TODO: the tokio select here can cause data loss, should i address this?
                 msg = get_msg_from_server(&mut self.reader) => {
                     let mut game_state = game_state.lock().await;

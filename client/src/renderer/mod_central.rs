@@ -8,9 +8,10 @@ use common::{GameCoord, GameId};
 
 use crate::assets::*;
 use crate::camera::{Camera, CameraLocation};
+use crate::config::config;
 use crate::coord::TermCoord;
 use crate::game_state::GameState;
-use crate::renderer::r#const::{COURTYARD_BK_CELL, FOV_COLS, FOV_ROWS};
+use crate::renderer::r#const::COURTYARD_BK_CELL;
 use crate::renderer::map_data::MapData;
 use crate::renderer::module::Module;
 use crate::ui_state::{UiMode, UiState};
@@ -234,9 +235,12 @@ impl ModCentral {
         camera: &Camera,
     ) {
         let drawable_size = self.module.drawable_size();
+        let ui = &config().ui;
         for (id, obj) in world_objs.iter() {
             let pos = obj.get_pos();
-            if pos.y >= (drawable_size.y * FOV_ROWS) * 2 || pos.x >= drawable_size.x * FOV_COLS {
+            if pos.y >= (drawable_size.y * ui.fov_rows()) * 2
+                || pos.x >= drawable_size.x * ui.fov_cols()
+            {
                 continue;
             };
 
