@@ -1,9 +1,6 @@
-use common::{
-    GameCoord,
-    r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS},
-};
+use common::GameCoord;
 
-use crate::renderer::r#const::{FOV_COLS, FOV_ROWS};
+use crate::coord::TermCoord;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum CameraLocation {
@@ -16,14 +13,18 @@ pub struct Camera {
     pub location: CameraLocation,
     pub map: GameCoord,
     pub courtyard: GameCoord,
+    pub zoom_factor: usize,
+    pub fov_size: TermCoord,
 }
 
 impl Camera {
-    pub fn new() -> Self {
+    pub fn new(fov_size: TermCoord, zoom_factor: usize) -> Self {
         Self {
             map: GameCoord::new(0, 0),
             courtyard: GameCoord::new(0, 0),
             location: CameraLocation::Map,
+            fov_size,
+            zoom_factor,
         }
     }
 
@@ -33,25 +34,5 @@ impl Camera {
             CameraLocation::WorldMap => GameCoord::new(0, 0),
             CameraLocation::Courtyard => self.courtyard,
         }
-    }
-
-    pub fn move_camera(&mut self, dx: isize, dy: isize) {
-        let (bound_rows, bound_cols, camera_pos) = match self.location {
-            CameraLocation::Map => (MAP_ROWS, MAP_COLS, &mut self.map),
-            CameraLocation::Courtyard => (COURTYARD_ROWS, COURTYARD_COLS, &mut self.courtyard),
-            CameraLocation::WorldMap => {
-                return;
-            }
-        };
-
-        let new_x = (camera_pos.x as isize + 2 * dx)
-            .max(0)
-            .min(bound_cols.saturating_sub(FOV_COLS - 1) as isize) as usize;
-        let new_y = (camera_pos.y as isize + 2 * dy)
-            .max(0)
-            .min(bound_rows.saturating_sub(FOV_ROWS * 2 - 1) as isize) as usize;
-
-        camera_pos.x = new_x - (new_x % 2);
-        camera_pos.y = new_y - (new_y % 2);
     }
 }

@@ -1,7 +1,7 @@
 use crate::GameCoord;
 
-pub const MAP_ROWS: usize = 400;
-pub const MAP_COLS: usize = 800;
+pub const MAP_ROWS: usize = 100;
+pub const MAP_COLS: usize = 1623;
 
 pub const COURTYARD_ROWS: usize = 60;
 pub const COURTYARD_COLS: usize = 60;

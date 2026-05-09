@@ -25,12 +25,11 @@ impl ModInspect {
         if let UiMode::Inspect(ref inspect) = ui_state.mode {
             match ui_state.camera.location {
                 CameraLocation::Map | CameraLocation::WorldMap => {
-                    let is_world_map = ui_state.camera.location == CameraLocation::WorldMap;
                     let night = game_state.time.night;
                     let looked_tile = game_state.get_tile(inspect.coord);
 
                     let mut looked_objs =
-                        Tui::get_looked_objs(inspect.coord, &game_state.objs, is_world_map);
+                        Tui::get_looked_objs(inspect.coord, &game_state.objs, &ui_state.camera);
                     let selected_id = inspect.selection;
 
                     self.draw_objs_component(

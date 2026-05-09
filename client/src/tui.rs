@@ -1,8 +1,9 @@
 use crate::{
+    camera::{Camera, CameraLocation},
     r#const::CURSOR_SIZE,
     game_state::GameState,
     input_handler::InputHandler,
-    renderer::{r#const::ZOOM_FACTOR, renderer::Renderer},
+    renderer::renderer::Renderer,
     shutdown::{ShutdownChannel, ShutdownReason},
     ui_state::UiState,
 };
@@ -61,7 +62,6 @@ impl Tui {
         let mut last_frame = time::Instant::now();
         let mut frame_dt: u64 = 0;
         let map = game_state.lock().await.map.clone();
-        let mut ui_state = UiState::new();
 
         let mut renderer = match Renderer::new(map) {
             Ok(renderer) => renderer,
@@ -70,6 +70,7 @@ impl Tui {
                 return;
             }
         };
+        let mut ui_state = UiState::new(renderer.fov_size(), renderer.zoom_factor());
 
         Self::set_raw_mode();
         self.hide_cursor();
@@ -109,21 +110,21 @@ impl Tui {
     pub fn get_looked_objs<'a>(
         coord: GameCoord,
         game_objs: &'a HashMap<GameId, GameObjE>,
-        in_world_map: bool,
+        camera: &Camera,
     ) -> Vec<(GameId, &'a GameObjE)> {
         let mut looked_objs: Vec<(GameId, &GameObjE)> = game_objs
             .iter()
             .filter_map(|(game_id, game_obj)| {
-                if (!in_world_map
+                if (!(camera.location == CameraLocation::WorldMap)
                     && game_obj.get_pos().y >= coord.y
                     && game_obj.get_pos().x >= coord.x
                     && game_obj.get_pos().y < coord.y + CURSOR_SIZE.y
                     && game_obj.get_pos().x < coord.x + CURSOR_SIZE.x)
-                    || (in_world_map
+                    || (camera.location == CameraLocation::WorldMap
                         && game_obj.get_pos().y >= coord.y
                         && game_obj.get_pos().x >= coord.x
-                        && game_obj.get_pos().y < coord.y + ZOOM_FACTOR * CURSOR_SIZE.y
-                        && game_obj.get_pos().x < coord.x + ZOOM_FACTOR * CURSOR_SIZE.x)
+                        && game_obj.get_pos().y < coord.y + camera.zoom_factor * CURSOR_SIZE.y
+                        && game_obj.get_pos().x < coord.x + camera.zoom_factor * CURSOR_SIZE.x)
                 {
                     Some((*game_id, game_obj))
                 } else {

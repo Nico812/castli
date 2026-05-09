@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use common::r#const::{COURTYARD_COLS, COURTYARD_ROWS};
+use common::r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS};
 use common::courtyard::Facility;
 use common::game_objs::GameObjE;
 use common::map::Tile;
@@ -10,7 +10,6 @@ use crate::assets::*;
 use crate::camera::{Camera, CameraLocation};
 use crate::coord::TermCoord;
 use crate::game_state::GameState;
-use crate::renderer::r#const::{COURTYARD_BK_CELL, FOV_COLS, FOV_ROWS};
 use crate::renderer::map_data::MapData;
 use crate::renderer::module::Module;
 use crate::ui_state::{UiMode, UiState};
@@ -29,7 +28,7 @@ impl ModCentral {
         game_state: &mut GameState,
         ui_state: &UiState,
         map_data: &MapData,
-    ) -> &Vec<Vec<TermCell>> {
+    ) -> Vec<Vec<TermCell>> {
         let camera_coord = ui_state.camera.get_pos();
 
         let title = match ui_state.camera.location {
@@ -87,6 +86,17 @@ impl ModCentral {
         self.module.get_cells()
     }
 
+    pub fn fov_size(&self) -> TermCoord {
+        self.module.drawable_size()
+    }
+
+    pub fn zoom_factor(&self) -> usize {
+        let fov_size = self.fov_size();
+        let y_factor = MAP_ROWS.div_ceil(fov_size.y * 2);
+        let x_factor = MAP_COLS.div_ceil(fov_size.x);
+        x_factor.max(y_factor).max(1)
+    }
+
     fn draw_map(
         &mut self,
         tiles: &[Vec<Tile>],
@@ -139,12 +149,9 @@ impl ModCentral {
     fn draw_world_map(&mut self, tiles: &[Vec<Tile>], variants: &[Vec<bool>], night: bool) {
         let drawable_size = self.module.drawable_size();
 
-        for tile_row in 0..drawable_size.y * 2 {
-            if tile_row & 1 == 1 {
-                continue;
-            }
+        for tile_row in 0..drawable_size.y {
             for tile_col in 0..drawable_size.x {
-                let term_pos = TermCoord::new(tile_row / 2, tile_col);
+                let term_pos = TermCoord::new(tile_row, tile_col);
                 let tile_top = tiles.get(tile_row).and_then(|row| row.get(tile_col));
                 let tile_bot = tiles.get(tile_row + 1).and_then(|row| row.get(tile_col));
 
@@ -236,7 +243,9 @@ impl ModCentral {
         let drawable_size = self.module.drawable_size();
         for (id, obj) in world_objs.iter() {
             let pos = obj.get_pos();
-            if pos.y >= (drawable_size.y * FOV_ROWS) * 2 || pos.x >= drawable_size.x * FOV_COLS {
+            if pos.y >= (drawable_size.y * camera.fov_size.y) * 2
+                || pos.x >= drawable_size.x * camera.fov_size.x
+            {
                 continue;
             };
 

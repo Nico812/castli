@@ -24,6 +24,11 @@ pub struct Renderer {
     render_count: u32,
     map_data: MapData,
     prev_is_night: bool,
+
+    mod_central: ModCentral,
+    mod_player_info: ModPlayerInfo,
+    mod_inspect: ModInspect,
+    mod_interact: ModInteract,
 }
 
 impl Renderer {
@@ -41,7 +46,27 @@ impl Renderer {
         };
 
         let prev_frame = vec![vec![assets::TermCell::ERR; CANVAS_COLS]; CANVAS_ROWS];
-        let map_data = MapData::new(map_tiles);
+
+        let mod_central = ModCentral::new(Module::new(
+            TermCoord::new(MOD_CENTRAL_ROWS, MOD_CENTRAL_COLS),
+            TermCoord::new(1, 2),
+        ));
+        let map_data = MapData::new(map_tiles, mod_central.zoom_factor());
+
+        let mod_player_info = ModPlayerInfo::new(Module::new(
+            TermCoord::new(MOD_PLAYER_INFO_ROWS, MOD_PLAYER_INFO_COLS),
+            TermCoord::new(1, 2),
+        ));
+
+        let mod_inspect = ModInspect::new(Module::new(
+            TermCoord::new(0, MOD_INSPECT_COLS),
+            TermCoord::new(1, 2),
+        ));
+
+        let mod_interact = ModInteract::new(Module::new(
+            TermCoord::new(0, MOD_INTERACT_COLS),
+            TermCoord::new(1, 2),
+        ));
 
         Ok(Self {
             prev_is_night: false,
@@ -49,6 +74,10 @@ impl Renderer {
             canvas_pos,
             render_count: 0,
             map_data,
+            mod_central,
+            mod_player_info,
+            mod_inspect,
+            mod_interact,
         })
     }
 
@@ -62,14 +91,8 @@ impl Renderer {
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
 
-        let mut mod_central = ModCentral::new(Module::new(
-            TermCoord::new(MOD_CENTRAL_ROWS, MOD_CENTRAL_COLS),
-            TermCoord::new(
-                (MOD_CENTRAL_ROWS - FOV_ROWS) / 2 - FRAME_WIDTH,
-                (MOD_CENTRAL_COLS - FOV_COLS) / 2 - FRAME_WIDTH,
-            ),
-        ));
-        for (row, line_contents) in mod_central
+        for (row, line_contents) in self
+            .mod_central
             .render(game_state, ui_state, &self.map_data)
             .iter()
             .enumerate()
@@ -83,12 +106,8 @@ impl Renderer {
             }
         }
 
-        let mut mod_player_info = ModPlayerInfo::new(Module::new(
-            TermCoord::new(MOD_PLAYER_INFO_ROWS, MOD_PLAYER_INFO_COLS),
-            TermCoord::new(1, 2),
-        ));
-
-        for (row, line_contents) in mod_player_info
+        for (row, line_contents) in self
+            .mod_player_info
             .render(frame_dt, game_state, ui_state)
             .iter()
             .enumerate()
@@ -102,29 +121,26 @@ impl Renderer {
             }
         }
 
-        let mut mod_inspect = ModInspect::new(Module::new(
-            TermCoord::new(0, MOD_INSPECT_COLS),
-            TermCoord::new(1, 2),
-        ));
-        if let Some(renderable) = mod_inspect.render(game_state, ui_state) {
+        if let Some(renderable) = self.mod_inspect.render(game_state, ui_state) {
             for (row, line_contents) in renderable.iter().enumerate() {
                 for (col, cell) in line_contents.iter().enumerate() {
-                    new_frame[row + MOD_INSPECT_POS.0][col + MOD_INSPECT_POS.1] = *cell;
+                    new_frame
+                        .get_mut(row + MOD_INSPECT_POS.0)
+                        .map(|frame_row| frame_row.get_mut(col + MOD_INSPECT_POS.1))
+                        .flatten()
+                        .map(|frame_cell| *frame_cell = *cell);
                 }
             }
         }
 
-        let mut mod_interact = ModInteract::new(Module::new(
-            TermCoord::new(0, MOD_INTERACT_COLS),
-            TermCoord::new(1, 2),
-        ));
-        if let Some(renderable) = mod_interact.render(game_state, ui_state) {
-            let pos_row = MOD_INTERACT_POS.0;
-            let pos_col = MOD_INTERACT_POS.1;
-
+        if let Some(renderable) = self.mod_interact.render(game_state, ui_state) {
             for (row, line_contents) in renderable.iter().enumerate() {
                 for (col, cell) in line_contents.iter().enumerate() {
-                    new_frame[row + pos_row][col + pos_col] = *cell;
+                    new_frame
+                        .get_mut(row + MOD_INTERACT_POS.0)
+                        .map(|frame_row| frame_row.get_mut(col + MOD_INTERACT_POS.1))
+                        .flatten()
+                        .map(|frame_cell| *frame_cell = *cell);
                 }
             }
         }
@@ -150,5 +166,13 @@ impl Renderer {
         self.render_count += 1;
 
         let _ = stdout.flush();
+    }
+
+    pub fn fov_size(&self) -> TermCoord {
+        self.mod_central.fov_size()
+    }
+
+    pub fn zoom_factor(&self) -> usize {
+        self.mod_central.zoom_factor()
     }
 }

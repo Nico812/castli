@@ -7,7 +7,7 @@ use common::{
 
 use crate::{
     camera::{Camera, CameraLocation},
-    renderer::r#const::{CANVAS_COLS, CANVAS_ROWS, ZOOM_FACTOR},
+    renderer::r#const::{CANVAS_COLS, CANVAS_ROWS},
 };
 
 // TermCoord are the 1-indexed terminal coordinates with origin at CANVAS_POS
@@ -25,8 +25,8 @@ impl TermCoord {
 
     pub fn from_game_coord(game_coord: GameCoord, camera: &Camera) -> Option<Self> {
         let (term_y, term_x) = if camera.location == CameraLocation::WorldMap {
-            let term_y = game_coord.y / 2 / ZOOM_FACTOR;
-            let term_x = game_coord.x / ZOOM_FACTOR;
+            let term_y = game_coord.y / 2 / camera.zoom_factor;
+            let term_x = game_coord.x / camera.zoom_factor;
 
             (term_y, term_x)
         } else {
@@ -53,27 +53,40 @@ impl TermCoord {
     // If are_mod_central_relative it takes the given TermCoord as having origin at top left of ModCentral content
     // Returns None if the GameCoords are out of bounds
     pub fn to_game_coord(&self, camera: &Camera) -> Option<GameCoord> {
-        if camera.location == CameraLocation::WorldMap {
-            return Some(GameCoord::new(
-                self.y * ZOOM_FACTOR * 2,
-                self.x * ZOOM_FACTOR,
-            ));
-        } else {
-            let camera_pos = camera.get_pos();
-            let game_y = camera_pos.y + self.y * 2;
-            let game_x = camera_pos.x + self.x;
+        match camera.location {
+            CameraLocation::WorldMap => {
+                let game_y = self.y * 2 * camera.zoom_factor;
+                let game_x = self.x * camera.zoom_factor;
 
-            // Checking if GameCoord is out of bounds
-            if (camera.location == CameraLocation::Map
-                && (game_y >= MAP_ROWS || game_x >= MAP_COLS))
-                || (camera.location == CameraLocation::Courtyard
-                    && (game_y >= COURTYARD_ROWS || game_x >= COURTYARD_COLS))
-            {
-                return None;
-            } else {
-                return Some(GameCoord::new(game_y, game_x));
+                if game_y >= MAP_ROWS || game_x >= MAP_COLS {
+                    None
+                } else {
+                    Some(GameCoord::new(game_y, game_x))
+                }
             }
-        };
+            CameraLocation::Map => {
+                let camera_pos = camera.get_pos();
+                let game_y = camera_pos.y + self.y * 2;
+                let game_x = camera_pos.x + self.x;
+
+                if game_y >= MAP_ROWS || game_x >= MAP_COLS {
+                    None
+                } else {
+                    Some(GameCoord::new(game_y, game_x))
+                }
+            }
+            CameraLocation::Courtyard => {
+                let camera_pos = camera.get_pos();
+                let game_y = camera_pos.y + self.y * 2;
+                let game_x = camera_pos.x + self.x;
+
+                if game_y >= COURTYARD_ROWS || game_x >= COURTYARD_COLS {
+                    None
+                } else {
+                    Some(GameCoord::new(game_y, game_x))
+                }
+            }
+        }
     }
 }
 

@@ -1,11 +1,12 @@
 use common::{
     GameCoord, GameId, all_facilities,
+    r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS},
     courtyard::FacilityType,
     units::{UnitGroup, UnitType},
 };
 
-use crate::camera::Camera;
-use crate::renderer::ModPlayerInfoTab;
+use crate::{camera::Camera, coord::TermCoord};
+use crate::{camera::CameraLocation, renderer::ModPlayerInfoTab};
 
 pub struct UiState {
     pub camera: Camera,
@@ -14,12 +15,38 @@ pub struct UiState {
 }
 
 impl UiState {
-    pub fn new() -> Self {
+    pub fn new(fov_size: TermCoord, zoom_factor: usize) -> Self {
         Self {
-            camera: Camera::new(),
+            camera: Camera::new(fov_size, zoom_factor),
             tab: ModPlayerInfoTab::Castle,
             mode: UiMode::Std,
         }
+    }
+
+    pub fn move_camera(&mut self, dx: isize, dy: isize) {
+        let (bound_rows, bound_cols, camera_pos) = match self.camera.location {
+            CameraLocation::Map => (MAP_ROWS - 1, MAP_COLS - 1, &mut self.camera.map),
+            CameraLocation::Courtyard => (
+                COURTYARD_ROWS - 1,
+                COURTYARD_COLS - 1,
+                &mut self.camera.courtyard,
+            ),
+            CameraLocation::WorldMap => {
+                return;
+            }
+        };
+
+        let new_x = (camera_pos.x as isize + 2 * dx)
+            .max(0)
+            .min(bound_cols.saturating_sub(self.camera.fov_size.x - 1) as isize)
+            as usize;
+        let new_y = (camera_pos.y as isize + 2 * dy)
+            .max(0)
+            .min(bound_rows.saturating_sub((self.camera.fov_size.y - 1) * 2) as isize)
+            as usize;
+
+        camera_pos.x = new_x - (new_x % 2);
+        camera_pos.y = new_y - (new_y % 2);
     }
 }
 

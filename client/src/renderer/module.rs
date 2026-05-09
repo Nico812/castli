@@ -5,12 +5,14 @@ use crate::{
     renderer::r#const::{FRAME_BK_COLOR, FRAME_WIDTH, MOD_BK_COLOR},
 };
 
+#[derive(Clone)]
 pub struct Module {
     name: String,
     size: TermCoord,
     padding: TermCoord,
     cells: Vec<Vec<TermCell>>,
     drawn: (Vec<bool>, Vec<bool>),
+    size_reset: TermCoord,
 }
 
 // Set size.y = 0 for a dynamic sized Module
@@ -30,6 +32,7 @@ impl Module {
             padding,
             cells,
             drawn: (vec![false; size_y], vec![false; size_x]),
+            size_reset: size,
         }
     }
 
@@ -54,9 +57,16 @@ impl Module {
         self.size.y += 1;
     }
 
-    pub fn get_cells(&mut self) -> &Vec<Vec<TermCell>> {
+    pub fn get_cells(&mut self) -> Vec<Vec<TermCell>> {
         self.update_frame();
-        &self.cells
+        let cells = self.cells.clone();
+        self.reset();
+
+        cells
+    }
+
+    fn reset(&mut self) {
+        *self = Self::new(self.size_reset, self.padding);
     }
 
     pub fn center(&mut self) {

@@ -123,6 +123,7 @@ pub const CURSOR: &[&[TermCell]] = &[&[
 pub const SELECTION_TERMCELL: TermCell = TermCell::new('<', BLACK, WHITE);
 
 pub const BKG_EL: TermCell = TermCell::new('.', WHITE, BLACK);
+pub const COURTYARD_BK_CELL: TermCell = TermCell::new('.', DAY_GREEN_0, BLACK);
 
 // Tiles
 
