@@ -4,7 +4,7 @@ use common::{
 };
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 
-use crate::renderer::{r#const::ZOOM_FACTOR, renderer::Renderer};
+use crate::renderer::r#const::ZOOM_FACTOR;
 
 pub struct MapData {
     pub tiles_wor: Vec<Vec<Tile>>,

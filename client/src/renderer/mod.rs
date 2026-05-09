@@ -3,12 +3,12 @@ mod map_data;
 mod mod_central;
 mod mod_inspect;
 mod mod_interact;
-mod mod_right;
+mod mod_player_info;
 mod module;
 pub mod renderer;
 
 #[derive(Copy, Clone)]
-pub enum ModRightTab {
+pub enum ModPlayerInfoTab {
     Castle,
     Debug,
     Logs,

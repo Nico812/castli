@@ -2,58 +2,17 @@ use std::sync::Arc;
 use tokio::{
     io::BufReader,
     net::TcpStream,
-    sync::{
-        Mutex, mpsc,
-        watch::{Receiver, Sender},
-    },
+    sync::{Mutex, mpsc},
 };
 
 use crate::connection::Connection;
+use crate::shutdown::ShutdownChannel;
 use crate::tui::Tui;
 use common::{
     r#const::{IP_LOCAL, ONLINE},
     packets::C2S,
     stream,
 };
-
-#[derive(Copy, Clone, Debug)]
-pub enum ShutdownReason {
-    Key,
-    Connection,
-    TermSize,
-    ServerShutdown,
-}
-
-pub struct ShutdownChannel {
-    sender: Sender<Option<ShutdownReason>>,
-    receiver: Receiver<Option<ShutdownReason>>,
-}
-
-impl ShutdownChannel {
-    pub fn new() -> Self {
-        let (sender, receiver) = tokio::sync::watch::channel(None);
-        Self { sender, receiver }
-    }
-
-    pub fn clone(other: &Self) -> Self {
-        Self {
-            sender: other.sender.clone(),
-            receiver: other.receiver.clone(),
-        }
-    }
-
-    pub fn shutdown(&self, reason: ShutdownReason) {
-        let _ = self.sender.send(Some(reason));
-    }
-
-    pub fn is_shutdown(&self) -> bool {
-        return self.receiver.borrow().is_some();
-    }
-
-    pub fn get_reason(&self) -> Option<ShutdownReason> {
-        return self.receiver.borrow().clone();
-    }
-}
 
 pub struct Client {
     shutdown: ShutdownChannel,
@@ -67,7 +26,6 @@ impl Client {
 
     /// Runs the main client application.
     pub async fn run(&mut self) {
-        // Connect to the Server
         let addr = if ONLINE { IP_LOCAL } else { IP_LOCAL };
         let stream = match TcpStream::connect(addr).await {
             Ok(s) => s,
@@ -79,7 +37,6 @@ impl Client {
 
         let (reader, mut writer) = stream.into_split();
 
-        // Authentication
         println!("Connection established. Please log in.");
         let name = Tui::login();
         stream::send_msg_to_server(&mut writer, &C2S::Login(name))
@@ -91,7 +48,6 @@ impl Client {
             .await
             .unwrap();
 
-        // Fetch initial state required for the TUI
         let mut connection = Connection {
             writer,
             reader: BufReader::new(reader),
@@ -105,18 +61,14 @@ impl Client {
                 .expect("Failed to receive initial state."),
         ));
 
-        // Set up communication channels
-        let (t2c_tx, t2c_rx) = mpsc::unbounded_channel(); // TUI -> Server
+        let (t2c_tx, t2c_rx) = mpsc::unbounded_channel();
 
-        // Spawn the dedicated network task
         let communication_handle = tokio::spawn(connection.communicate_with_server(
             t2c_rx,
             ShutdownChannel::clone(&self.shutdown),
             Arc::clone(&game_state),
         ));
 
-        // Create and run the TUI. The main thread will now be dedicated to the UI.
-        // This blocks until the user quits the TUI.
         let mut tui = Tui::new().await;
         tui.run(t2c_tx, game_state, ShutdownChannel::clone(&self.shutdown))
             .await;

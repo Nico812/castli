@@ -1,7 +1,8 @@
-mod client;
+mod connection;
 mod r#const;
 mod game;
 mod lobby;
+mod player;
 mod server;
 mod thread_pool;
 

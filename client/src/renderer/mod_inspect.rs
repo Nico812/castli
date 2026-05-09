@@ -1,9 +1,10 @@
 use crate::{
     assets::{GameObjAsset, SELECTION_TERMCELL, TermCell, TileAsset},
+    camera::CameraLocation,
     game_state::GameState,
     renderer::module::Module,
     tui::Tui,
-    ui_state::{CameraLocation, UiMode, UiState},
+    ui_state::{UiMode, UiState},
 };
 use common::{GameId, courtyard::Facility, game_objs::GameObjE, map::Tile};
 

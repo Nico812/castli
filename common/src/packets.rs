@@ -53,6 +53,23 @@ pub struct MapPayload {
     pub tiles: Vec<Tile>,
 }
 
+impl MapPayload {
+    pub fn unflatten(self) -> Vec<Vec<Tile>> {
+        let rows = self.rows as usize;
+        let cols = self.cols as usize;
+        let mut out = Vec::with_capacity(rows);
+        let mut iter = self.tiles.into_iter();
+        for _ in 0..rows {
+            let mut row = Vec::with_capacity(cols);
+            for _ in 0..cols {
+                row.push(iter.next().unwrap_or(Tile::Err));
+            }
+            out.push(row);
+        }
+        out
+    }
+}
+
 // Represents messages sent from a Lobby, to the Server, for a Client (L2S4C).
 #[derive(Serialize, Deserialize)]
 pub enum L2S4C {
@@ -73,11 +90,9 @@ pub enum C2S {
 // Represents messages sent from a Client, to the Server, for the Lobby (C2S4L).
 #[derive(Serialize, Deserialize)]
 pub enum C2S4L {
-    // Map actions
     NewCastle(GameCoord),
     AttackCastle(GameId, UnitGroup),
     SendUnits(GameCoord, UnitGroup),
-    // Courtyard actions
     InCourtyard,
     OutCourtyard,
     NewFacility((GameCoord, FacilityType)),

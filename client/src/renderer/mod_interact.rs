@@ -1,10 +1,9 @@
 use common::{all_facilities, all_units, game_objs::GameObjE};
 
 use crate::{
-    ansi::BLACK,
     assets::{SELECTION_TERMCELL, TermCell},
     game_state::GameState,
-    renderer::{r#const::MOD_INTERACT_COLS, module::Module},
+    renderer::module::Module,
     ui_state::{InteractTarget, UiMode, UiState},
 };
 

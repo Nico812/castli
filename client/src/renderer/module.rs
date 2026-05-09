@@ -1,6 +1,6 @@
 use crate::{
     ansi::{BLACK, WHITE},
-    assets::{BKG_EL, TermCell},
+    assets::TermCell,
     coord::TermCoord,
     renderer::r#const::{FRAME_BK_COLOR, FRAME_WIDTH, MOD_BK_COLOR},
 };

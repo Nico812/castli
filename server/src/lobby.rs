@@ -6,15 +6,14 @@ use std::{
 };
 
 use common::{
-    GameId,
     r#const::MAX_LOBBY_PLAYERS,
     packets::{C2S4L, CourtyardPacket, L2S4C, LogE, MainPacket},
-    player::PlayerE,
 };
 
 use crate::{
     r#const::{GAME_TICK, LOBBY_POOL_LEN},
     game::game::Game,
+    player::Player,
     server::{Client, ClientId, S2L},
     thread_pool::ThreadPool,
 };
@@ -22,46 +21,6 @@ use crate::{
 struct ClientCh {
     tx: Sender<L2S4C>,
     rx: Receiver<C2S4L>,
-}
-
-// Players are managed at the Lobby level. Theyr info is not needed for the game. Data is retrieved when he ocnnects (TODO)
-pub struct Player {
-    pub client: Client,
-    pub name: String,
-    pub castle_id: Option<GameId>,
-    pub lobby: usize,
-    pub in_courtyard: bool,
-}
-
-impl Player {
-    pub fn new(lobby: usize, client: Client) -> Self {
-        let name = client.name.clone();
-
-        println!("New player joined with the name: {}", client.name);
-        Self {
-            client,
-            name,
-            castle_id: None,
-            lobby,
-            in_courtyard: false,
-        }
-    }
-
-    pub fn set_castle_id(&mut self, castle_id: common::GameId) {
-        self.castle_id = Some(castle_id);
-        println!(
-            "Client {} just got a new castle with GameId {}",
-            self.name, castle_id
-        );
-    }
-
-    pub fn export(&self) -> PlayerE {
-        PlayerE {
-            name: self.name.clone(),
-            castle_id: self.castle_id,
-            lobby: self.lobby,
-        }
-    }
 }
 
 pub struct Lobby {
@@ -90,7 +49,6 @@ impl Lobby {
         let mut next_tick = Instant::now();
         let mut running = true;
 
-        // Performance tracking
         let mut tick_count = 0;
         let mut total_comput = Duration::new(0, 0);
 
@@ -113,7 +71,6 @@ impl Lobby {
 
             self.send_updates();
 
-            // Performance tracking
             let comput_time = tick_start.elapsed();
             tick_count += 1;
             total_comput += comput_time;
@@ -157,7 +114,7 @@ impl Lobby {
                     let _ = temp_tx.send(self.is_full());
                 }
                 S2L::NewClient(client, client_tx, client_rx) => {
-                    let _ = self.add_player(
+                    self.add_player(
                         client,
                         ClientCh {
                             tx: client_tx,
@@ -202,23 +159,23 @@ impl Lobby {
                         }
                     }
                     C2S4L::AttackCastle(target_id, unit_group_e) => {
-                        if let Some(castle_id) = player.castle_id {
-                            if !game.attack_castle(castle_id, target_id, unit_group_e, &self.pool) {
-                                log = Some(LogE::AttackDeployErr);
-                            }
+                        if let Some(castle_id) = player.castle_id
+                            && !game.attack_castle(castle_id, target_id, unit_group_e, &self.pool)
+                        {
+                            log = Some(LogE::AttackDeployErr);
                         }
                     }
                     C2S4L::SendUnits(target_pos, unit_group_e) => {
-                        if let Some(castle_id) = player.castle_id {
-                            if !game.request_send_units(
+                        if let Some(castle_id) = player.castle_id
+                            && !game.request_send_units(
                                 castle_id,
                                 target_pos,
                                 unit_group_e,
                                 None,
                                 &self.pool,
-                            ) {
-                                log = Some(LogE::UnitDeployErr);
-                            }
+                            )
+                        {
+                            log = Some(LogE::UnitDeployErr);
                         }
                     }
                     C2S4L::InCourtyard => {
@@ -253,8 +210,8 @@ impl Lobby {
             };
 
             match player.in_courtyard {
-                false => Self::send_main_packet(client_ch, &player, game),
-                true => Self::send_courtyard_packet(client_ch, &player, game),
+                false => Self::send_main_packet(client_ch, player, game),
+                true => Self::send_courtyard_packet(client_ch, player, game),
             }
         }
     }
@@ -264,13 +221,10 @@ impl Lobby {
     }
 
     fn send_main_packet(client_ch: &ClientCh, player: &Player, game: &Game) {
-        let castle_export = player
-            .castle_id
-            .map(|castle_id| {
-                game.get_castle(castle_id)
-                    .map(|castle| castle.export_owned())
-            })
-            .flatten();
+        let castle_export = player.castle_id.and_then(|castle_id| {
+            game.get_castle(castle_id)
+                .map(|castle| castle.export_owned())
+        });
 
         let packet = MainPacket {
             time: game.get_time(),
