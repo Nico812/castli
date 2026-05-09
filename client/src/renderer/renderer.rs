@@ -33,8 +33,8 @@ impl Renderer {
             && (w as usize) >= CANVAS_COLS
         {
             (
-                ((h as usize) - CANVAS_ROWS) / 2,
-                ((w as usize) - CANVAS_COLS) / 2,
+                ((h as usize) - CANVAS_ROWS) / 2 - 1,
+                ((w as usize) - CANVAS_COLS) / 2 - 1,
             )
         } else {
             return Err(());
@@ -59,27 +59,8 @@ impl Renderer {
         ui_state: &UiState,
         frame_dt: u64,
     ) {
-        // Right module
-        let mut mod_right = ModRight::new(Module::new(
-            TermCoord::new(MOD_RIGHT_ROWS, MOD_RIGHT_COLS),
-            TermCoord::new(1, 2),
-        ));
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
-
-        for (row, line_contents) in mod_right
-            .render(frame_dt, game_state, ui_state)
-            .iter()
-            .enumerate()
-        {
-            for (col, cell) in line_contents.iter().enumerate() {
-                new_frame
-                    .get_mut(row + MOD_RIGHT_POS.0)
-                    .map(|frame_row| frame_row.get_mut(col + MOD_RIGHT_POS.1))
-                    .flatten()
-                    .map(|frame_cell| *frame_cell = *cell);
-            }
-        }
 
         // Central module
         let mut mod_central = ModCentral::new(Module::new(
@@ -98,6 +79,26 @@ impl Renderer {
                 new_frame
                     .get_mut(row + MOD_CENTRAL_POS.0)
                     .map(|frame_row| frame_row.get_mut(col + MOD_CENTRAL_POS.1))
+                    .flatten()
+                    .map(|frame_cell| *frame_cell = *cell);
+            }
+        }
+
+        // Right module
+        let mut mod_right = ModRight::new(Module::new(
+            TermCoord::new(MOD_RIGHT_ROWS, MOD_RIGHT_COLS),
+            TermCoord::new(1, 2),
+        ));
+
+        for (row, line_contents) in mod_right
+            .render(frame_dt, game_state, ui_state)
+            .iter()
+            .enumerate()
+        {
+            for (col, cell) in line_contents.iter().enumerate() {
+                new_frame
+                    .get_mut(row + MOD_RIGHT_POS.0)
+                    .map(|frame_row| frame_row.get_mut(col + MOD_RIGHT_POS.1))
                     .flatten()
                     .map(|frame_cell| *frame_cell = *cell);
             }

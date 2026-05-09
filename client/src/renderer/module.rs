@@ -180,8 +180,13 @@ impl Module {
         self.cells[self.size.y - 1] = bot_row;
 
         for row in 0..self.size.y {
-            self.cells[row][0] = TermCell::new('|', WHITE, FRAME_BK_COLOR);
-            self.cells[row][self.size.x - 1] = TermCell::new('|', WHITE, FRAME_BK_COLOR);
+            let char = if row == 0 || row == self.size.y - 1 {
+                '▓'
+            } else {
+                '|'
+            };
+            self.cells[row][0] = TermCell::new(char, WHITE, FRAME_BK_COLOR);
+            self.cells[row][self.size.x - 1] = TermCell::new(char, WHITE, FRAME_BK_COLOR);
         }
     }
 
