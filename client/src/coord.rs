@@ -6,11 +6,8 @@ use common::{
 };
 
 use crate::{
-    renderer::{
-        r#const::{CANVAS_COLS, CANVAS_ROWS, MOD_CENTRAL_POS, ZOOM_FACTOR},
-        renderer::Renderer,
-    },
-    ui_state::{Camera, CameraLocation},
+    camera::{Camera, CameraLocation},
+    renderer::r#const::{CANVAS_COLS, CANVAS_ROWS, ZOOM_FACTOR},
 };
 
 // TermCoord are the 1-indexed terminal coordinates with origin at CANVAS_POS

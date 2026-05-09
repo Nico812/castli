@@ -15,7 +15,7 @@ use crate::renderer::map_data::MapData;
 use crate::renderer::mod_inspect::ModInspect;
 use crate::renderer::mod_interact::ModInteract;
 use crate::renderer::module::Module;
-use crate::renderer::{mod_central::ModCentral, mod_right::ModRight};
+use crate::renderer::{mod_central::ModCentral, mod_player_info::ModPlayerInfo};
 use crate::ui_state::UiState;
 
 pub struct Renderer {
@@ -59,29 +59,27 @@ impl Renderer {
         ui_state: &UiState,
         frame_dt: u64,
     ) {
-        // Right module
-        let mut mod_right = ModRight::new(Module::new(
-            TermCoord::new(MOD_RIGHT_ROWS, MOD_RIGHT_COLS),
+        let mut mod_player_info = ModPlayerInfo::new(Module::new(
+            TermCoord::new(MOD_PLAYER_INFO_ROWS, MOD_PLAYER_INFO_COLS),
             TermCoord::new(1, 2),
         ));
         let mut new_frame: Vec<Vec<assets::TermCell>> =
             vec![vec![assets::BKG_EL; CANVAS_COLS]; CANVAS_ROWS];
 
-        for (row, line_contents) in mod_right
+        for (row, line_contents) in mod_player_info
             .render(frame_dt, game_state, ui_state)
             .iter()
             .enumerate()
         {
             for (col, cell) in line_contents.iter().enumerate() {
                 new_frame
-                    .get_mut(row + MOD_RIGHT_POS.0)
-                    .map(|frame_row| frame_row.get_mut(col + MOD_RIGHT_POS.1))
+                    .get_mut(row + MOD_PLAYER_INFO_POS.0)
+                    .map(|frame_row| frame_row.get_mut(col + MOD_PLAYER_INFO_POS.1))
                     .flatten()
                     .map(|frame_cell| *frame_cell = *cell);
             }
         }
 
-        // Central module
         let mut mod_central = ModCentral::new(Module::new(
             TermCoord::new(MOD_CENTRAL_ROWS, MOD_CENTRAL_COLS),
             TermCoord::new(
@@ -103,7 +101,6 @@ impl Renderer {
             }
         }
 
-        // Inspect module
         let mut mod_inspect = ModInspect::new(Module::new(
             TermCoord::new(0, MOD_INSPECT_COLS),
             TermCoord::new(1, 2),
@@ -116,7 +113,6 @@ impl Renderer {
             }
         }
 
-        //Interact module
         let mut mod_interact = ModInteract::new(Module::new(
             TermCoord::new(0, MOD_INTERACT_COLS),
             TermCoord::new(1, 2),
@@ -132,13 +128,11 @@ impl Renderer {
             }
         }
 
-        // Only prints where the canvas has changed to avoid studdering
         for row in 0..CANVAS_ROWS {
             for col in 0..CANVAS_COLS {
                 let new_cell = &new_frame[row][col];
                 let last_cell = &self.prev_frame[row][col];
                 if (new_cell != last_cell) || (self.prev_is_night != game_state.time.night) {
-                    // Move cursor and print changed cell
                     let x = (self.canvas_pos.1 + col + 1) as u16;
                     let y = (self.canvas_pos.0 + row + 1) as u16;
                     let _ = queue!(
@@ -154,7 +148,6 @@ impl Renderer {
         self.prev_frame = new_frame;
         self.render_count += 1;
 
-        // All the commands are executed and tha changes printed now
         let _ = stdout.flush();
     }
 }

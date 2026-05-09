@@ -23,9 +23,9 @@ pub const MOD_CENTRAL_POS: (usize, usize) = (0, 0);
 pub const MOD_CENTRAL_ROWS: usize = 44;
 pub const MOD_CENTRAL_COLS: usize = CANVAS_COLS;
 
-pub const MOD_RIGHT_POS: (usize, usize) = (MOD_CENTRAL_ROWS + 1, 0);
-pub const MOD_RIGHT_ROWS: usize = CANVAS_ROWS - MOD_RIGHT_POS.0;
-pub const MOD_RIGHT_COLS: usize = MOD_CENTRAL_COLS;
+pub const MOD_PLAYER_INFO_POS: (usize, usize) = (MOD_CENTRAL_ROWS + 1, 0);
+pub const MOD_PLAYER_INFO_ROWS: usize = CANVAS_ROWS - MOD_PLAYER_INFO_POS.0;
+pub const MOD_PLAYER_INFO_COLS: usize = MOD_CENTRAL_COLS;
 
 pub const MOD_INSPECT_COLS: usize = 30;
 pub const MOD_INSPECT_POS: (usize, usize) = (MOD_CENTRAL_POS.0, 120);

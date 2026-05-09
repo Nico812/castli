@@ -6,17 +6,15 @@ use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::collections::HashMap;
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::client::{ShutdownChannel, ShutdownReason};
+use crate::camera::{Camera, CameraLocation};
 use crate::game_state::GameState;
+use crate::renderer::ModPlayerInfoTab;
 use crate::renderer::r#const::{FOV_COLS, FOV_ROWS, ZOOM_FACTOR};
-use crate::renderer::renderer::Renderer;
+use crate::shutdown::{ShutdownChannel, ShutdownReason};
 use crate::tui::{T2C, Tui};
-use crate::ui_state::{
-    Camera, CameraLocation, FacilitySelection, Inspect, InteractTarget, UiMode, UiState,
-    UnitSelection,
-};
+use crate::ui_state::{FacilitySelection, Inspect, InteractTarget, UiMode, UiState, UnitSelection};
 use common::GameCoord;
-use common::r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS};
+use common::r#const::{COURTYARD_COLS, COURTYARD_ROWS};
 
 pub struct InputHandler;
 
@@ -32,18 +30,16 @@ impl InputHandler {
             return;
         }
 
-        // Keys that work for any UI mode
         match key.code {
             KeyCode::Char('q') => {
                 shutdown.shutdown(ShutdownReason::Key);
             }
-            KeyCode::Char('y') => ui_state.tab = crate::renderer::ModRightTab::Castle,
-            KeyCode::Char('x') => ui_state.tab = crate::renderer::ModRightTab::Logs,
-            KeyCode::Char('c') => ui_state.tab = crate::renderer::ModRightTab::Debug,
+            KeyCode::Char('y') => ui_state.tab = ModPlayerInfoTab::Castle,
+            KeyCode::Char('x') => ui_state.tab = ModPlayerInfoTab::Logs,
+            KeyCode::Char('c') => ui_state.tab = ModPlayerInfoTab::Debug,
             _ => {}
         }
 
-        // Custom keybinds for each UI mode
         match ui_state.mode {
             UiMode::Std => match (key.code, key.modifiers) {
                 (KeyCode::Char('M'), _) => {
@@ -118,7 +114,7 @@ impl InputHandler {
 
                         if game_state.player.castle_id.is_none() {
                             if !in_world_map {
-                                Self::handle_new_castle(&tx, inspect)
+                                Self::handle_new_castle(tx, inspect)
                             }
                             return;
                         }
@@ -264,7 +260,7 @@ impl InputHandler {
                 match (key.code, key.modifiers) {
                     (KeyCode::Esc, _) => ui_state.mode = UiMode::Std,
                     (KeyCode::Char('a'), _) => {
-                        Self::handle_unit_deploy(&tx, selection);
+                        Self::handle_unit_deploy(tx, selection);
                         ui_state.mode = UiMode::Std;
                     }
                     (KeyCode::Enter, _) => {
@@ -400,7 +396,7 @@ impl InputHandler {
         camera: &Camera,
     ) {
         if let Some(ref mut selection) = inspect.selection {
-            let looked_objs = Tui::get_looked_objs(inspect.coord, &objs, in_world_map);
+            let looked_objs = Tui::get_looked_objs(inspect.coord, objs, in_world_map);
             let new_selection = {
                 let current_pos = looked_objs.iter().position(|(id, _)| *id == *selection);
                 match dy {
@@ -454,9 +450,8 @@ impl InputHandler {
                         as usize;
                 }
             }
-            // I'm angry at odd numbers
-            inspect.coord.x = inspect.coord.x - (inspect.coord.x % 2);
-            inspect.coord.y = inspect.coord.y - (inspect.coord.y % 2);
+            inspect.coord.x -= inspect.coord.x % 2;
+            inspect.coord.y -= inspect.coord.y % 2;
         }
     }
 

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 
 use common::{
     GameCoord, GameId, Time,
@@ -9,27 +9,7 @@ use common::{
 };
 
 use crate::r#const::LOGS_CAPACITY;
-
-pub struct Logs {
-    pub content: VecDeque<String>,
-    max_len: usize,
-}
-
-impl Logs {
-    fn new(max_len: usize) -> Self {
-        Self {
-            content: VecDeque::with_capacity(max_len),
-            max_len,
-        }
-    }
-
-    fn add(&mut self, item: String) {
-        if self.content.len() >= self.max_len {
-            let _ = self.content.pop_front();
-        }
-        self.content.push_back(item);
-    }
-}
+use crate::logs::Logs;
 
 pub struct GameState {
     pub time: Time,

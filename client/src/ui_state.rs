@@ -1,64 +1,25 @@
 use common::{
     GameCoord, GameId, all_facilities,
-    r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS},
     courtyard::FacilityType,
     units::{UnitGroup, UnitType},
 };
 
-use crate::renderer::{
-    ModRightTab,
-    r#const::{FOV_COLS, FOV_ROWS},
-    renderer::Renderer,
-};
+use crate::camera::Camera;
+use crate::renderer::ModPlayerInfoTab;
 
-// State shared between input handler and renderer
 pub struct UiState {
     pub camera: Camera,
-    pub tab: ModRightTab,
+    pub tab: ModPlayerInfoTab,
     pub mode: UiMode,
 }
 
-#[derive(PartialEq, Copy, Clone)]
-pub enum CameraLocation {
-    Map,
-    WorldMap,
-    Courtyard,
-}
-
-pub struct Camera {
-    pub location: CameraLocation,
-    pub map: GameCoord,
-    pub courtyard: GameCoord,
-}
-
-impl Camera {
-    pub fn get_pos(&self) -> GameCoord {
-        match self.location {
-            CameraLocation::Map => self.map,
-            CameraLocation::WorldMap => GameCoord::new(0, 0),
-            CameraLocation::Courtyard => self.courtyard,
+impl UiState {
+    pub fn new() -> Self {
+        Self {
+            camera: Camera::new(),
+            tab: ModPlayerInfoTab::Castle,
+            mode: UiMode::Std,
         }
-    }
-
-    pub fn move_camera(&mut self, dx: isize, dy: isize) {
-        let (bound_rows, bound_cols, camera_pos) = match self.location {
-            CameraLocation::Map => (MAP_ROWS, MAP_COLS, &mut self.map),
-            CameraLocation::Courtyard => (COURTYARD_ROWS, COURTYARD_COLS, &mut self.courtyard),
-            CameraLocation::WorldMap => {
-                return;
-            }
-        };
-
-        let new_x = (camera_pos.x as isize + 2 * dx)
-            .max(0)
-            .min(bound_cols.saturating_sub(FOV_COLS - 1) as isize) as usize;
-        let new_y = (camera_pos.y as isize + 2 * dy)
-            .max(0)
-            .min(bound_rows.saturating_sub(FOV_ROWS * 2 - 1) as isize) as usize;
-
-        // I'm angry at odd numbers
-        camera_pos.x = new_x - (new_x % 2);
-        camera_pos.y = new_y - (new_y % 2);
     }
 }
 
@@ -80,7 +41,6 @@ pub enum InteractTarget {
     MapPos(GameCoord),
     CourtyardPos(GameCoord),
     GameObj(GameId),
-    // TODO: change this to take a facility id.
     Facility(u8),
 }
 
@@ -110,20 +70,6 @@ impl FacilitySelection {
         Self {
             pos,
             active: all_facilities!()[0],
-        }
-    }
-}
-
-impl UiState {
-    pub fn new() -> Self {
-        Self {
-            camera: Camera {
-                map: GameCoord::new(0, 0),
-                courtyard: GameCoord::new(0, 0),
-                location: CameraLocation::Map,
-            },
-            tab: ModRightTab::Castle,
-            mode: UiMode::Std,
         }
     }
 }

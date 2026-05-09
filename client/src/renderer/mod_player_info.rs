@@ -1,21 +1,19 @@
-use std::collections::VecDeque;
-
 use crate::ansi::*;
 use crate::assets::*;
 use crate::game_state::GameState;
-use crate::game_state::Logs;
-use crate::renderer::ModRightTab;
+use crate::logs::Logs;
+use crate::renderer::ModPlayerInfoTab;
 use crate::renderer::module::Module;
 use crate::ui_state::UiState;
 use common::Time;
 use common::all_units;
 use common::player::PlayerE;
 
-pub struct ModRight {
+pub struct ModPlayerInfo {
     module: Module,
 }
 
-impl ModRight {
+impl ModPlayerInfo {
     pub fn new(module: Module) -> Self {
         Self { module }
     }
@@ -27,11 +25,11 @@ impl ModRight {
         ui_state: &UiState,
     ) -> Vec<Vec<TermCell>> {
         match ui_state.tab {
-            ModRightTab::Castle => self.draw_castle_tab(&game_state),
-            ModRightTab::Debug => {
+            ModPlayerInfoTab::Castle => self.draw_castle_tab(game_state),
+            ModPlayerInfoTab::Debug => {
                 self.draw_debug_tab(frame_dt, &game_state.player, &game_state.time)
             }
-            ModRightTab::Logs => self.draw_logs_tab(&game_state.logs),
+            ModPlayerInfoTab::Logs => self.draw_logs_tab(&game_state.logs),
         };
         let title = "(y): me | (x): logs | (c): debug".to_string();
         self.module.set_name(title);
@@ -43,7 +41,6 @@ impl ModRight {
         self.module.draw_text_in_row(&lobby_str, 0);
         let id_str = format!("Castle ID: {:?}", player.castle_id);
         self.module.draw_text_in_row(&id_str, 1);
-        // Show FPS
         let dt_str = format!("Frame dt: {} ms", frame_dt);
         self.module.draw_text_in_row(&dt_str, 2);
         let tick_str = format!("Tick: {}", time.tick_cnt);
@@ -95,7 +92,6 @@ impl ModRight {
         let drawable_size = self.module.drawable_size();
         let tab_width = 4;
 
-        // First, expand all logs into individual lines (oldest first)
         let mut all_lines: Vec<String> = Vec::new();
 
         for log in logs.content.iter() {
@@ -126,7 +122,6 @@ impl ModRight {
             }
         }
 
-        // Take only the most recent lines that fit (drop oldest from the beginning)
         let start_index = if all_lines.len() > drawable_size.y {
             all_lines.len() - drawable_size.y
         } else {
@@ -135,7 +130,6 @@ impl ModRight {
 
         let recent_lines = &all_lines[start_index..];
 
-        // Add the content rows (oldest to newest from top to bottom)
         for line in recent_lines {
             self.module.push_empty_row();
 

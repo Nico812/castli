@@ -1,9 +1,9 @@
 use crate::{
-    client::{ShutdownChannel, ShutdownReason},
     r#const::CURSOR_SIZE,
     game_state::GameState,
     input_handler::InputHandler,
     renderer::{r#const::ZOOM_FACTOR, renderer::Renderer},
+    shutdown::{ShutdownChannel, ShutdownReason},
     ui_state::UiState,
 };
 use common::{
@@ -76,9 +76,6 @@ impl Tui {
         Self::clear_screen();
 
         while !shutdown.is_shutdown() {
-            // Convert the MutexGuard into &mut.
-            // This helps the borrow checker perform field-level borrowing more precisely
-            // (borrow splitting works better on &mut T than on MutexGuard<T> in complex flows).
             let mut game_guard = game_state.lock().await;
             let game_state = game_guard.deref_mut();
 
@@ -94,9 +91,7 @@ impl Tui {
                 }
             }
 
-            // Rendering fps
-            // There's a problem that the frames can go really fast when there is delay
-            // so i take only the frames with a reasonable high dt.
+            // Cap render fps and skip frames where dt is suspiciously short.
             let now = time::Instant::now();
             let dt = now.duration_since(last_frame).as_millis() as u64;
             if dt >= 10 {

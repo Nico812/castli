@@ -1,17 +1,14 @@
 use std::{
-    io::{Read, Write},
     net::{TcpListener, TcpStream},
     sync::mpsc::{self, Receiver, Sender},
     time::{Duration, Instant},
 };
 
-use bincode::{config, serde::decode_from_slice, serde::encode_to_vec};
-
-use crate::{r#const::SERVER_TICK, lobby::Lobby, thread_pool::ThreadPool};
+use crate::{connection::Connection, r#const::SERVER_TICK, lobby::Lobby, thread_pool::ThreadPool};
 use common::{
     r#const::{IP_LOCAL, MAX_LOBBIES},
     packets::{C2S, C2S4L, L2S4C, S2C},
-    stream::{MAX_FRAME_BYTES, StreamErr},
+    stream::StreamErr,
 };
 
 pub enum S2L {
@@ -47,75 +44,11 @@ impl Client {
     }
 }
 
-struct Connection {
-    stream: TcpStream,
-    read_buffer: Vec<u8>,
-    write_buffer: Vec<u8>,
-    lobby_link: Option<(Sender<C2S4L>, Receiver<L2S4C>)>,
-    client: Option<Client>,
-    id: ConnId,
-}
-
-impl Connection {
-    pub fn try_get_msg(&mut self) -> Result<Option<C2S>, StreamErr> {
-        let mut tmp_buf = [0u8; 4096];
-        match self.stream.read(&mut tmp_buf) {
-            Ok(0) => return Err(StreamErr::ConnectionEnded),
-            Ok(n) => self.read_buffer.extend_from_slice(&tmp_buf[..n]),
-            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {}
-            Err(_) => return Err(StreamErr::ConnectionEnded),
-        }
-
-        if self.read_buffer.len() < 4 {
-            return Ok(None);
-        }
-        let len = u32::from_le_bytes(self.read_buffer[..4].try_into().unwrap());
-        if len > MAX_FRAME_BYTES {
-            return Err(StreamErr::SerializationErr);
-        }
-        let frame_end = 4 + len as usize;
-        if self.read_buffer.len() < frame_end {
-            return Ok(None);
-        }
-        let result =
-            decode_from_slice::<C2S, _>(&self.read_buffer[4..frame_end], config::standard())
-                .map(|(msg, _)| Some(msg))
-                .map_err(|_| StreamErr::SerializationErr);
-        self.read_buffer.drain(..frame_end);
-        result
-    }
-
-    pub fn queue_msg(&mut self, msg: &S2C) {
-        let bytes = encode_to_vec(msg, config::standard()).expect("Serialization failed");
-        let len: u32 = bytes
-            .len()
-            .try_into()
-            .expect("Outgoing frame exceeds u32 length");
-        self.write_buffer.extend_from_slice(&len.to_le_bytes());
-        self.write_buffer.extend_from_slice(&bytes);
-    }
-
-    pub fn try_flush(&mut self) -> Result<(), StreamErr> {
-        while !self.write_buffer.is_empty() {
-            match self.stream.write(&self.write_buffer) {
-                Ok(0) => return Err(StreamErr::ConnectionEnded),
-                Ok(n) => {
-                    self.write_buffer.drain(..n);
-                }
-                Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => return Ok(()),
-                Err(_) => return Err(StreamErr::ConnectionEnded),
-            }
-        }
-        Ok(())
-    }
-}
-
 pub struct Server {
     _pool: ThreadPool,
     txs: [Sender<S2L>; MAX_LOBBIES],
     conns: Vec<Connection>,
     conn_id_cnt: ConnId,
-    client_id_cnt: ClientId,
 }
 
 impl Server {
@@ -138,7 +71,6 @@ impl Server {
             txs: txs.try_into().unwrap(),
             conns: Vec::new(),
             conn_id_cnt: 0,
-            client_id_cnt: 0,
         }
     }
 
@@ -147,7 +79,6 @@ impl Server {
         listener.set_nonblocking(true).unwrap();
         println!("[server] Server started and listening on {}", IP_LOCAL);
 
-        // Performance tracking
         let tick_duration = Duration::from_millis(SERVER_TICK);
         let mut loop_count = 0;
         let mut total_loop_time = Duration::new(0, 0);
@@ -156,14 +87,12 @@ impl Server {
             let loop_start = Instant::now();
             let mut ended_conns = Vec::new();
 
-            // Checks if there are new connections and handles them
             if let Ok((stream, socket_addr)) = listener.accept() {
                 stream.set_nonblocking(true).unwrap();
                 self.handle_connection(stream);
                 println!("A weirdo connceted with socket_addr: {}", socket_addr);
             }
 
-            // Iters trough the connections and listens to them
             for (i, ref mut conn) in self.conns.iter_mut().enumerate() {
                 match conn.try_get_msg() {
                     Ok(Some(C2S::C2S4L(msg))) => {
@@ -212,7 +141,6 @@ impl Server {
                     Ok(None) => {}
                 }
 
-                // Listen to associated lobby for updates to send to client
                 let pending = if let Some(ref lobby_link) = conn.lobby_link {
                     lobby_link.1.try_recv().ok()
                 } else {
@@ -235,12 +163,10 @@ impl Server {
                 }
             }
 
-            // Removing disconnected clients from the active connections
             for i in ended_conns {
                 self.conns.remove(i);
             }
 
-            // Performace tracking
             let loop_time = loop_start.elapsed();
             loop_count += 1;
             total_loop_time += loop_time;
@@ -254,7 +180,6 @@ impl Server {
                 total_loop_time = Duration::new(0, 0);
             }
 
-            // Small tick to prevent CPU overuse
             let elapsed = loop_start.elapsed();
             if elapsed < tick_duration {
                 std::thread::sleep(tick_duration - elapsed);
@@ -265,16 +190,7 @@ impl Server {
     fn handle_connection(&mut self, stream: TcpStream) {
         let conn_id = self.conn_id_cnt;
         self.conn_id_cnt += 1;
-
-        let conn = Connection {
-            stream,
-            lobby_link: None,
-            client: None,
-            id: conn_id,
-            read_buffer: Vec::new(),
-            write_buffer: Vec::new(),
-        };
-        self.conns.push(conn);
+        self.conns.push(Connection::new(stream, conn_id));
     }
 
     fn assign_client_to_lobby(

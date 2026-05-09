@@ -7,13 +7,13 @@ use common::map::Tile;
 use common::{GameCoord, GameId};
 
 use crate::assets::*;
+use crate::camera::{Camera, CameraLocation};
 use crate::coord::TermCoord;
 use crate::game_state::GameState;
 use crate::renderer::r#const::{COURTYARD_BK_CELL, FOV_COLS, FOV_ROWS};
 use crate::renderer::map_data::MapData;
 use crate::renderer::module::Module;
-use crate::renderer::renderer::Renderer;
-use crate::ui_state::{Camera, CameraLocation, UiMode, UiState};
+use crate::ui_state::{UiMode, UiState};
 
 pub struct ModCentral {
     module: Module,
