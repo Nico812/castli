@@ -16,7 +16,7 @@ use common::{
 };
 use crossterm::{
     ExecutableCommand, cursor,
-    event::{Event, poll, read},
+    event::{poll, read},
     terminal,
 };
 use std::{
@@ -61,9 +61,8 @@ impl Tui {
         let mut render_tick = time::interval(time::Duration::from_millis(16));
         let mut last_frame = time::Instant::now();
         let mut frame_dt: u64 = 0;
-        let map = game_state.lock().await.map.clone();
 
-        let mut renderer = match Renderer::new(map) {
+        let mut renderer = match Renderer::new() {
             Ok(renderer) => renderer,
             Err(_) => {
                 shutdown.shutdown(ShutdownReason::TermSize);
@@ -81,9 +80,9 @@ impl Tui {
             let game_state = game_guard.deref_mut();
 
             while let Ok(true) = poll(Duration::from_millis(0)) {
-                if let Ok(Event::Key(key)) = read() {
-                    InputHandler::handle_key(
-                        &key,
+                if let Ok(event) = read() {
+                    InputHandler::handle_input(
+                        &event,
                         &tx,
                         game_state,
                         &mut ui_state,

@@ -12,6 +12,7 @@ pub struct UiState {
     pub camera: Camera,
     pub tab: ModPlayerInfoTab,
     pub mode: UiMode,
+    pub term_size_change: Option<TermCoord>,
 }
 
 impl UiState {
@@ -20,6 +21,7 @@ impl UiState {
             camera: Camera::new(fov_size, zoom_factor),
             tab: ModPlayerInfoTab::Castle,
             mode: UiMode::Std,
+            term_size_change: None,
         }
     }
 

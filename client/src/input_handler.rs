@@ -2,7 +2,7 @@ use common::GameId;
 use common::courtyard::FacilityType;
 use common::game_objs::GameObjE;
 use common::units::UnitType;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers};
 use std::collections::HashMap;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -19,16 +19,25 @@ use common::r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS};
 pub struct InputHandler;
 
 impl InputHandler {
-    pub fn handle_key(
-        key: &KeyEvent,
+    pub fn handle_input(
+        event: &Event,
         tx: &UnboundedSender<T2C>,
         game_state: &mut GameState,
         ui_state: &mut UiState,
         shutdown: ShutdownChannel,
     ) {
-        if key.kind != KeyEventKind::Press {
+        if let Event::Resize(col, row) = event {
+            ui_state.term_size_change = Some(TermCoord::new(*row as usize, *col as usize));
             return;
         }
+
+        let key = if let Event::Key(key) = event
+            && key.kind == KeyEventKind::Press
+        {
+            key
+        } else {
+            return;
+        };
 
         match key.code {
             KeyCode::Char('q') => {
@@ -134,6 +143,9 @@ impl InputHandler {
                         }
                     }
                     CameraLocation::Courtyard => {
+                        if game_state.player.castle_id.is_none() {
+                            return;
+                        }
                         let looked_facility =
                             Tui::get_looked_facility(inspect.coord, &game_state.facilities);
                         if let Some(looked_facility) = looked_facility {

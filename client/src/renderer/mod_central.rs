@@ -5,41 +5,41 @@ use common::courtyard::Facility;
 use common::game_objs::GameObjE;
 use common::map::Tile;
 use common::{GameCoord, GameId};
+use rand::rngs::SmallRng;
+use rand::{Rng, SeedableRng};
 
+use crate::ansi::{BLACK, WHITE};
 use crate::assets::*;
 use crate::camera::{Camera, CameraLocation};
 use crate::coord::TermCoord;
 use crate::game_state::GameState;
-use crate::renderer::map_data::MapData;
 use crate::renderer::module::Module;
 use crate::ui_state::{UiMode, UiState};
 
 pub struct ModCentral {
     module: Module,
+    variants: Vec<Vec<bool>>,
 }
 
 impl ModCentral {
     pub fn new(module: Module) -> Self {
-        Self { module }
+        let mut rng = SmallRng::seed_from_u64(1);
+
+        let mut variants = vec![vec![false; MAP_COLS]; MAP_ROWS.div_ceil(2)];
+        for cell in variants.iter_mut().flat_map(|row| row.iter_mut()) {
+            *cell = rng.random_bool(0.1);
+        }
+
+        Self { module, variants }
     }
 
-    pub fn render(
-        &mut self,
-        game_state: &mut GameState,
-        ui_state: &UiState,
-        map_data: &MapData,
-    ) -> Vec<Vec<TermCell>> {
+    pub fn render(&mut self, game_state: &mut GameState, ui_state: &UiState) -> Vec<Vec<TermCell>> {
         let camera_coord = ui_state.camera.get_pos();
 
         let title = match ui_state.camera.location {
             CameraLocation::Map => {
                 let title = format!("Castli | map {}", camera_coord);
-                self.draw_map(
-                    &game_state.map,
-                    &map_data.variants,
-                    game_state.time.night,
-                    &ui_state.camera,
-                );
+                self.draw_map(&game_state.map, game_state.time.night, &ui_state.camera);
                 self.draw_objs(
                     &game_state.player.castle_id,
                     &game_state.objs,
@@ -49,11 +49,7 @@ impl ModCentral {
             }
             CameraLocation::WorldMap => {
                 let title = "Castli | world map".to_string();
-                self.draw_world_map(
-                    &map_data.tiles_wor,
-                    &map_data.variants,
-                    game_state.time.night,
-                );
+                self.draw_world_map(&ui_state.camera);
 
                 self.draw_world_objs(
                     &game_state.player.castle_id,
@@ -92,18 +88,12 @@ impl ModCentral {
 
     pub fn zoom_factor(&self) -> usize {
         let fov_size = self.fov_size();
-        let y_factor = MAP_ROWS.div_ceil(fov_size.y * 2);
-        let x_factor = MAP_COLS.div_ceil(fov_size.x);
+        let y_factor = MAP_ROWS.div_ceil((fov_size.y * 2).max(1));
+        let x_factor = MAP_COLS.div_ceil((fov_size.x).max(1));
         x_factor.max(y_factor).max(1)
     }
 
-    fn draw_map(
-        &mut self,
-        tiles: &[Vec<Tile>],
-        variants: &[Vec<bool>],
-        night: bool,
-        camera: &Camera,
-    ) {
+    fn draw_map(&mut self, tiles: &[Vec<Tile>], night: bool, camera: &Camera) {
         let drawable_size = self.module.drawable_size();
         let camera_pos = camera.map;
 
@@ -126,7 +116,8 @@ impl ModCentral {
 
                     let cell;
                     if tile_top_ == tile_bot_ {
-                        let variant = variants
+                        let variant = self
+                            .variants
                             .get(tile_row)
                             .and_then(|row| row.get(tile_col))
                             .copied()
@@ -146,37 +137,16 @@ impl ModCentral {
         }
     }
 
-    fn draw_world_map(&mut self, tiles: &[Vec<Tile>], variants: &[Vec<bool>], night: bool) {
-        let drawable_size = self.module.drawable_size();
+    fn draw_world_map(&mut self, camera: &Camera) {
+        let map_term_size =
+            TermCoord::from_game_coord(GameCoord::new(MAP_ROWS, MAP_COLS), camera).unwrap();
 
-        for tile_row in 0..drawable_size.y {
-            for tile_col in 0..drawable_size.x {
+        for tile_row in 0..map_term_size.y {
+            for tile_col in 0..map_term_size.x {
                 let term_pos = TermCoord::new(tile_row, tile_col);
-                let tile_top = tiles.get(tile_row).and_then(|row| row.get(tile_col));
-                let tile_bot = tiles.get(tile_row + 1).and_then(|row| row.get(tile_col));
+                let cell = TermCell::new('.', WHITE, BLACK);
 
-                if let (Some(tile_top_), Some(tile_bot_)) = (tile_top, tile_bot) {
-                    let top_tile_asset = TileAsset::get_asset(*tile_top_, night);
-                    let bot_tile_asset = TileAsset::get_asset(*tile_bot_, night);
-
-                    let cell;
-                    if tile_top_ == tile_bot_ {
-                        let variant = variants
-                            .get(tile_row)
-                            .and_then(|row| row.get(tile_col))
-                            .copied()
-                            .unwrap_or(false);
-
-                        cell = if variant {
-                            top_tile_asset.wind
-                        } else {
-                            top_tile_asset.std
-                        };
-                    } else {
-                        cell = TermCell::new(BLOCK, top_tile_asset.up, bot_tile_asset.down);
-                    }
-                    self.module.draw_cell(cell, term_pos);
-                }
+                self.module.draw_cell(cell, term_pos);
             }
         }
     }
@@ -210,6 +180,7 @@ impl ModCentral {
         camera: &Camera,
     ) {
         let drawable_size = self.module.drawable_size();
+
         for (id, obj) in objs.iter() {
             let pos = obj.get_pos();
             if pos.y < camera.map.y
@@ -240,14 +211,8 @@ impl ModCentral {
         world_objs: &HashMap<GameId, GameObjE>,
         camera: &Camera,
     ) {
-        let drawable_size = self.module.drawable_size();
         for (id, obj) in world_objs.iter() {
             let pos = obj.get_pos();
-            if pos.y >= (drawable_size.y * camera.fov_size.y) * 2
-                || pos.x >= drawable_size.x * camera.fov_size.x
-            {
-                continue;
-            };
 
             let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
                 continue;

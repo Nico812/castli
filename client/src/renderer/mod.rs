@@ -1,5 +1,3 @@
-pub mod r#const;
-mod map_data;
 mod mod_central;
 mod mod_inspect;
 mod mod_interact;

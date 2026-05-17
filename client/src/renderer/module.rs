@@ -1,8 +1,8 @@
 use crate::{
     ansi::{BLACK, WHITE},
     assets::TermCell,
+    r#const::{FRAME_BK_COLOR, FRAME_WIDTH, MOD_BK_COLOR},
     coord::TermCoord,
-    renderer::r#const::{FRAME_BK_COLOR, FRAME_WIDTH, MOD_BK_COLOR},
 };
 
 #[derive(Clone)]

@@ -5,10 +5,7 @@ use common::{
     r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS},
 };
 
-use crate::{
-    camera::{Camera, CameraLocation},
-    renderer::r#const::{CANVAS_COLS, CANVAS_ROWS},
-};
+use crate::camera::{Camera, CameraLocation};
 
 // TermCoord are the 1-indexed terminal coordinates with origin at CANVAS_POS
 // A TermCoord y-displacement corresponds to a GameCoord 2y-displacement
@@ -38,11 +35,6 @@ impl TermCoord {
             let rel_game_x = game_coord.x - camera_pos.x;
 
             (rel_game_y / 2, rel_game_x)
-        };
-
-        // Check out of boundary
-        if term_y >= CANVAS_ROWS || term_x >= CANVAS_COLS {
-            return None;
         };
 
         Some(Self::new(term_y, term_x))

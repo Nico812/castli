@@ -115,6 +115,7 @@ impl Game {
             owner_castle.add_units(deployed_units.get_unit_group());
             self.game_objs.remove_entry(id);
         }
+
         for (_, deployed_units) in units_to_dest.iter() {
             let Some(target_id) = deployed_units.get_target() else {
                 continue;
