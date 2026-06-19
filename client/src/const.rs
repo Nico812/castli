@@ -3,7 +3,7 @@ use crossterm::style::Color;
 
 use crate::ansi::BLACK;
 
-pub const LOGS_CAPACITY: usize = 5;
+pub const LOGS_CAPACITY: usize = 100;
 
 pub const CURSOR_SIZE: GameCoord = GameCoord::new(2, 2);
 

@@ -1,5 +1,6 @@
 use crate::ansi::*;
 use crate::assets::*;
+use crate::coord::TermCoord;
 use crate::game_state::GameState;
 use crate::logs::Logs;
 use crate::renderer::ModPlayerInfoTab;
@@ -94,7 +95,7 @@ impl ModPlayerInfo {
 
         let mut all_lines: Vec<String> = Vec::new();
 
-        for log in logs.content.iter() {
+        for log in logs.content.iter().rev().take(drawable_size.y) {
             if log.len() <= drawable_size.x {
                 all_lines.push(log.clone());
             } else {
@@ -122,22 +123,11 @@ impl ModPlayerInfo {
             }
         }
 
-        let start_index = if all_lines.len() > drawable_size.y {
-            all_lines.len() - drawable_size.y
-        } else {
-            0
-        };
-
-        let recent_lines = &all_lines[start_index..];
-
-        for line in recent_lines {
-            self.module.push_empty_row();
-
-            for (i, ch) in line.chars().enumerate() {
-                let col_pos = i;
-                if col_pos < drawable_size.x {
-                    self.module
-                        .draw_cell_last_row(TermCell::new(ch, WHITE, BLACK), col_pos);
+        for (line_row, line) in all_lines.iter().enumerate() {
+            for (char_col, ch) in line.chars().enumerate() {
+                if line_row < drawable_size.y {
+                    let pos = TermCoord::new(drawable_size.y - line_row - 1, char_col);
+                    self.module.draw_cell(TermCell::new(ch, WHITE, BLACK), pos);
                 }
             }
         }
