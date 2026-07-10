@@ -54,8 +54,7 @@ impl Time {
 
     pub fn tick(&mut self) {
         self.tick_cnt += 1;
-        // if self.tick_cnt == 64 {
-        if self.tick_cnt == 1 {
+        if self.tick_cnt == 64 {
             self.h += 1;
             if self.h == 24 {
                 self.h = 0;

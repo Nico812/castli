@@ -22,12 +22,37 @@ pub struct Courtyard {
 
 impl Courtyard {
     pub fn new() -> Self {
+        let mut facilities = HashMap::new();
+        let mut occupied = [[None; COURTYARD_COLS]; COURTYARD_ROWS];
+        let mut owned_cnt = [0; FacilityType::COUNT];
+
+        // Adding wall (because he is a bit special...)
+        let id = 0;
+        let type_idx = FacilityType::Wall.as_index();
+        let facility = Facility::new(FacilityType::Wall, GameCoord::new(0, 0));
+        facilities.insert(id, facility);
+        owned_cnt[type_idx] += 1;
+
+        let wall_size = FacilityType::Wall.size();
+        for i in 0..COURTYARD_ROWS {
+            for j in 0..wall_size.y {
+                occupied[i][j] = Some(id);
+                occupied[i][COURTYARD_COLS - 1 - j] = Some(id);
+            }
+        }
+        for i in 0..COURTYARD_COLS {
+            for j in 0..wall_size.x {
+                occupied[j][i] = Some(id);
+                occupied[COURTYARD_ROWS - 1 - j][i] = Some(id);
+            }
+        }
+
         Self {
             peasants: 10,
-            facilities: HashMap::new(),
-            occupied: [[None; COURTYARD_COLS]; COURTYARD_ROWS],
-            owned_cnt: [0; FacilityType::COUNT],
-            id_cnt: 0,
+            facilities,
+            occupied,
+            owned_cnt,
+            id_cnt: 1,
         }
     }
 
@@ -39,6 +64,7 @@ impl Courtyard {
 
         for facility in self.facilities.values() {
             match facility.r#type {
+                FacilityType::Wall => {}
                 FacilityType::FarmPlot => peasants_prod += facility.lv,
                 FacilityType::Sawmill => resource_prod.wood += facility.lv * 10,
                 FacilityType::Mines => resource_prod.stone += facility.lv * 10,
@@ -84,6 +110,7 @@ impl Courtyard {
         let id = self.new_id();
         let facility = Facility::new(r#type, pos);
         self.facilities.insert(id, facility);
+        self.owned_cnt[type_idx] += 1;
         self.mark_occupied(id, pos, r#type.size());
 
         true

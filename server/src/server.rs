@@ -146,6 +146,7 @@ impl Server {
                 } else {
                     None
                 };
+
                 if let Some(msg) = pending {
                     conn.queue_msg(&S2C::L2S4C(msg));
                 }

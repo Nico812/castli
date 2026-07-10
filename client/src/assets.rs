@@ -97,6 +97,8 @@ pub struct FacilityAsset;
 impl FacilityAsset {
     pub fn get_asset(facility: &Facility, night: bool) -> &[&[TermCell]] {
         match (facility.r#type, night) {
+            (FacilityType::Wall, false) => DAY_WALL,
+            (FacilityType::Wall, true) => NIGHT_WALL,
             (FacilityType::FarmPlot, false) => DAY_FARM_PLOT,
             (FacilityType::FarmPlot, true) => NIGHT_FARM_PLOT,
             (FacilityType::Sawmill, false) => DAY_SAWMILL,
@@ -235,6 +237,8 @@ pub const DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', WHITE, BLA
 pub const ERR_ART: &[&[TermCell]] = &[&[TermCell::ERR]];
 
 // Facilities
+pub const DAY_WALL: &[&[TermCell]] = &[&[TermCell::new('▓', DAY_GREY_0, DAY_GREY_2)]];
+pub const NIGHT_WALL: &[&[TermCell]] = &[&[TermCell::new('▓', NIGHT_GREY_0, NIGHT_GREY_2)]];
 
 // ++++++
 // +▓▒▓▓+

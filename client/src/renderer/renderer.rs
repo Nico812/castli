@@ -95,6 +95,7 @@ impl Renderer {
             self.canvas_size = new_term_size - Self::PADDING * 2;
             self.resize_modules();
             ui_state.camera.zoom_factor = self.zoom_factor();
+            ui_state.camera.fov_size = self.fov_size();
             let _ = queue!(stdout, Clear(terminal::ClearType::Purge));
             ui_state.term_size_change = None;
         };

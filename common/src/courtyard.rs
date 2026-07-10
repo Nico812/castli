@@ -4,6 +4,7 @@ use crate::{GameCoord, Resources, r#const::FARM_PLOT_SIZE};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FacilityType {
+    Wall,
     FarmPlot,
     Sawmill,
     Mines,
@@ -15,6 +16,7 @@ pub enum FacilityType {
 macro_rules! all_facilities {
     () => {
         [
+            $crate::courtyard::FacilityType::Wall,
             $crate::courtyard::FacilityType::FarmPlot,
             $crate::courtyard::FacilityType::Sawmill,
             $crate::courtyard::FacilityType::Mines,
@@ -25,10 +27,11 @@ macro_rules! all_facilities {
 }
 
 impl FacilityType {
-    pub const COUNT: usize = 5;
+    pub const COUNT: usize = 6;
 
     pub fn max_count(&self) -> u8 {
         match self {
+            FacilityType::Wall => 1,
             FacilityType::FarmPlot => 4,
             FacilityType::Sawmill => 1,
             FacilityType::Mines => 1,
@@ -39,6 +42,7 @@ impl FacilityType {
 
     pub fn base_cost(&self) -> Resources {
         match self {
+            FacilityType::Wall => Resources::new(10, 10),
             FacilityType::FarmPlot => Resources::new(4, 4),
             FacilityType::Sawmill => Resources::new(2, 2),
             FacilityType::Mines => Resources::new(2, 2),
@@ -49,6 +53,7 @@ impl FacilityType {
 
     pub fn size(&self) -> GameCoord {
         match self {
+            FacilityType::Wall => GameCoord::new(2, 2),
             FacilityType::FarmPlot => FARM_PLOT_SIZE,
             FacilityType::Sawmill => GameCoord::new(6, 7),
             FacilityType::Mines => GameCoord::new(6, 7),

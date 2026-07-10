@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use common::r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS};
-use common::courtyard::Facility;
+use common::courtyard::{Facility, FacilityType};
 use common::game_objs::GameObjE;
 use common::map::Tile;
 use common::{GameCoord, GameId};
@@ -237,12 +237,49 @@ impl ModCentral {
     ) {
         for (_, facility) in facilities.iter() {
             let asset = FacilityAsset::get_asset(facility, night);
-            let pos = facility.pos;
-            let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
-                continue;
-            };
 
-            self.module.draw_asset(asset, term_coord);
+            if facility.r#type == FacilityType::Wall {
+                let wall_size = FacilityType::Wall.size();
+
+                // Sto casino è per disegnare sto chezz di muro
+                for i in 0..COURTYARD_ROWS {
+                    for j in 0..wall_size.y {
+                        let pos = GameCoord::new(i, j);
+                        let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
+                            continue;
+                        };
+                        self.module.draw_asset(asset, term_coord);
+
+                        let pos = GameCoord::new(i, COURTYARD_COLS - 1 - j);
+                        let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
+                            continue;
+                        };
+                        self.module.draw_asset(asset, term_coord);
+                    }
+                }
+                for i in 0..COURTYARD_COLS {
+                    for j in 0..wall_size.x {
+                        let pos = GameCoord::new(j, i);
+                        let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
+                            continue;
+                        };
+                        self.module.draw_asset(asset, term_coord);
+
+                        let pos = GameCoord::new(COURTYARD_ROWS - 1 - j, i);
+                        let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
+                            continue;
+                        };
+                        self.module.draw_asset(asset, term_coord);
+                    }
+                }
+            } else {
+                let pos = facility.pos;
+                let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
+                    continue;
+                };
+
+                self.module.draw_asset(asset, term_coord);
+            }
         }
     }
 }
