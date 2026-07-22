@@ -14,6 +14,7 @@ use crate::camera::{Camera, CameraLocation};
 use crate::coord::TermCoord;
 use crate::game_state::GameState;
 use crate::renderer::module::Module;
+use crate::renderer::renderer::DrawableCell;
 use crate::ui_state::{UiMode, UiState};
 
 pub struct ModCentral {
@@ -33,38 +34,53 @@ impl ModCentral {
         Self { module, variants }
     }
 
-    pub fn render(&mut self, game_state: &mut GameState, ui_state: &UiState) -> Vec<Vec<TermCell>> {
+    pub fn render(
+        &mut self,
+        assets: &Assets,
+        game_state: &mut GameState,
+        ui_state: &UiState,
+    ) -> Vec<Vec<DrawableCell>> {
         let camera_coord = ui_state.camera.get_pos();
 
         let title = match ui_state.camera.location {
             CameraLocation::Map => {
                 let title = format!("Castli | map {}", camera_coord);
-                self.draw_map(&game_state.map, game_state.time.night, &ui_state.camera);
+                self.draw_map(
+                    &game_state.map,
+                    game_state.time.night,
+                    &ui_state.camera,
+                    &assets,
+                );
                 self.draw_objs(
                     &game_state.player.castle_id,
                     &game_state.objs,
                     &ui_state.camera,
+                    game_state.time.night,
+                    &assets,
                 );
                 title
             }
             CameraLocation::WorldMap => {
                 let title = "Castli | world map".to_string();
-                self.draw_world_map(&ui_state.camera);
+                self.draw_world_map(&ui_state.camera, &assets);
 
                 self.draw_world_objs(
                     &game_state.player.castle_id,
                     &game_state.objs,
                     &ui_state.camera,
+                    game_state.time.night,
+                    &assets,
                 );
                 title
             }
             CameraLocation::Courtyard => {
                 let title = format!("Castli | courtyard {}", camera_coord);
-                self.draw_courtyard(&ui_state.camera);
+                self.draw_courtyard(&ui_state.camera, &assets);
                 self.draw_facilities(
                     &game_state.facilities,
                     &ui_state.camera,
                     game_state.time.night,
+                    &assets,
                 );
                 title
             }
@@ -74,7 +90,12 @@ impl ModCentral {
         if let UiMode::Inspect(ref inspect) = ui_state.mode
             && let Some(term_coord) = TermCoord::from_game_coord(inspect.coord, &ui_state.camera)
         {
-            self.module.draw_asset(&CURSOR, term_coord);
+            self.module
+                .draw_cell(assets.get_ui_element_drawable("CURSOR_L"), term_coord);
+            self.module.draw_cell(
+                assets.get_ui_element_drawable("CURSOR_R"),
+                term_coord + TermCoord::new(0, 1),
+            );
         }
 
         self.module.set_name(title);
@@ -93,7 +114,7 @@ impl ModCentral {
         x_factor.max(y_factor).max(1)
     }
 
-    fn draw_map(&mut self, tiles: &[Vec<Tile>], night: bool, camera: &Camera) {
+    fn draw_map(&mut self, tiles: &[Vec<Tile>], night: bool, camera: &Camera, assets: &Assets) {
         let drawable_size = self.module.drawable_size();
         let camera_pos = camera.map;
 
@@ -111,8 +132,8 @@ impl ModCentral {
                 let tile_bot = tiles.get(tile_row + 1).and_then(|row| row.get(tile_col));
 
                 if let (Some(tile_top_), Some(tile_bot_)) = (tile_top, tile_bot) {
-                    let top_tile_asset = TileAsset::get_asset(*tile_top_, night);
-                    let bot_tile_asset = TileAsset::get_asset(*tile_bot_, night);
+                    let top_tile_asset = assets.get_tile_asset(tile_top_);
+                    let bot_tile_asset = assets.get_tile_asset(tile_bot_);
 
                     let cell;
                     if tile_top_ == tile_bot_ {
@@ -124,12 +145,16 @@ impl ModCentral {
                             .unwrap_or(false);
 
                         cell = if variant {
-                            top_tile_asset.wind
+                            top_tile_asset.var.to_drawable_cell(night)
                         } else {
-                            top_tile_asset.std
+                            top_tile_asset.std.to_drawable_cell(night)
                         };
                     } else {
-                        cell = TermCell::new(BLOCK, top_tile_asset.up, bot_tile_asset.down);
+                        cell = DrawableCell::new(
+                            BLOCK,
+                            top_tile_asset.up.to_crossterm_color(night),
+                            bot_tile_asset.down.to_crossterm_color(night),
+                        );
                     }
                     self.module.draw_cell(cell, term_pos);
                 }
@@ -137,21 +162,21 @@ impl ModCentral {
         }
     }
 
-    fn draw_world_map(&mut self, camera: &Camera) {
+    fn draw_world_map(&mut self, camera: &Camera, assets: &Assets) {
         let map_term_size =
             TermCoord::from_game_coord(GameCoord::new(MAP_ROWS, MAP_COLS), camera).unwrap();
 
         for tile_row in 0..map_term_size.y {
             for tile_col in 0..map_term_size.x {
                 let term_pos = TermCoord::new(tile_row, tile_col);
-                let cell = TermCell::new('.', WHITE, BLACK);
+                let cell = assets.get_ui_element_drawable("WORLD_MAP_BKG");
 
                 self.module.draw_cell(cell, term_pos);
             }
         }
     }
 
-    fn draw_courtyard(&mut self, camera: &Camera) {
+    fn draw_courtyard(&mut self, camera: &Camera, assets: &Assets) {
         let drawable_size = self.module.drawable_size();
         let camera_pos = camera.courtyard;
 
@@ -167,7 +192,8 @@ impl ModCentral {
                 };
 
                 if tile_row < COURTYARD_ROWS && tile_col < COURTYARD_COLS {
-                    self.module.draw_cell(COURTYARD_BK_CELL, term_pos);
+                    self.module
+                        .draw_cell(assets.get_ui_element_drawable("WORLD_MAP_BKG"), term_pos);
                 }
             }
         }
@@ -178,6 +204,8 @@ impl ModCentral {
         castle_id: &Option<GameId>,
         objs: &HashMap<GameId, GameObjE>,
         camera: &Camera,
+        night: bool,
+        assets: &Assets,
     ) {
         let drawable_size = self.module.drawable_size();
 
@@ -200,7 +228,7 @@ impl ModCentral {
                 _ => false,
             };
 
-            let asset = GameObjAsset::get_asset(obj, owned);
+            let asset = assets.get_world_obj_asset_drawable(obj, owned, night);
             self.module.draw_asset(asset, term_coord);
         }
     }
@@ -210,6 +238,8 @@ impl ModCentral {
         castle_id: &Option<GameId>,
         world_objs: &HashMap<GameId, GameObjE>,
         camera: &Camera,
+        night: bool,
+        assets: &Assets,
     ) {
         for (id, obj) in world_objs.iter() {
             let pos = obj.get_pos();
@@ -224,7 +254,7 @@ impl ModCentral {
                 _ => false,
             };
 
-            let asset = GameObjAsset::get_asset(obj, owned);
+            let asset = assets.get_world_obj_asset_drawable(obj, owned, night);
             self.module.draw_asset(asset, term_coord);
         }
     }
@@ -234,52 +264,17 @@ impl ModCentral {
         facilities: &HashMap<u8, Facility>,
         camera: &Camera,
         night: bool,
+        assets: &Assets,
     ) {
         for (_, facility) in facilities.iter() {
-            let asset = FacilityAsset::get_asset(facility, night);
+            let asset = assets.get_facility_asset_drawable(facility, night);
 
-            if facility.r#type == FacilityType::Wall {
-                let wall_size = FacilityType::Wall.size();
+            let pos = facility.pos;
+            let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
+                continue;
+            };
 
-                // Sto casino è per disegnare sto chezz di muro
-                for i in 0..COURTYARD_ROWS {
-                    for j in 0..wall_size.y {
-                        let pos = GameCoord::new(i, j);
-                        let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
-                            continue;
-                        };
-                        self.module.draw_asset(asset, term_coord);
-
-                        let pos = GameCoord::new(i, COURTYARD_COLS - 1 - j);
-                        let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
-                            continue;
-                        };
-                        self.module.draw_asset(asset, term_coord);
-                    }
-                }
-                for i in 0..COURTYARD_COLS {
-                    for j in 0..wall_size.x {
-                        let pos = GameCoord::new(j, i);
-                        let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
-                            continue;
-                        };
-                        self.module.draw_asset(asset, term_coord);
-
-                        let pos = GameCoord::new(COURTYARD_ROWS - 1 - j, i);
-                        let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
-                            continue;
-                        };
-                        self.module.draw_asset(asset, term_coord);
-                    }
-                }
-            } else {
-                let pos = facility.pos;
-                let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
-                    continue;
-                };
-
-                self.module.draw_asset(asset, term_coord);
-            }
+            self.module.draw_asset(asset, term_coord);
         }
     }
 }

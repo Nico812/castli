@@ -1,14 +1,17 @@
 use std::io::Stdout;
 use std::io::Write;
 
+use common::map::Tile;
 use crossterm::cursor;
 use crossterm::queue;
+use crossterm::style::Color;
 use crossterm::style::PrintStyledContent;
+use crossterm::style::StyledContent;
+use crossterm::style::Stylize;
 use crossterm::terminal;
 use crossterm::terminal::Clear;
 
-use crate::assets::BKG_EL;
-use crate::assets::TermCell;
+use crate::assets::Assets;
 use crate::r#const::MOD_INSPECT_COLS;
 use crate::r#const::MOD_INTERACT_COLS;
 use crate::r#const::MOD_PLAYER_INFO_ROWS;
@@ -20,8 +23,28 @@ use crate::renderer::module::Module;
 use crate::renderer::{mod_central::ModCentral, mod_player_info::ModPlayerInfo};
 use crate::ui_state::UiState;
 
+#[derive(Copy, Clone, PartialEq)]
+pub struct DrawableCell {
+    pub ch: char,
+    pub fg: Color,
+    pub bg: Color,
+}
+
+impl DrawableCell {
+    pub const fn new(ch: char, fg: Color, bg: Color) -> Self {
+        Self { ch, fg, bg }
+    }
+
+    pub fn printable(&self) -> StyledContent<char> {
+        self.ch.with(self.fg).on(self.bg)
+    }
+}
+
+pub type DrawableAsset = Vec<Vec<Option<DrawableCell>>>;
+
 pub struct Renderer {
-    prev_frame: Vec<Vec<TermCell>>,
+    assets: Assets,
+    prev_frame: Vec<Vec<DrawableCell>>,
     render_count: u32,
     prev_is_night: bool,
     canvas_size: TermCoord,
@@ -42,6 +65,8 @@ impl Renderer {
             return Err(());
         };
 
+        let assets = Assets::load();
+
         let canvas_size = terminal_size - Self::PADDING * 2;
 
         let mod_padding = TermCoord::new(1, 2);
@@ -55,9 +80,11 @@ impl Renderer {
         let mod_inspect = ModInspect::new(Module::new(mod_inspect_size, mod_padding));
         let mod_interact = ModInteract::new(Module::new(mod_interact_size, mod_padding));
 
-        let prev_frame = vec![vec![TermCell::ERR; canvas_size.x]; canvas_size.y];
+        let prev_frame =
+            vec![vec![assets.get_ui_element_drawable("UI_BKG"); canvas_size.x]; canvas_size.y];
 
         Ok(Self {
+            assets,
             prev_is_night: false,
             prev_frame,
             render_count: 0,
@@ -81,7 +108,12 @@ impl Renderer {
         self.mod_inspect = ModInspect::new(Module::new(mod_inspect_size, mod_padding));
         self.mod_interact = ModInteract::new(Module::new(mod_interact_size, mod_padding));
 
-        self.prev_frame = vec![vec![TermCell::ERR; self.canvas_size.x]; self.canvas_size.y];
+        // TODO: dont fetch err assets like this every time lol
+        self.prev_frame =
+            vec![
+                vec![self.assets.get_ui_element_drawable("UI_BKG"); self.canvas_size.x];
+                self.canvas_size.y
+            ];
     }
 
     pub fn render(
@@ -100,12 +132,16 @@ impl Renderer {
             ui_state.term_size_change = None;
         };
 
-        let mut new_frame: Vec<Vec<TermCell>> =
-            vec![vec![BKG_EL; self.canvas_size.x]; self.canvas_size.y];
+        // TODO: dont fetch err assets like this every time lol
+        let mut new_frame: Vec<Vec<DrawableCell>> =
+            vec![
+                vec![self.assets.get_ui_element_drawable("UI_BKG"); self.canvas_size.x];
+                self.canvas_size.y
+            ];
 
         for (row, line_contents) in self
             .mod_central
-            .render(game_state, ui_state)
+            .render(&self.assets, game_state, ui_state)
             .iter()
             .enumerate()
         {
@@ -136,7 +172,7 @@ impl Renderer {
 
         let mod_inspect_pos =
             TermCoord::new(3, self.canvas_size.x.saturating_sub(MOD_INSPECT_COLS + 5));
-        if let Some(renderable) = self.mod_inspect.render(game_state, ui_state) {
+        if let Some(renderable) = self.mod_inspect.render(game_state, ui_state, &self.assets) {
             for (row, line_contents) in renderable.iter().enumerate() {
                 for (col, cell) in line_contents.iter().enumerate() {
                     new_frame
@@ -152,7 +188,7 @@ impl Renderer {
             3,
             (self.canvas_size.x.saturating_sub(MOD_INTERACT_COLS)) / 2,
         );
-        if let Some(renderable) = self.mod_interact.render(game_state, ui_state) {
+        if let Some(renderable) = self.mod_interact.render(game_state, ui_state, &self.assets) {
             for (row, line_contents) in renderable.iter().enumerate() {
                 for (col, cell) in line_contents.iter().enumerate() {
                     new_frame

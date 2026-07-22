@@ -1,0 +1,29 @@
+[Grass]
+up = "WORLD.GREEN_1"
+down = "WORLD.GREEN_1"
+std = { ch = "'", fg = "WORLD.GREEN_0", bg = "WORLD.GREEN_1" }
+var = { ch = "\"", fg = "WORLD.GREEN_0", bg = "WORLD.GREEN_1" }
+
+[Water]
+up = "WORLD.BLUE_1"
+down = "WORLD.BLUE_0"
+std = { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" }
+var = { ch = "-", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" }
+
+[Woods]
+up = "WORLD.GREEN_2"
+down = "WORLD.GREEN_2"
+std = { ch = "^", fg = "WORLD.GREEN_1", bg = "WORLD.GREEN_2" }
+var = { ch = "^", fg = "WORLD.GREEN_3", bg = "WORLD.GREEN_2" }
+
+[Mountain]
+up = "WORLD.GREY_0"
+down = "WORLD.GREY_2"
+std = { ch = "M", fg = "WORLD.GREY_2", bg = "WORLD.GREY_1" }
+var = { ch = "M", fg = "WORLD.WHITE", bg = "WORLD.GREY_1" }
+
+[HighMountain]
+up = "WORLD.WHITE"
+down = "WORLD.WHITE"
+std = { ch = "M", fg = "WORLD.WHITE", bg = "WORLD.WHITE" }
+var = { ch = "M", fg = "WORLD.BLUE_0", bg = "WORLD.WHITE" }

@@ -1,8 +1,10 @@
+use std::fmt::Pointer;
+
 use crate::{
-    assets::{GameObjAsset, SELECTION_TERMCELL, TermCell, TileAsset},
+    assets::{Assets, TileAsset},
     camera::CameraLocation,
     game_state::GameState,
-    renderer::module::Module,
+    renderer::{module::Module, renderer::DrawableCell},
     tui::Tui,
     ui_state::{UiMode, UiState},
 };
@@ -21,7 +23,8 @@ impl ModInspect {
         &mut self,
         game_state: &GameState,
         ui_state: &UiState,
-    ) -> Option<Vec<Vec<TermCell>>> {
+        assets: &Assets,
+    ) -> Option<Vec<Vec<DrawableCell>>> {
         if let UiMode::Inspect(ref inspect) = ui_state.mode {
             match ui_state.camera.location {
                 CameraLocation::Map | CameraLocation::WorldMap => {
@@ -36,9 +39,11 @@ impl ModInspect {
                         &game_state.player.castle_id,
                         selected_id,
                         &mut looked_objs,
+                        game_state.time.night,
+                        assets,
                     );
 
-                    self.draw_tile_component(looked_tile, night);
+                    self.draw_tile_component(looked_tile, night, assets);
                 }
                 CameraLocation::Courtyard => {
                     if let Some(looked_facility) =
@@ -60,6 +65,8 @@ impl ModInspect {
         owned_castle: &Option<GameId>,
         selected_id: Option<GameId>,
         objs: &mut Vec<(GameId, &GameObjE)>,
+        night: bool,
+        assets: &Assets,
     ) {
         if objs.is_empty() {
             return;
@@ -75,15 +82,18 @@ impl ModInspect {
 
         for (id, obj) in objs.iter() {
             let selected = selected_id.is_some_and(|id_| id_ == *id);
-            let selected_icon = SELECTION_TERMCELL;
+            let selected_icon = assets.get_ui_element_drawable("SELECTION");
             match obj {
                 GameObjE::Castle(castle) => {
                     let owned = *owned_castle == Some(*id);
-                    let icon = GameObjAsset::get_asset(obj, owned)[0][0];
+                    let icon = assets.get_world_obj_asset_drawable(obj, owned, night)[0][0];
                     let name_string = format!(" : {}", castle.name).to_string();
 
                     self.module.push_row_with_text(&name_string);
-                    self.module.draw_cell_last_row(icon, 0);
+
+                    if let Some(icon) = icon {
+                        self.module.draw_cell_last_row(icon, 0);
+                    }
                     if selected {
                         self.module
                             .draw_cell_last_row(selected_icon, self.module.drawable_size().x - 1)
@@ -99,11 +109,13 @@ impl ModInspect {
                 }
                 GameObjE::Structure(structure) => {
                     let owned = *owned_castle == Some(*id);
-                    let icon = GameObjAsset::get_asset(obj, owned)[0][0];
+                    let icon = assets.get_world_obj_asset_drawable(obj, owned, night)[0][0];
                     let name_string = format!(" : {}", structure.name).to_string();
 
                     self.module.push_row_with_text(&name_string);
-                    self.module.draw_cell_last_row(icon, 0);
+                    if let Some(icon) = icon {
+                        self.module.draw_cell_last_row(icon, 0);
+                    }
                     if selected {
                         self.module
                             .draw_cell_last_row(selected_icon, self.module.drawable_size().x - 1)
@@ -111,11 +123,13 @@ impl ModInspect {
                 }
                 GameObjE::DeployedUnits(units) => {
                     let owned = *owned_castle == Some(*id);
-                    let icon = GameObjAsset::get_asset(obj, owned)[0][0];
+                    let icon = assets.get_world_obj_asset_drawable(obj, owned, night)[0][0];
                     let name_string = "{Units}".to_string();
 
                     self.module.push_row_with_text(&name_string);
-                    self.module.draw_cell_last_row(icon, 0);
+                    if let Some(icon) = icon {
+                        self.module.draw_cell_last_row(icon, 0);
+                    }
                     if selected {
                         self.module
                             .draw_cell_last_row(selected_icon, self.module.drawable_size().x - 1)
@@ -129,8 +143,8 @@ impl ModInspect {
         }
     }
 
-    fn draw_tile_component(&mut self, tile: Tile, night: bool) {
-        let icon = TileAsset::get_asset(tile, night).std;
+    fn draw_tile_component(&mut self, tile: Tile, night: bool, assets: &Assets) {
+        let icon = assets.get_tile_asset(&tile).std.to_drawable_cell(night);
         self.module.push_row_with_text(&format!(" : {:?}", tile));
         self.module.draw_cell_last_row(icon, 0);
     }

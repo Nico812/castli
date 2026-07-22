@@ -1,0 +1,242 @@
+# WORLD OBJS
+
+[MyCastle]
+cells = [[{ ch = "@", fg = "UI.GREEN", bg = "UI.BLACK" }]]
+
+[Castle]
+cells = [[{ ch = "@", fg = "UI.WHITE", bg = "UI.BLACK" }]]
+
+[DeadCastle]
+cells = [[{ ch = "X", fg = "UI.RED", bg = "UI.BLACK" }]]
+
+[MyDeployedUnits]
+cells = [[{ ch = "u", fg = "UI.GREEN", bg = "UI.BLACK" }]]
+
+[DeployedUnits]
+cells = [[{ ch = "u", fg = "UI.WHITE", bg = "UI.BLACK" }]]
+
+# COURTYARD OBJS
+
+[Wall]
+cells = [
+  [
+    { ch = "▓", fg = "WORLD.GREY_0", bg = "WORLD.GREY_2" },
+    { ch = "▓", fg = "WORLD.GREY_0", bg = "WORLD.GREY_2" },
+    { ch = "▓", fg = "WORLD.GREY_0", bg = "WORLD.GREY_2" },
+    { ch = "▓", fg = "WORLD.GREY_0", bg = "WORLD.GREY_2" },
+  ],
+  [
+    { ch = "▓", fg = "WORLD.GREY_0", bg = "WORLD.GREY_2" },
+    {},
+    {},
+    { ch = "▓", fg = "WORLD.GREY_0", bg = "WORLD.GREY_2" },
+  ],
+  [
+    { ch = "▓", fg = "WORLD.GREY_0", bg = "WORLD.GREY_2" },
+    { ch = "▓", fg = "WORLD.GREY_0", bg = "WORLD.GREY_2" },
+    { ch = "▓", fg = "WORLD.GREY_0", bg = "WORLD.GREY_2" },
+    { ch = "▓", fg = "WORLD.GREY_0", bg = "WORLD.GREY_2" },
+  ],
+]
+
+[FarmPlot]
+cells = [
+  [
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+  ],
+  [
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = '▓', fg = "WORLD.GREEN_0", bg = "WORLD.GREEN_1" },
+    { ch = '▒', fg = "WORLD.GREEN_0", bg = "WORLD.GREEN_1" },
+    { ch = '▓', fg = "WORLD.GREEN_0", bg = "WORLD.GREEN_1" },
+    { ch = '▓', fg = "WORLD.GREEN_0", bg = "WORLD.GREEN_1" },
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+  ],
+  [
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = '░', fg = "WORLD.GREEN_0", bg = "WORLD.GREEN_1" },
+    { ch = '▓', fg = "WORLD.GREEN_0", bg = "WORLD.GREEN_1" },
+    { ch = '░', fg = "WORLD.GREEN_0", bg = "WORLD.GREEN_1" },
+    { ch = '▓', fg = "WORLD.GREEN_0", bg = "WORLD.GREEN_1" },
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+  ],
+  [
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+  ],
+]
+
+[Sawmill]
+cells = [
+  [
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "X", fg = "WORLD.WHITE", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+  ],
+  [
+    { ch = "|", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "═", fg = "WORLD.GREEN_3", bg = "WORLD.BROWN" },
+    { ch = "▓", fg = "WORLD.GREEN_3", bg = "WORLD.BROWN" },
+    { ch = "░", fg = "WORLD.GREEN_3", bg = "WORLD.BROWN" },
+    { ch = "▓", fg = "WORLD.GREEN_3", bg = "WORLD.BROWN" },
+    { ch = "═", fg = "WORLD.GREEN_3", bg = "WORLD.BROWN" },
+    { ch = "|", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+  ],
+  [
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.BROWN", bg = "UI.BLACK" },
+  ],
+]
+
+[Mines]
+cells = [
+  [
+    { ch = "/", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "^", fg = "WORLD.GREY_0", bg = "UI.BLACK" },
+    { ch = "^", fg = "WORLD.GREY_0", bg = "UI.BLACK" },
+    { ch = "^", fg = "WORLD.GREY_0", bg = "UI.BLACK" },
+    { ch = "^", fg = "WORLD.GREY_0", bg = "UI.BLACK" },
+    { ch = "^", fg = "WORLD.GREY_0", bg = "UI.BLACK" },
+    { ch = "\\", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+  ],
+  [
+    { ch = "|", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "░", fg = "WORLD.GREY_0", bg = "WORLD.GREY_2" },
+    { ch = "▓", fg = "WORLD.GREY_0", bg = "WORLD.GREY_2" },
+    { ch = "▒", fg = "WORLD.GREY_0", bg = "WORLD.GREY_2" },
+    { ch = "▓", fg = "WORLD.GREY_0", bg = "WORLD.GREY_2" },
+    { ch = "░", fg = "WORLD.GREY_0", bg = "WORLD.GREY_2" },
+    { ch = "|", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+  ],
+  [
+    { ch = "+", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+  ],
+]
+
+[Barracks]
+cells = [
+  [
+    { ch = "+", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "▀", fg = "WORLD.GREY_0", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "▀", fg = "WORLD.GREY_0", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "▀", fg = "WORLD.GREY_0", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "▀", fg = "WORLD.GREY_0", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+  ],
+  [
+    { ch = "|", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "▒", fg = "WORLD.GREY_0", bg = "WORLD.GREY_1" },
+    { ch = "▓", fg = "WORLD.GREY_0", bg = "WORLD.GREY_1" },
+    { ch = "▒", fg = "WORLD.GREY_0", bg = "WORLD.GREY_1" },
+    { ch = "▓", fg = "WORLD.GREY_0", bg = "WORLD.GREY_1" },
+    { ch = "▒", fg = "WORLD.GREY_0", bg = "WORLD.GREY_1" },
+    { ch = "▓", fg = "WORLD.GREY_0", bg = "WORLD.GREY_1" },
+    { ch = "▒", fg = "WORLD.GREY_0", bg = "WORLD.GREY_1" },
+    { ch = "|", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+  ],
+  [
+    { ch = "|", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "░", fg = "WORLD.GREY_0", bg = "WORLD.GREY_1" },
+    { ch = "░", fg = "WORLD.GREY_0", bg = "WORLD.GREY_1" },
+    { ch = "░", fg = "WORLD.GREY_0", bg = "WORLD.GREY_1" },
+    { ch = "♦", fg = "UI.RED", bg = "WORLD.GREY_1" },
+    { ch = "░", fg = "WORLD.GREY_0", bg = "WORLD.GREY_1" },
+    { ch = "░", fg = "WORLD.GREY_0", bg = "WORLD.GREY_1" },
+    { ch = "░", fg = "WORLD.GREY_0", bg = "WORLD.GREY_1" },
+    { ch = "|", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+  ],
+  [
+    { ch = "+", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "-", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+    { ch = "+", fg = "WORLD.GREY_2", bg = "UI.BLACK" },
+  ],
+]
+
+[Shipyard]
+cells = [
+  [
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "|", fg = "WORLD.WHITE", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "|", fg = "WORLD.WHITE", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+  ],
+  [
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "/", fg = "WORLD.BROWN", bg = "WORLD.BLUE_1" },
+    { ch = "▓", fg = "WORLD.WHITE", bg = "WORLD.BROWN" },
+    { ch = "▒", fg = "WORLD.WHITE", bg = "WORLD.BROWN" },
+    { ch = "▓", fg = "WORLD.WHITE", bg = "WORLD.BROWN" },
+    { ch = "\\", fg = "WORLD.BROWN", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+  ],
+  [
+    { ch = "_", fg = "WORLD.BROWN", bg = "WORLD.BLUE_1" },
+    { ch = "[", fg = "WORLD.WHITE", bg = "WORLD.BROWN" },
+    { ch = "▓", fg = "UI.BLACK", bg = "WORLD.BROWN" },
+    { ch = "▒", fg = "UI.BLACK", bg = "WORLD.BROWN" },
+    { ch = "▓", fg = "UI.BLACK", bg = "WORLD.BROWN" },
+    { ch = "░", fg = "UI.BLACK", bg = "WORLD.BROWN" },
+    { ch = "▓", fg = "UI.BLACK", bg = "WORLD.BROWN" },
+    { ch = "▒", fg = "UI.BLACK", bg = "WORLD.BROWN" },
+    { ch = "▓", fg = "UI.BLACK", bg = "WORLD.BROWN" },
+    { ch = "]", fg = "WORLD.WHITE", bg = "WORLD.BROWN" },
+    { ch = "_", fg = "WORLD.BROWN", bg = "WORLD.BLUE_1" },
+  ],
+  [
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+    { ch = "~", fg = "WORLD.BLUE_0", bg = "WORLD.BLUE_1" },
+  ],
+]

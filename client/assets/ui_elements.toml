@@ -1,0 +1,11 @@
+CURSOR_L = { ch = ">", fg = "UI.WHITE", bg = "UI.BLACK" }
+
+CURSOR_R = { ch = "<", fg = "UI.WHITE", bg = "UI.BLACK" }
+
+SELECTION = { ch = "<", fg = "UI.BLACK", bg = "UI.WHITE" }
+
+UI_BKG = { ch = ".", fg = "UI.WHITE", bg = "UI.BLACK" }
+
+WORLD_MAP_BKG = { ch = ".", fg = "UI.WHITE", bg = "UI.BLACK" }
+
+ERR = { ch = "?", fg = "UI.MAGENTA", bg = "UI.MAGENTA" }

@@ -1,9 +1,9 @@
 use common::{all_facilities, all_units, game_objs::GameObjE};
 
 use crate::{
-    assets::{SELECTION_TERMCELL, TermCell},
+    assets::Assets,
     game_state::GameState,
-    renderer::module::Module,
+    renderer::{module::Module, renderer::DrawableCell},
     ui_state::{InteractTarget, UiMode, UiState},
 };
 
@@ -20,7 +20,8 @@ impl ModInteract {
         &mut self,
         game_state: &GameState,
         ui_state: &UiState,
-    ) -> Option<Vec<Vec<TermCell>>> {
+        assets: &Assets,
+    ) -> Option<Vec<Vec<DrawableCell>>> {
         match ui_state.mode {
             UiMode::Interact(ref interact_target) => {
                 match interact_target {
@@ -85,7 +86,7 @@ impl ModInteract {
                     self.module.push_row_with_text(&text);
 
                     if is_active {
-                        let selection_icon = SELECTION_TERMCELL;
+                        let selection_icon = assets.get_ui_element_drawable("SELECTION");
                         self.module
                             .draw_cell_last_row(selection_icon, self.module.drawable_size().x - 1);
                     }
@@ -121,7 +122,7 @@ impl ModInteract {
                     self.module.push_row_with_text(&quantities_text);
                     if is_active {
                         self.module.draw_cell_last_row(
-                            SELECTION_TERMCELL,
+                            assets.get_ui_element_drawable("SELECTION"),
                             self.module.drawable_size().x - 1,
                         );
                     }

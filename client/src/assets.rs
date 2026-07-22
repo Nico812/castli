@@ -1,7 +1,4 @@
-// In this game the renderables are all Vec<Vec<TermCell>>.
-//
-// Each asset has two version. One is used as a standard, the other as the cell where wind is present.
-// This will proably change in the future.
+use std::{collections::HashMap, fs::read_to_string};
 
 use common::{
     courtyard::{Facility, FacilityType},
@@ -9,645 +6,306 @@ use common::{
     map::Tile,
 };
 use crossterm::style::{Color, StyledContent, Stylize};
+use serde::Deserialize;
+use toml::{Table, Value};
 
-use crate::ansi::*;
+use crate::{
+    assets::DynamicColor::UiColor,
+    renderer::renderer::{DrawableAsset, DrawableCell},
+};
 
-#[derive(Copy, Clone, PartialEq)]
-pub struct TermCell {
-    pub ch: char,
-    pub fg: Color,
-    pub bg: Color,
+pub const BLOCK: char = '▀';
+
+#[derive(Deserialize, Copy, Clone)]
+pub struct WorldColor {
+    day: Color,
+    night: Color,
 }
 
-impl TermCell {
-    pub const ERR: Self = Self {
-        fg: MAGENTA,
-        bg: BLACK,
-        ch: '?',
-    };
+#[derive(Clone, Copy)]
+pub enum DynamicColor {
+    UiColor(Color),
+    WorldColor(WorldColor),
+}
 
-    pub const fn new(ch: char, fg: Color, bg: Color) -> Self {
-        Self { ch, fg, bg }
+impl DynamicColor {
+    pub fn to_crossterm_color(&self, night: bool) -> Color {
+        match self {
+            Self::UiColor(color) => *color,
+            Self::WorldColor(color) => {
+                if night {
+                    color.night
+                } else {
+                    color.day
+                }
+            }
+        }
     }
+}
 
-    pub fn printable(&self) -> StyledContent<char> {
-        self.ch.with(self.fg).on(self.bg)
+#[derive(Deserialize, Clone)]
+pub struct AssetCellUnresolved {
+    pub ch: Option<char>,
+    pub fg: Option<String>,
+    pub bg: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct TileAssetUnresolved {
+    pub up: String,
+    pub down: String,
+    pub std: AssetCellUnresolved,
+    pub var: AssetCellUnresolved,
+}
+
+#[derive(Deserialize)]
+pub struct ObjectAssetUnresolved {
+    cells: Vec<Vec<AssetCellUnresolved>>,
+}
+
+#[derive(Clone, Copy)]
+pub struct AssetCell {
+    pub ch: char,
+    pub fg: DynamicColor,
+    pub bg: DynamicColor,
+}
+
+impl AssetCell {
+    pub fn to_drawable_cell(&self, night: bool) -> DrawableCell {
+        let fg = self.fg.to_crossterm_color(night);
+        let bg = self.bg.to_crossterm_color(night);
+
+        DrawableCell::new(self.ch, fg, bg)
     }
 }
 
 pub struct TileAsset {
-    pub up: Color,
-    pub down: Color,
-    pub std: TermCell,
-    pub wind: TermCell,
+    pub up: DynamicColor,
+    pub down: DynamicColor,
+    pub std: AssetCell,
+    pub var: AssetCell,
 }
 
-impl TileAsset {
-    pub const ERR: TileAsset = TileAsset {
-        up: MAGENTA,
-        down: MAGENTA,
-        std: TermCell::ERR,
-        wind: TermCell::new('!', WHITE, MAGENTA),
-    };
+struct ObjectAsset {
+    pub cells: Vec<Vec<Option<AssetCell>>>,
+}
 
-    pub fn get_asset(tile: Tile, night: bool) -> Self {
-        match tile {
-            Tile::Grass => {
-                if night {
-                    NIGHT_GRASS
-                } else {
-                    DAY_GRASS
-                }
-            }
-            Tile::Water => {
-                if night {
-                    NIGHT_WATER
-                } else {
-                    DAY_WATER
-                }
-            }
-            Tile::Woods => {
-                if night {
-                    NIGHT_WOODS
-                } else {
-                    DAY_WOODS
-                }
-            }
-            Tile::Mountain => {
-                if night {
-                    NIGHT_MOUNTAIN
-                } else {
-                    DAY_MOUNTAIN
-                }
-            }
-            Tile::HighMountain => {
-                if night {
-                    NIGHT_HIGH_MOUNTAIN
-                } else {
-                    DAY_HIGH_MOUNTAIN
-                }
-            }
-            Tile::Err => Self::ERR,
+pub struct Assets {
+    colors_ui: HashMap<String, Color>,
+    colors_world: HashMap<String, WorldColor>,
+    ui_elements: HashMap<String, AssetCell>,
+    tiles: HashMap<String, TileAsset>,
+    objs: HashMap<String, ObjectAsset>,
+}
+
+impl Assets {
+    pub fn load() -> Self {
+        let colors_ui: HashMap<String, Color> = toml::from_str(
+            &read_to_string("./assets/colors_ui.toml").expect("Failed to read colors_ui.toml"),
+        )
+        .expect("Failed to parse colors.toml");
+
+        let colors_world: HashMap<String, WorldColor> = toml::from_str(
+            &read_to_string("./assets/colors_world.toml")
+                .expect("Failed to read colors_world.toml"),
+        )
+        .expect("Failed to parse colors.toml");
+
+        let ui_elements: HashMap<String, AssetCell> = toml::from_str::<
+            HashMap<String, AssetCellUnresolved>,
+        >(
+            &read_to_string("./assets/ui_elements.toml").expect("Failed to read ui_elements.toml"),
+        )
+        .expect("Failed to parse ui_elements.toml")
+        .into_iter()
+        .map(|(name, asset_unresolved)| {
+            (
+                name,
+                Self::resolve_cell(asset_unresolved, &colors_ui, &colors_world)
+                    .expect("Trying to resolve empty ui element"),
+            )
+        })
+        .collect();
+
+        let tiles: HashMap<String, TileAsset> =
+            toml::from_str::<HashMap<String, TileAssetUnresolved>>(
+                &read_to_string("./assets/tiles.toml").expect("Failed to read tiles.toml"),
+            )
+            .expect("Failed to parse tiles.toml")
+            .into_iter()
+            .map(|(name, asset_unresolved)| {
+                (
+                    name,
+                    Self::resolve_tile_asset(asset_unresolved, &colors_ui, &colors_world),
+                )
+            })
+            .collect();
+
+        let objs: HashMap<String, ObjectAsset> =
+            toml::from_str::<HashMap<String, ObjectAssetUnresolved>>(
+                &read_to_string("./assets/objects.toml").expect("Failed to read objects.toml"),
+            )
+            .expect("Failed to parse objects.toml")
+            .into_iter()
+            .map(|(name, asset_unresolved)| {
+                (
+                    name,
+                    Self::resolve_object_asset(asset_unresolved, &colors_ui, &colors_world),
+                )
+            })
+            .collect();
+
+        Self {
+            colors_ui,
+            colors_world,
+            ui_elements,
+            tiles,
+            objs,
         }
     }
-}
 
-pub struct FacilityAsset;
-
-impl FacilityAsset {
-    pub fn get_asset(facility: &Facility, night: bool) -> &[&[TermCell]] {
-        match (facility.r#type, night) {
-            (FacilityType::Wall, false) => DAY_WALL,
-            (FacilityType::Wall, true) => NIGHT_WALL,
-            (FacilityType::FarmPlot, false) => DAY_FARM_PLOT,
-            (FacilityType::FarmPlot, true) => NIGHT_FARM_PLOT,
-            (FacilityType::Sawmill, false) => DAY_SAWMILL,
-            (FacilityType::Sawmill, true) => NIGHT_SAWMILL,
-            (FacilityType::Mines, false) => DAY_MINES,
-            (FacilityType::Mines, true) => NIGHT_MINES,
-            (FacilityType::Barracks, false) => DAY_BARRACKS,
-            (FacilityType::Barracks, true) => NIGHT_BARRACKS,
-            (FacilityType::Shipyard, false) => DAY_SHIPYARD,
-            (FacilityType::Shipyard, true) => NIGHT_SHIPYARD,
-        }
+    pub fn get_ui_element_drawable(&self, name: &str) -> DrawableCell {
+        self.ui_elements
+            .get(name)
+            .expect(&format!(
+                "Unable to fetch ui element with name \"{}\"",
+                name
+            ))
+            .to_drawable_cell(false)
     }
-}
 
-// Misc
+    pub fn get_facility_asset_drawable(&self, facility: &Facility, night: bool) -> DrawableAsset {
+        let object_key = format!("{:?}", facility.r#type);
 
-pub const BLOCK: char = '▀';
+        self.objs
+            .get(&object_key)
+            .expect("Unable to fetch facility asset")
+            .cells
+            .iter()
+            .map(|asset_row| {
+                asset_row
+                    .iter()
+                    .map(|opt_cell| opt_cell.map(|cell| cell.to_drawable_cell(night)))
+                    .collect()
+            })
+            .collect()
+    }
 
-pub const CURSOR: &[&[TermCell]] = &[&[
-    TermCell::new('>', WHITE, BLACK),
-    TermCell::new('<', WHITE, BLACK),
-]];
+    pub fn get_tile_asset(&self, tile: &Tile) -> &TileAsset {
+        let tile_key = format!("{:?}", tile);
 
-pub const SELECTION_TERMCELL: TermCell = TermCell::new('<', BLACK, WHITE);
+        self.tiles
+            .get(&tile_key)
+            .expect("Unable to fetch tile asset")
+    }
 
-pub const BKG_EL: TermCell = TermCell::new('.', WHITE, BLACK);
-pub const COURTYARD_BK_CELL: TermCell = TermCell::new('.', DAY_GREEN_0, BLACK);
-
-// Tiles
-
-pub const DAY_GRASS: TileAsset = TileAsset {
-    up: DAY_GREEN_1,
-    down: DAY_GREEN_1,
-    std: TermCell::new('\'', DAY_GREEN_0, DAY_GREEN_1),
-    wind: TermCell::new('\"', DAY_GREEN_0, DAY_GREEN_1),
-};
-
-pub const NIGHT_GRASS: TileAsset = TileAsset {
-    up: NIGHT_GREEN_1,
-    down: NIGHT_GREEN_1,
-    std: TermCell::new('\'', NIGHT_GREEN_0, NIGHT_GREEN_1),
-    wind: TermCell::new('\"', NIGHT_GREEN_0, NIGHT_GREEN_1),
-};
-
-pub const DAY_WATER: TileAsset = TileAsset {
-    up: DAY_BLUE_1,
-    down: DAY_BLUE_0,
-    std: TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-    wind: TermCell::new('-', DAY_BLUE_0, DAY_BLUE_1),
-};
-
-pub const NIGHT_WATER: TileAsset = TileAsset {
-    up: NIGHT_BLUE_1,
-    down: NIGHT_BLUE_0,
-    std: TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-    wind: TermCell::new('-', NIGHT_BLUE_0, NIGHT_BLUE_1),
-};
-
-pub const DAY_WOODS: TileAsset = TileAsset {
-    up: DAY_GREEN_2,
-    down: DAY_GREEN_2,
-    std: TermCell::new('^', DAY_GREEN_1, DAY_GREEN_2),
-    wind: TermCell::new('^', DAY_GREEN_3, DAY_GREEN_2),
-};
-
-pub const NIGHT_WOODS: TileAsset = TileAsset {
-    up: NIGHT_GREEN_2,
-    down: NIGHT_GREEN_2,
-    std: TermCell::new('^', NIGHT_GREEN_1, NIGHT_GREEN_2),
-    wind: TermCell::new('^', NIGHT_GREEN_3, NIGHT_GREEN_2),
-};
-
-pub const DAY_MOUNTAIN: TileAsset = TileAsset {
-    up: DAY_GREY_0,
-    down: DAY_GREY_2,
-    std: TermCell::new('M', DAY_GREY_2, DAY_GREY_1),
-    wind: TermCell::new('M', DAY_WHITE, DAY_GREY_1),
-};
-
-pub const NIGHT_MOUNTAIN: TileAsset = TileAsset {
-    up: NIGHT_GREY_0,
-    down: NIGHT_GREY_2,
-    std: TermCell::new('M', NIGHT_GREY_2, NIGHT_GREY_1),
-    wind: TermCell::new('M', NIGHT_WHITE, NIGHT_GREY_1),
-};
-
-pub const DAY_HIGH_MOUNTAIN: TileAsset = TileAsset {
-    up: DAY_WHITE,
-    down: DAY_WHITE,
-    std: TermCell::new('M', DAY_WHITE, DAY_WHITE),
-    wind: TermCell::new('M', DAY_BLUE_0, DAY_WHITE),
-};
-
-pub const NIGHT_HIGH_MOUNTAIN: TileAsset = TileAsset {
-    up: NIGHT_WHITE,
-    down: NIGHT_WHITE,
-    std: TermCell::new('M', NIGHT_WHITE, NIGHT_WHITE),
-    wind: TermCell::new('M', NIGHT_BLUE_0, NIGHT_WHITE),
-};
-
-// Game elements
-
-pub struct GameObjAsset;
-
-impl GameObjAsset {
-    pub fn get_asset(obj: &GameObjE, owned: bool) -> &[&[TermCell]] {
-        match obj {
+    pub fn get_world_obj_asset_drawable(
+        &self,
+        world_obj: &GameObjE,
+        owned: bool,
+        night: bool,
+    ) -> DrawableAsset {
+        let object_key = match world_obj {
             GameObjE::Castle(castle) => {
                 if !castle.alive {
-                    DEAD_CASTLE_ART
+                    "DeadCastle"
                 } else if owned {
-                    MY_CASTLE_ART
+                    "MyCastle"
                 } else {
-                    CASTLE_ART
+                    "Castle"
                 }
             }
+            GameObjE::Structure(_) => "Err",
             GameObjE::DeployedUnits(_) => {
                 if owned {
-                    MY_DEPLOYED_UNITS_ART
+                    "MyDeployedUnits"
                 } else {
-                    DEPLOYED_UNITS_ART
+                    "DeployedUnits"
                 }
             }
-            _ => ERR_ART,
+        };
+
+        self.objs
+            .get(object_key)
+            .expect("Unable to fetch world_obj asset")
+            .cells
+            .iter()
+            .map(|asset_row| {
+                asset_row
+                    .iter()
+                    .map(|opt_cell| opt_cell.map(|cell| cell.to_drawable_cell(night)))
+                    .collect()
+            })
+            .collect()
+    }
+
+    fn resolve_color_ref(
+        color_ref: &str,
+        colors_ui: &HashMap<String, Color>,
+        colors_world: &HashMap<String, WorldColor>,
+    ) -> DynamicColor {
+        if let Some(color_name) = color_ref.strip_prefix("WORLD.") {
+            let color = colors_world
+                .get(color_name)
+                .expect("Failed to fetch color from table");
+            DynamicColor::WorldColor(*color)
+        } else {
+            let color_name = color_ref
+                .strip_prefix("UI.")
+                .expect("Trying to fetch color that doesnt start with UI./WORLD.");
+            let color = colors_ui
+                .get(color_name)
+                .expect("Failed to fetch color from table");
+            DynamicColor::UiColor(*color)
         }
     }
+
+    pub fn resolve_cell(
+        cell: AssetCellUnresolved,
+        colors_ui: &HashMap<String, Color>,
+        colors_world: &HashMap<String, WorldColor>,
+    ) -> Option<AssetCell> {
+        if let (Some(ch), Some(fg), Some(bg)) = (cell.ch, cell.fg, cell.bg) {
+            Some(AssetCell {
+                ch: ch,
+                fg: Self::resolve_color_ref(&fg, colors_ui, colors_world),
+                bg: Self::resolve_color_ref(&bg, colors_ui, colors_world),
+            })
+        } else {
+            None
+        }
+    }
+
+    fn resolve_tile_asset(
+        tile_asset: TileAssetUnresolved,
+        colors_ui: &HashMap<String, Color>,
+        colors_world: &HashMap<String, WorldColor>,
+    ) -> TileAsset {
+        TileAsset {
+            up: Self::resolve_color_ref(&tile_asset.up, colors_ui, colors_world),
+            down: Self::resolve_color_ref(&tile_asset.down, colors_ui, colors_world),
+            std: Self::resolve_cell(tile_asset.std, colors_ui, colors_world)
+                .expect("Trying to resolve empty tile"),
+            var: Self::resolve_cell(tile_asset.var, colors_ui, colors_world)
+                .expect("Trying to resolve empty tile"),
+        }
+    }
+
+    fn resolve_object_asset(
+        obj_asset: ObjectAssetUnresolved,
+        colors_ui: &HashMap<String, Color>,
+        colors_world: &HashMap<String, WorldColor>,
+    ) -> ObjectAsset {
+        let cells = obj_asset
+            .cells
+            .into_iter()
+            .map(|row| {
+                row.into_iter()
+                    .map(|unresolved| Self::resolve_cell(unresolved, colors_ui, colors_world))
+                    .collect()
+            })
+            .collect();
+
+        ObjectAsset { cells }
+    }
 }
-
-pub const MY_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', GREEN, BLACK)]];
-pub const CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('@', WHITE, BLACK)]];
-pub const DEAD_CASTLE_ART: &[&[TermCell]] = &[&[TermCell::new('X', RED, BLACK)]];
-
-pub const MY_DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', GREEN, BLACK)]];
-pub const DEPLOYED_UNITS_ART: &[&[TermCell]] = &[&[TermCell::new('u', WHITE, BLACK)]];
-
-pub const ERR_ART: &[&[TermCell]] = &[&[TermCell::ERR]];
-
-// Facilities
-pub const DAY_WALL: &[&[TermCell]] = &[&[TermCell::new('▓', DAY_GREY_0, DAY_GREY_2)]];
-pub const NIGHT_WALL: &[&[TermCell]] = &[&[TermCell::new('▓', NIGHT_GREY_0, NIGHT_GREY_2)]];
-
-// ++++++
-// +▓▒▓▓+
-// +░▓░▓+
-// ++++++
-pub const DAY_FARM_PLOT: &[&[TermCell]] = &[
-    &[
-        TermCell::new('+', DAY_BROWN, BLACK),
-        TermCell::new('+', DAY_BROWN, BLACK),
-        TermCell::new('+', DAY_BROWN, BLACK),
-        TermCell::new('+', DAY_BROWN, BLACK),
-        TermCell::new('+', DAY_BROWN, BLACK),
-        TermCell::new('+', DAY_BROWN, BLACK),
-    ],
-    &[
-        TermCell::new('+', DAY_BROWN, BLACK),
-        TermCell::new('▓', DAY_GREEN_0, DAY_GREEN_1),
-        TermCell::new('▒', DAY_GREEN_0, DAY_GREEN_1),
-        TermCell::new('▓', DAY_GREEN_0, DAY_GREEN_1),
-        TermCell::new('▓', DAY_GREEN_0, DAY_GREEN_1),
-        TermCell::new('+', DAY_BROWN, BLACK),
-    ],
-    &[
-        TermCell::new('+', DAY_BROWN, BLACK),
-        TermCell::new('░', DAY_GREEN_0, DAY_GREEN_1),
-        TermCell::new('▓', DAY_GREEN_0, DAY_GREEN_1),
-        TermCell::new('░', DAY_GREEN_0, DAY_GREEN_1),
-        TermCell::new('▓', DAY_GREEN_0, DAY_GREEN_1),
-        TermCell::new('+', DAY_BROWN, BLACK),
-    ],
-    &[
-        TermCell::new('+', DAY_BROWN, BLACK),
-        TermCell::new('+', DAY_BROWN, BLACK),
-        TermCell::new('+', DAY_BROWN, BLACK),
-        TermCell::new('+', DAY_BROWN, BLACK),
-        TermCell::new('+', DAY_BROWN, BLACK),
-        TermCell::new('+', DAY_BROWN, BLACK),
-    ],
-];
-
-pub const NIGHT_FARM_PLOT: &[&[TermCell]] = &[
-    &[
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-    ],
-    &[
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-        TermCell::new('▓', NIGHT_GREEN_0, NIGHT_GREEN_1),
-        TermCell::new('▒', NIGHT_GREEN_0, NIGHT_GREEN_1),
-        TermCell::new('▓', NIGHT_GREEN_0, NIGHT_GREEN_1),
-        TermCell::new('▓', NIGHT_GREEN_0, NIGHT_GREEN_1),
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-    ],
-    &[
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-        TermCell::new('░', NIGHT_GREEN_0, NIGHT_GREEN_1),
-        TermCell::new('▓', NIGHT_GREEN_0, NIGHT_GREEN_1),
-        TermCell::new('░', NIGHT_GREEN_0, NIGHT_GREEN_1),
-        TermCell::new('▓', NIGHT_GREEN_0, NIGHT_GREEN_1),
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-    ],
-    &[
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-    ],
-];
-
-// +--X--+
-// |═▓░▓═|
-// +-----+
-pub const DAY_SAWMILL: &[&[TermCell]] = &[
-    &[
-        TermCell::new('+', DAY_BROWN, BLACK),
-        TermCell::new('-', DAY_BROWN, BLACK),
-        TermCell::new('-', DAY_BROWN, BLACK),
-        TermCell::new('X', DAY_WHITE, BLACK),
-        TermCell::new('-', DAY_BROWN, BLACK),
-        TermCell::new('-', DAY_BROWN, BLACK),
-        TermCell::new('+', DAY_BROWN, BLACK),
-    ],
-    &[
-        TermCell::new('|', DAY_BROWN, BLACK),
-        TermCell::new('═', DAY_GREEN_3, DAY_BROWN),
-        TermCell::new('▓', DAY_GREEN_3, DAY_BROWN),
-        TermCell::new('░', DAY_GREEN_3, DAY_BROWN),
-        TermCell::new('▓', DAY_GREEN_3, DAY_BROWN),
-        TermCell::new('═', DAY_GREEN_3, DAY_BROWN),
-        TermCell::new('|', DAY_BROWN, BLACK),
-    ],
-    &[
-        TermCell::new('+', DAY_BROWN, BLACK),
-        TermCell::new('-', DAY_BROWN, BLACK),
-        TermCell::new('-', DAY_BROWN, BLACK),
-        TermCell::new('-', DAY_BROWN, BLACK),
-        TermCell::new('-', DAY_BROWN, BLACK),
-        TermCell::new('-', DAY_BROWN, BLACK),
-        TermCell::new('+', DAY_BROWN, BLACK),
-    ],
-];
-
-pub const NIGHT_SAWMILL: &[&[TermCell]] = &[
-    &[
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-        TermCell::new('-', NIGHT_BROWN, BLACK),
-        TermCell::new('-', NIGHT_BROWN, BLACK),
-        TermCell::new('X', NIGHT_WHITE, BLACK),
-        TermCell::new('-', NIGHT_BROWN, BLACK),
-        TermCell::new('-', NIGHT_BROWN, BLACK),
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-    ],
-    &[
-        TermCell::new('|', NIGHT_BROWN, BLACK),
-        TermCell::new('═', NIGHT_GREEN_3, NIGHT_BROWN),
-        TermCell::new('▓', NIGHT_GREEN_3, NIGHT_BROWN),
-        TermCell::new('░', NIGHT_GREEN_3, NIGHT_BROWN),
-        TermCell::new('▓', NIGHT_GREEN_3, NIGHT_BROWN),
-        TermCell::new('═', NIGHT_GREEN_3, NIGHT_BROWN),
-        TermCell::new('|', NIGHT_BROWN, BLACK),
-    ],
-    &[
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-        TermCell::new('-', NIGHT_BROWN, BLACK),
-        TermCell::new('-', NIGHT_BROWN, BLACK),
-        TermCell::new('-', NIGHT_BROWN, BLACK),
-        TermCell::new('-', NIGHT_BROWN, BLACK),
-        TermCell::new('-', NIGHT_BROWN, BLACK),
-        TermCell::new('+', NIGHT_BROWN, BLACK),
-    ],
-];
-
-// /^^^^^\
-// |░▓▒▓░|
-// +-----+
-pub const DAY_MINES: &[&[TermCell]] = &[
-    &[
-        TermCell::new('/', DAY_GREY_2, BLACK),
-        TermCell::new('^', DAY_GREY_0, BLACK),
-        TermCell::new('^', DAY_GREY_0, BLACK),
-        TermCell::new('^', DAY_GREY_0, BLACK),
-        TermCell::new('^', DAY_GREY_0, BLACK),
-        TermCell::new('^', DAY_GREY_0, BLACK),
-        TermCell::new('\\', DAY_GREY_2, BLACK),
-    ],
-    &[
-        TermCell::new('|', DAY_GREY_2, BLACK),
-        TermCell::new('░', DAY_GREY_0, DAY_GREY_2),
-        TermCell::new('▓', DAY_GREY_0, DAY_GREY_2),
-        TermCell::new('▒', DAY_GREY_0, DAY_GREY_2),
-        TermCell::new('▓', DAY_GREY_0, DAY_GREY_2),
-        TermCell::new('░', DAY_GREY_0, DAY_GREY_2),
-        TermCell::new('|', DAY_GREY_2, BLACK),
-    ],
-    &[
-        TermCell::new('+', DAY_GREY_2, BLACK),
-        TermCell::new('-', DAY_GREY_2, BLACK),
-        TermCell::new('-', DAY_GREY_2, BLACK),
-        TermCell::new('-', DAY_GREY_2, BLACK),
-        TermCell::new('-', DAY_GREY_2, BLACK),
-        TermCell::new('-', DAY_GREY_2, BLACK),
-        TermCell::new('+', DAY_GREY_2, BLACK),
-    ],
-];
-
-pub const NIGHT_MINES: &[&[TermCell]] = &[
-    &[
-        TermCell::new('/', NIGHT_GREY_2, BLACK),
-        TermCell::new('^', NIGHT_GREY_0, BLACK),
-        TermCell::new('^', NIGHT_GREY_0, BLACK),
-        TermCell::new('^', NIGHT_GREY_0, BLACK),
-        TermCell::new('^', NIGHT_GREY_0, BLACK),
-        TermCell::new('^', NIGHT_GREY_0, BLACK),
-        TermCell::new('\\', NIGHT_GREY_2, BLACK),
-    ],
-    &[
-        TermCell::new('|', NIGHT_GREY_2, BLACK),
-        TermCell::new('░', NIGHT_GREY_0, NIGHT_GREY_2),
-        TermCell::new('▓', NIGHT_GREY_0, NIGHT_GREY_2),
-        TermCell::new('▒', NIGHT_GREY_0, NIGHT_GREY_2),
-        TermCell::new('▓', NIGHT_GREY_0, NIGHT_GREY_2),
-        TermCell::new('░', NIGHT_GREY_0, NIGHT_GREY_2),
-        TermCell::new('|', NIGHT_GREY_2, BLACK),
-    ],
-    &[
-        TermCell::new('+', NIGHT_GREY_2, BLACK),
-        TermCell::new('-', NIGHT_GREY_2, BLACK),
-        TermCell::new('-', NIGHT_GREY_2, BLACK),
-        TermCell::new('-', NIGHT_GREY_2, BLACK),
-        TermCell::new('-', NIGHT_GREY_2, BLACK),
-        TermCell::new('-', NIGHT_GREY_2, BLACK),
-        TermCell::new('+', NIGHT_GREY_2, BLACK),
-    ],
-];
-
-// +▀+▀+▀+▀+
-// |▒▓▒▓▒▓▒|
-// |░░░♦░░░|
-// +-------+
-pub const DAY_BARRACKS: &[&[TermCell]] = &[
-    &[
-        TermCell::new('+', DAY_GREY_2, BLACK),
-        TermCell::new('▀', DAY_GREY_0, BLACK),
-        TermCell::new('+', DAY_GREY_2, BLACK),
-        TermCell::new('▀', DAY_GREY_0, BLACK),
-        TermCell::new('+', DAY_GREY_2, BLACK),
-        TermCell::new('▀', DAY_GREY_0, BLACK),
-        TermCell::new('+', DAY_GREY_2, BLACK),
-        TermCell::new('▀', DAY_GREY_0, BLACK),
-        TermCell::new('+', DAY_GREY_2, BLACK),
-    ],
-    &[
-        TermCell::new('|', DAY_GREY_2, BLACK),
-        TermCell::new('▒', DAY_GREY_0, DAY_GREY_1),
-        TermCell::new('▓', DAY_GREY_0, DAY_GREY_1),
-        TermCell::new('▒', DAY_GREY_0, DAY_GREY_1),
-        TermCell::new('▓', DAY_GREY_0, DAY_GREY_1),
-        TermCell::new('▒', DAY_GREY_0, DAY_GREY_1),
-        TermCell::new('▓', DAY_GREY_0, DAY_GREY_1),
-        TermCell::new('▒', DAY_GREY_0, DAY_GREY_1),
-        TermCell::new('|', DAY_GREY_2, BLACK),
-    ],
-    &[
-        TermCell::new('|', DAY_GREY_2, BLACK),
-        TermCell::new('░', DAY_GREY_0, DAY_GREY_1),
-        TermCell::new('░', DAY_GREY_0, DAY_GREY_1),
-        TermCell::new('░', DAY_GREY_0, DAY_GREY_1),
-        TermCell::new('♦', RED, DAY_GREY_1),
-        TermCell::new('░', DAY_GREY_0, DAY_GREY_1),
-        TermCell::new('░', DAY_GREY_0, DAY_GREY_1),
-        TermCell::new('░', DAY_GREY_0, DAY_GREY_1),
-        TermCell::new('|', DAY_GREY_2, BLACK),
-    ],
-    &[
-        TermCell::new('+', DAY_GREY_2, BLACK),
-        TermCell::new('-', DAY_GREY_2, BLACK),
-        TermCell::new('-', DAY_GREY_2, BLACK),
-        TermCell::new('-', DAY_GREY_2, BLACK),
-        TermCell::new('-', DAY_GREY_2, BLACK),
-        TermCell::new('-', DAY_GREY_2, BLACK),
-        TermCell::new('-', DAY_GREY_2, BLACK),
-        TermCell::new('-', DAY_GREY_2, BLACK),
-        TermCell::new('+', DAY_GREY_2, BLACK),
-    ],
-];
-
-pub const NIGHT_BARRACKS: &[&[TermCell]] = &[
-    &[
-        TermCell::new('+', NIGHT_GREY_2, BLACK),
-        TermCell::new('▀', NIGHT_GREY_0, BLACK),
-        TermCell::new('+', NIGHT_GREY_2, BLACK),
-        TermCell::new('▀', NIGHT_GREY_0, BLACK),
-        TermCell::new('+', NIGHT_GREY_2, BLACK),
-        TermCell::new('▀', NIGHT_GREY_0, BLACK),
-        TermCell::new('+', NIGHT_GREY_2, BLACK),
-        TermCell::new('▀', NIGHT_GREY_0, BLACK),
-        TermCell::new('+', NIGHT_GREY_2, BLACK),
-    ],
-    &[
-        TermCell::new('|', NIGHT_GREY_2, BLACK),
-        TermCell::new('▒', NIGHT_GREY_0, NIGHT_GREY_1),
-        TermCell::new('▓', NIGHT_GREY_0, NIGHT_GREY_1),
-        TermCell::new('▒', NIGHT_GREY_0, NIGHT_GREY_1),
-        TermCell::new('▓', NIGHT_GREY_0, NIGHT_GREY_1),
-        TermCell::new('▒', NIGHT_GREY_0, NIGHT_GREY_1),
-        TermCell::new('▓', NIGHT_GREY_0, NIGHT_GREY_1),
-        TermCell::new('▒', NIGHT_GREY_0, NIGHT_GREY_1),
-        TermCell::new('|', NIGHT_GREY_2, BLACK),
-    ],
-    &[
-        TermCell::new('|', NIGHT_GREY_2, BLACK),
-        TermCell::new('░', NIGHT_GREY_0, NIGHT_GREY_1),
-        TermCell::new('░', NIGHT_GREY_0, NIGHT_GREY_1),
-        TermCell::new('░', NIGHT_GREY_0, NIGHT_GREY_1),
-        TermCell::new('♦', RED, NIGHT_GREY_1),
-        TermCell::new('░', NIGHT_GREY_0, NIGHT_GREY_1),
-        TermCell::new('░', NIGHT_GREY_0, NIGHT_GREY_1),
-        TermCell::new('░', NIGHT_GREY_0, NIGHT_GREY_1),
-        TermCell::new('|', NIGHT_GREY_2, BLACK),
-    ],
-    &[
-        TermCell::new('+', NIGHT_GREY_2, BLACK),
-        TermCell::new('-', NIGHT_GREY_2, BLACK),
-        TermCell::new('-', NIGHT_GREY_2, BLACK),
-        TermCell::new('-', NIGHT_GREY_2, BLACK),
-        TermCell::new('-', NIGHT_GREY_2, BLACK),
-        TermCell::new('-', NIGHT_GREY_2, BLACK),
-        TermCell::new('-', NIGHT_GREY_2, BLACK),
-        TermCell::new('-', NIGHT_GREY_2, BLACK),
-        TermCell::new('+', NIGHT_GREY_2, BLACK),
-    ],
-];
-
-// ~~~|~|~~~~~
-// ~~/▓▓▓\~~~~
-// _[▓▓▓▓▓▓▓]_
-// ~~~~~~~~~~~
-pub const DAY_SHIPYARD: &[&[TermCell]] = &[
-    &[
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('|', DAY_WHITE, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('|', DAY_WHITE, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-    ],
-    &[
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('/', DAY_BROWN, DAY_BLUE_1),
-        TermCell::new('▓', DAY_WHITE, DAY_BROWN),
-        TermCell::new('▒', DAY_WHITE, DAY_BROWN),
-        TermCell::new('▓', DAY_WHITE, DAY_BROWN),
-        TermCell::new('\\', DAY_BROWN, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-    ],
-    &[
-        TermCell::new('_', DAY_BROWN, DAY_BLUE_1),
-        TermCell::new('[', DAY_WHITE, DAY_BROWN),
-        TermCell::new('▓', BLACK, DAY_BROWN),
-        TermCell::new('▒', BLACK, DAY_BROWN),
-        TermCell::new('▓', BLACK, DAY_BROWN),
-        TermCell::new('░', BLACK, DAY_BROWN),
-        TermCell::new('▓', BLACK, DAY_BROWN),
-        TermCell::new('▒', BLACK, DAY_BROWN),
-        TermCell::new('▓', BLACK, DAY_BROWN),
-        TermCell::new(']', DAY_WHITE, DAY_BROWN),
-        TermCell::new('_', DAY_BROWN, DAY_BLUE_1),
-    ],
-    &[
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-        TermCell::new('~', DAY_BLUE_0, DAY_BLUE_1),
-    ],
-];
-
-pub const NIGHT_SHIPYARD: &[&[TermCell]] = &[
-    &[
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('|', NIGHT_WHITE, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('|', NIGHT_WHITE, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-    ],
-    &[
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('/', NIGHT_BROWN, NIGHT_BLUE_1),
-        TermCell::new('▓', NIGHT_WHITE, NIGHT_BROWN),
-        TermCell::new('▒', NIGHT_WHITE, NIGHT_BROWN),
-        TermCell::new('▓', NIGHT_WHITE, NIGHT_BROWN),
-        TermCell::new('\\', NIGHT_BROWN, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-    ],
-    &[
-        TermCell::new('_', NIGHT_BROWN, NIGHT_BLUE_1),
-        TermCell::new('[', NIGHT_WHITE, NIGHT_BROWN),
-        TermCell::new('▓', BLACK, NIGHT_BROWN),
-        TermCell::new('▒', BLACK, NIGHT_BROWN),
-        TermCell::new('▓', BLACK, NIGHT_BROWN),
-        TermCell::new('░', BLACK, NIGHT_BROWN),
-        TermCell::new('▓', BLACK, NIGHT_BROWN),
-        TermCell::new('▒', BLACK, NIGHT_BROWN),
-        TermCell::new('▓', BLACK, NIGHT_BROWN),
-        TermCell::new(']', NIGHT_WHITE, NIGHT_BROWN),
-        TermCell::new('_', NIGHT_BROWN, NIGHT_BLUE_1),
-    ],
-    &[
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-        TermCell::new('~', NIGHT_BLUE_0, NIGHT_BLUE_1),
-    ],
-];

@@ -5,6 +5,7 @@ use crate::game_state::GameState;
 use crate::logs::Logs;
 use crate::renderer::ModPlayerInfoTab;
 use crate::renderer::module::Module;
+use crate::renderer::renderer::DrawableCell;
 use crate::ui_state::UiState;
 use common::Time;
 use common::all_units;
@@ -24,7 +25,7 @@ impl ModPlayerInfo {
         frame_dt: u64,
         game_state: &GameState,
         ui_state: &UiState,
-    ) -> Vec<Vec<TermCell>> {
+    ) -> Vec<Vec<DrawableCell>> {
         match ui_state.tab {
             ModPlayerInfoTab::Castle => self.draw_castle_tab(game_state),
             ModPlayerInfoTab::Debug => {
@@ -127,7 +128,8 @@ impl ModPlayerInfo {
             for (char_col, ch) in line.chars().enumerate() {
                 if line_row < drawable_size.y {
                     let pos = TermCoord::new(drawable_size.y - line_row - 1, char_col);
-                    self.module.draw_cell(TermCell::new(ch, WHITE, BLACK), pos);
+                    self.module
+                        .draw_cell(DrawableCell::new(ch, WHITE, BLACK), pos);
                 }
             }
         }

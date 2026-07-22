@@ -1,8 +1,8 @@
 use crate::{
     ansi::{BLACK, WHITE},
-    assets::TermCell,
     r#const::{FRAME_BK_COLOR, FRAME_WIDTH, MOD_BK_COLOR},
     coord::TermCoord,
+    renderer::renderer::{DrawableAsset, DrawableCell},
 };
 
 #[derive(Clone)]
@@ -10,7 +10,7 @@ pub struct Module {
     name: String,
     size: TermCoord,
     padding: TermCoord,
-    cells: Vec<Vec<TermCell>>,
+    cells: Vec<Vec<DrawableCell>>,
     drawn: (Vec<bool>, Vec<bool>),
     size_reset: TermCoord,
 }
@@ -21,7 +21,7 @@ impl Module {
     pub fn new(size: TermCoord, padding: TermCoord) -> Self {
         let cells =
             vec![
-                vec![TermCell::new(' ', BLACK, MOD_BK_COLOR); size.x.max(padding.x * 2 + 2)];
+                vec![DrawableCell::new(' ', BLACK, MOD_BK_COLOR); size.x.max(padding.x * 2 + 2)];
                 size.y.max(padding.y * 2 + 2)
             ];
         let size_y = cells.len();
@@ -36,7 +36,7 @@ impl Module {
         }
     }
 
-    pub fn draw_cell(&mut self, asset: TermCell, pos: TermCoord) {
+    pub fn draw_cell(&mut self, asset: DrawableCell, pos: TermCoord) {
         let drawable_size = self.drawable_size();
         if pos.y < drawable_size.y && pos.x < drawable_size.x {
             let content_start = self.content_start_pos();
@@ -51,13 +51,13 @@ impl Module {
         let content_start = self.content_start_pos();
         self.cells.insert(
             drawable_size.y + content_start.y,
-            vec![TermCell::new(' ', BLACK, MOD_BK_COLOR); self.size.x],
+            vec![DrawableCell::new(' ', BLACK, MOD_BK_COLOR); self.size.x],
         );
         self.drawn.0.insert(drawable_size.y + content_start.y, true);
         self.size.y += 1;
     }
 
-    pub fn get_cells(&mut self) -> Vec<Vec<TermCell>> {
+    pub fn get_cells(&mut self) -> Vec<Vec<DrawableCell>> {
         self.update_frame();
         let cells = self.cells.clone();
         self.reset();
@@ -119,7 +119,7 @@ impl Module {
         // TODO: maybe i shouldnt rewrite this code here
         let mut cells_new = vec![
             vec![
-                TermCell::new(' ', BLACK, MOD_BK_COLOR);
+                DrawableCell::new(' ', BLACK, MOD_BK_COLOR);
                 self.size.x.max(self.padding.x * 2 + 2)
             ];
             self.size.y.max(self.padding.y * 2 + 2)
@@ -138,16 +138,18 @@ impl Module {
         self.name = name;
     }
 
-    pub fn draw_asset(&mut self, asset: &[&[TermCell]], pos: TermCoord) {
+    pub fn draw_asset(&mut self, asset: DrawableAsset, pos: TermCoord) {
         for (art_row, art_row_iter) in asset.iter().enumerate() {
-            for (art_col, art_cell) in art_row_iter.iter().enumerate() {
+            for (art_col, art_cell_opt) in art_row_iter.iter().enumerate() {
                 let cell_pos = TermCoord::new(pos.y + art_row, pos.x + art_col);
-                self.draw_cell(*art_cell, cell_pos);
+                if let Some(art_cell) = art_cell_opt {
+                    self.draw_cell(*art_cell, cell_pos);
+                }
             }
         }
     }
 
-    pub fn draw_cell_last_row(&mut self, asset: TermCell, col: usize) {
+    pub fn draw_cell_last_row(&mut self, asset: DrawableCell, col: usize) {
         let pos = TermCoord::new(self.drawable_size().y - 1, col);
         self.draw_cell(asset, pos);
     }
@@ -162,7 +164,7 @@ impl Module {
 
     pub fn draw_text_in_row(&mut self, string: &str, row: usize) {
         for (i, ch) in string.chars().enumerate() {
-            let cell = TermCell {
+            let cell = DrawableCell {
                 ch,
                 fg: WHITE,
                 bg: MOD_BK_COLOR,
@@ -177,12 +179,12 @@ impl Module {
     }
 
     fn update_frame(&mut self) {
-        let bot_row = vec![TermCell::new('-', WHITE, FRAME_BK_COLOR); self.size.x];
+        let bot_row = vec![DrawableCell::new('-', WHITE, FRAME_BK_COLOR); self.size.x];
 
         let mut top_row = bot_row.clone();
         for (pos, char) in self.name.chars().enumerate() {
             if pos + 2 < self.size.x {
-                top_row[pos + 2] = TermCell::new(char, WHITE, FRAME_BK_COLOR);
+                top_row[pos + 2] = DrawableCell::new(char, WHITE, FRAME_BK_COLOR);
             }
         }
 
@@ -195,8 +197,8 @@ impl Module {
             } else {
                 '|'
             };
-            self.cells[row][0] = TermCell::new(char, WHITE, FRAME_BK_COLOR);
-            self.cells[row][self.size.x - 1] = TermCell::new(char, WHITE, FRAME_BK_COLOR);
+            self.cells[row][0] = DrawableCell::new(char, WHITE, FRAME_BK_COLOR);
+            self.cells[row][self.size.x - 1] = DrawableCell::new(char, WHITE, FRAME_BK_COLOR);
         }
     }
 

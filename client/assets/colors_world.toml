@@ -1,0 +1,43 @@
+[BLUE_0]
+day = "rgb_(105,135,215)"
+night = "rgb_(90,100,190)"
+
+[BLUE_1]
+day = "rgb_(85,115,195)"
+night = "rgb_(80,90,180)"
+
+[BROWN]
+day = "rgb_(180,110,55)"
+night = "rgb_(105,75,55)"
+
+[GREEN_0]
+day = "rgb_(100,195,75)"
+night = "rgb_(70,160,90)"
+
+[GREEN_1]
+day = "rgb_(80,155,55)"
+night = "rgb_(60,130,70)"
+
+[GREEN_2]
+day = "rgb_(65,105,45)"
+night = "rgb_(50,90,55)"
+
+[GREEN_3]
+day = "rgb_(50,72,35)"
+night = "rgb_(40,65,45)"
+
+[GREY_0]
+day = "rgb_(225,208,190)"
+night = "rgb_(145,147,160)"
+
+[GREY_1]
+day = "rgb_(175,158,140)"
+night = "rgb_(100,102,115)"
+
+[GREY_2]
+day = "rgb_(135,120,105)"
+night = "rgb_(75,77,90)"
+
+[WHITE]
+day = "rgb_(255,248,235)"
+night = "rgb_(190,195,215)"
