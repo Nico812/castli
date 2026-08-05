@@ -1,6 +1,7 @@
+use crossterm::style::Color;
+
 use crate::{
-    ansi::{BLACK, WHITE},
-    r#const::{FRAME_BK_COLOR, FRAME_WIDTH, MOD_BK_COLOR},
+    r#const::FRAME_WIDTH,
     coord::TermCoord,
     renderer::renderer::{DrawableAsset, DrawableCell},
 };
@@ -19,11 +20,13 @@ pub struct Module {
 // The size covers border + padding + content
 impl Module {
     pub fn new(size: TermCoord, padding: TermCoord) -> Self {
-        let cells =
+        let cells = vec![
             vec![
-                vec![DrawableCell::new(' ', BLACK, MOD_BK_COLOR); size.x.max(padding.x * 2 + 2)];
-                size.y.max(padding.y * 2 + 2)
+                DrawableCell::new(' ', Color::Black, Color::Black);
+                size.x.max(padding.x * 2 + 2)
             ];
+            size.y.max(padding.y * 2 + 2)
+        ];
         let size_y = cells.len();
         let size_x = cells[0].len();
         Self {
@@ -51,7 +54,7 @@ impl Module {
         let content_start = self.content_start_pos();
         self.cells.insert(
             drawable_size.y + content_start.y,
-            vec![DrawableCell::new(' ', BLACK, MOD_BK_COLOR); self.size.x],
+            vec![DrawableCell::new(' ', Color::Black, Color::Black); self.size.x],
         );
         self.drawn.0.insert(drawable_size.y + content_start.y, true);
         self.size.y += 1;
@@ -119,7 +122,7 @@ impl Module {
         // TODO: maybe i shouldnt rewrite this code here
         let mut cells_new = vec![
             vec![
-                DrawableCell::new(' ', BLACK, MOD_BK_COLOR);
+                DrawableCell::new(' ', Color::Black, Color::Black);
                 self.size.x.max(self.padding.x * 2 + 2)
             ];
             self.size.y.max(self.padding.y * 2 + 2)
@@ -166,8 +169,8 @@ impl Module {
         for (i, ch) in string.chars().enumerate() {
             let cell = DrawableCell {
                 ch,
-                fg: WHITE,
-                bg: MOD_BK_COLOR,
+                fg: Color::White,
+                bg: Color::Black,
             };
             self.draw_cell(cell, TermCoord::new(row, i));
         }
@@ -179,12 +182,12 @@ impl Module {
     }
 
     fn update_frame(&mut self) {
-        let bot_row = vec![DrawableCell::new('-', WHITE, FRAME_BK_COLOR); self.size.x];
+        let bot_row = vec![DrawableCell::new('-', Color::White, Color::Black); self.size.x];
 
         let mut top_row = bot_row.clone();
         for (pos, char) in self.name.chars().enumerate() {
             if pos + 2 < self.size.x {
-                top_row[pos + 2] = DrawableCell::new(char, WHITE, FRAME_BK_COLOR);
+                top_row[pos + 2] = DrawableCell::new(char, Color::White, Color::Black);
             }
         }
 
@@ -197,8 +200,8 @@ impl Module {
             } else {
                 '|'
             };
-            self.cells[row][0] = DrawableCell::new(char, WHITE, FRAME_BK_COLOR);
-            self.cells[row][self.size.x - 1] = DrawableCell::new(char, WHITE, FRAME_BK_COLOR);
+            self.cells[row][0] = DrawableCell::new(char, Color::White, Color::Black);
+            self.cells[row][self.size.x - 1] = DrawableCell::new(char, Color::White, Color::Black);
         }
     }
 

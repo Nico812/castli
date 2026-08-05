@@ -1,5 +1,3 @@
-use crate::ansi::*;
-use crate::assets::*;
 use crate::coord::TermCoord;
 use crate::game_state::GameState;
 use crate::logs::Logs;
@@ -10,6 +8,7 @@ use crate::ui_state::UiState;
 use common::Time;
 use common::all_units;
 use common::player::PlayerE;
+use crossterm::style::Color;
 
 pub struct ModPlayerInfo {
     module: Module,
@@ -129,7 +128,7 @@ impl ModPlayerInfo {
                 if line_row < drawable_size.y {
                     let pos = TermCoord::new(drawable_size.y - line_row - 1, char_col);
                     self.module
-                        .draw_cell(DrawableCell::new(ch, WHITE, BLACK), pos);
+                        .draw_cell(DrawableCell::new(ch, Color::White, Color::Black), pos);
                 }
             }
         }

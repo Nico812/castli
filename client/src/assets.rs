@@ -1,18 +1,11 @@
+use std::env::current_exe;
 use std::{collections::HashMap, fs::read_to_string};
 
-use common::{
-    courtyard::{Facility, FacilityType},
-    game_objs::GameObjE,
-    map::Tile,
-};
-use crossterm::style::{Color, StyledContent, Stylize};
+use common::{courtyard::Facility, game_objs::GameObjE, map::Tile};
+use crossterm::style::Color;
 use serde::Deserialize;
-use toml::{Table, Value};
 
-use crate::{
-    assets::DynamicColor::UiColor,
-    renderer::renderer::{DrawableAsset, DrawableCell},
-};
+use crate::renderer::renderer::{DrawableAsset, DrawableCell};
 
 pub const BLOCK: char = '▀';
 
@@ -44,22 +37,22 @@ impl DynamicColor {
 }
 
 #[derive(Deserialize, Clone)]
-pub struct AssetCellUnresolved {
-    pub ch: Option<char>,
-    pub fg: Option<String>,
-    pub bg: Option<String>,
+struct AssetCellUnresolved {
+    ch: Option<char>,
+    fg: Option<String>,
+    bg: Option<String>,
 }
 
 #[derive(Deserialize)]
-pub struct TileAssetUnresolved {
-    pub up: String,
-    pub down: String,
-    pub std: AssetCellUnresolved,
-    pub var: AssetCellUnresolved,
+struct TileAssetUnresolved {
+    up: String,
+    down: String,
+    std: AssetCellUnresolved,
+    var: AssetCellUnresolved,
 }
 
 #[derive(Deserialize)]
-pub struct ObjectAssetUnresolved {
+struct ObjectAssetUnresolved {
     cells: Vec<Vec<AssetCellUnresolved>>,
 }
 
@@ -86,7 +79,7 @@ pub struct TileAsset {
     pub var: AssetCell,
 }
 
-struct ObjectAsset {
+pub struct ObjectAsset {
     pub cells: Vec<Vec<Option<AssetCell>>>,
 }
 
@@ -100,36 +93,45 @@ pub struct Assets {
 
 impl Assets {
     pub fn load() -> Self {
+        let mut exe_path = current_exe().expect("Failed to find executable path");
+        exe_path.pop();
+        exe_path.pop();
+        exe_path.pop();
+        let mut assets_dir_path = exe_path.into_os_string().into_string().unwrap();
+        assets_dir_path.push_str("/client/assets/");
+
         let colors_ui: HashMap<String, Color> = toml::from_str(
-            &read_to_string("./assets/colors_ui.toml").expect("Failed to read colors_ui.toml"),
+            &read_to_string(assets_dir_path.clone() + "/colors_ui.toml")
+                .expect("Failed to read colors_ui.toml"),
         )
         .expect("Failed to parse colors.toml");
 
         let colors_world: HashMap<String, WorldColor> = toml::from_str(
-            &read_to_string("./assets/colors_world.toml")
+            &read_to_string(assets_dir_path.clone() + "/colors_world.toml")
                 .expect("Failed to read colors_world.toml"),
         )
         .expect("Failed to parse colors.toml");
 
-        let ui_elements: HashMap<String, AssetCell> = toml::from_str::<
-            HashMap<String, AssetCellUnresolved>,
-        >(
-            &read_to_string("./assets/ui_elements.toml").expect("Failed to read ui_elements.toml"),
-        )
-        .expect("Failed to parse ui_elements.toml")
-        .into_iter()
-        .map(|(name, asset_unresolved)| {
-            (
-                name,
-                Self::resolve_cell(asset_unresolved, &colors_ui, &colors_world)
-                    .expect("Trying to resolve empty ui element"),
+        let ui_elements: HashMap<String, AssetCell> =
+            toml::from_str::<HashMap<String, AssetCellUnresolved>>(
+                &read_to_string(assets_dir_path.clone() + "/ui_elements.toml")
+                    .expect("Failed to read ui_elements.toml"),
             )
-        })
-        .collect();
+            .expect("Failed to parse ui_elements.toml")
+            .into_iter()
+            .map(|(name, asset_unresolved)| {
+                (
+                    name,
+                    Self::resolve_cell(asset_unresolved, &colors_ui, &colors_world)
+                        .expect("Trying to resolve empty ui element"),
+                )
+            })
+            .collect();
 
         let tiles: HashMap<String, TileAsset> =
             toml::from_str::<HashMap<String, TileAssetUnresolved>>(
-                &read_to_string("./assets/tiles.toml").expect("Failed to read tiles.toml"),
+                &read_to_string(assets_dir_path.clone() + "/tiles.toml")
+                    .expect("Failed to read tiles.toml"),
             )
             .expect("Failed to parse tiles.toml")
             .into_iter()
@@ -143,7 +145,8 @@ impl Assets {
 
         let objs: HashMap<String, ObjectAsset> =
             toml::from_str::<HashMap<String, ObjectAssetUnresolved>>(
-                &read_to_string("./assets/objects.toml").expect("Failed to read objects.toml"),
+                &read_to_string(assets_dir_path + "/objects.toml")
+                    .expect("Failed to read objects.toml"),
             )
             .expect("Failed to parse objects.toml")
             .into_iter()
@@ -260,7 +263,7 @@ impl Assets {
         }
     }
 
-    pub fn resolve_cell(
+    fn resolve_cell(
         cell: AssetCellUnresolved,
         colors_ui: &HashMap<String, Color>,
         colors_world: &HashMap<String, WorldColor>,

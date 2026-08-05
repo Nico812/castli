@@ -3,8 +3,8 @@ use crate::GameCoord;
 pub const MAP_ROWS: usize = 64 * 8;
 pub const MAP_COLS: usize = 64 * 8;
 
-pub const COURTYARD_ROWS: usize = 60;
-pub const COURTYARD_COLS: usize = 60;
+pub const COURTYARD_ROWS: usize = 64;
+pub const COURTYARD_COLS: usize = 64;
 
 pub const MAX_LOBBY_PLAYERS: usize = 15;
 pub const MAX_LOBBIES: usize = 10;

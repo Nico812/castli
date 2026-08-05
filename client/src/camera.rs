@@ -11,8 +11,8 @@ pub enum CameraLocation {
 
 pub struct Camera {
     pub location: CameraLocation,
-    pub map: GameCoord,
-    pub courtyard: GameCoord,
+    map: GameCoord,
+    courtyard: GameCoord,
     pub zoom_factor: usize,
     pub fov_size: TermCoord,
 }

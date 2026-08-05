@@ -1,14 +1,14 @@
 use std::collections::HashMap;
+use std::fs::read_to_string;
 
 use common::r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS};
-use common::courtyard::{Facility, FacilityType};
+use common::courtyard::Facility;
 use common::game_objs::GameObjE;
 use common::map::Tile;
 use common::{GameCoord, GameId};
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 
-use crate::ansi::{BLACK, WHITE};
 use crate::assets::*;
 use crate::camera::{Camera, CameraLocation};
 use crate::coord::TermCoord;
@@ -19,19 +19,42 @@ use crate::ui_state::{UiMode, UiState};
 
 pub struct ModCentral {
     module: Module,
-    variants: Vec<Vec<bool>>,
+    courtyard_tiles: Vec<Vec<Tile>>,
+    variants_map: Vec<Vec<bool>>,
+    variants_courtyard: Vec<Vec<bool>>,
 }
 
 impl ModCentral {
     pub fn new(module: Module) -> Self {
         let mut rng = SmallRng::seed_from_u64(1);
 
-        let mut variants = vec![vec![false; MAP_COLS]; MAP_ROWS.div_ceil(2)];
-        for cell in variants.iter_mut().flat_map(|row| row.iter_mut()) {
+        //TODO: make paths working for everyone
+        let mut courtyard_tiles = vec![vec![Tile::Grass; COURTYARD_COLS]; COURTYARD_ROWS];
+        let courtyard_tiles_str = read_to_string("./client//assets/courtyard.txt")
+            .expect("Failed to read courtyard asset");
+        for (i, line) in courtyard_tiles_str.lines().enumerate() {
+            for (j, char) in line.chars().enumerate() {
+                if char == 'W' {
+                    courtyard_tiles[i][j] = Tile::Water;
+                }
+            }
+        }
+
+        let mut variants_map = vec![vec![false; MAP_COLS]; MAP_ROWS.div_ceil(2)];
+        let mut variants_courtyard = vec![vec![false; COURTYARD_COLS]; COURTYARD_ROWS.div_ceil(2)];
+        for cell in variants_map.iter_mut().flat_map(|row| row.iter_mut()) {
+            *cell = rng.random_bool(0.1);
+        }
+        for cell in variants_courtyard.iter_mut().flat_map(|row| row.iter_mut()) {
             *cell = rng.random_bool(0.1);
         }
 
-        Self { module, variants }
+        Self {
+            module,
+            courtyard_tiles,
+            variants_map,
+            variants_courtyard,
+        }
     }
 
     pub fn render(
@@ -45,8 +68,10 @@ impl ModCentral {
         let title = match ui_state.camera.location {
             CameraLocation::Map => {
                 let title = format!("Castli | map {}", camera_coord);
-                self.draw_map(
+                Self::draw_tiles(
+                    &mut self.module,
                     &game_state.map,
+                    &self.variants_map,
                     game_state.time.night,
                     &ui_state.camera,
                     &assets,
@@ -75,7 +100,14 @@ impl ModCentral {
             }
             CameraLocation::Courtyard => {
                 let title = format!("Castli | courtyard {}", camera_coord);
-                self.draw_courtyard(&ui_state.camera, &assets);
+                Self::draw_tiles(
+                    &mut self.module,
+                    &self.courtyard_tiles,
+                    &self.variants_courtyard,
+                    game_state.time.night,
+                    &ui_state.camera,
+                    &assets,
+                );
                 self.draw_facilities(
                     &game_state.facilities,
                     &ui_state.camera,
@@ -114,9 +146,16 @@ impl ModCentral {
         x_factor.max(y_factor).max(1)
     }
 
-    fn draw_map(&mut self, tiles: &[Vec<Tile>], night: bool, camera: &Camera, assets: &Assets) {
-        let drawable_size = self.module.drawable_size();
-        let camera_pos = camera.map;
+    fn draw_tiles(
+        module: &mut Module,
+        tiles: &[Vec<Tile>],
+        variants: &Vec<Vec<bool>>,
+        night: bool,
+        camera: &Camera,
+        assets: &Assets,
+    ) {
+        let drawable_size = module.drawable_size();
+        let camera_pos = camera.get_pos();
 
         for tile_row in camera_pos.y..camera_pos.y + drawable_size.y * 2 {
             if tile_row & 1 == 1 {
@@ -137,8 +176,7 @@ impl ModCentral {
 
                     let cell;
                     if tile_top_ == tile_bot_ {
-                        let variant = self
-                            .variants
+                        let variant = variants
                             .get(tile_row)
                             .and_then(|row| row.get(tile_col))
                             .copied()
@@ -156,7 +194,7 @@ impl ModCentral {
                             bot_tile_asset.down.to_crossterm_color(night),
                         );
                     }
-                    self.module.draw_cell(cell, term_pos);
+                    module.draw_cell(cell, term_pos);
                 }
             }
         }

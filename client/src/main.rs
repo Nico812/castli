@@ -1,4 +1,3 @@
-mod ansi;
 mod assets;
 mod camera;
 mod client;
