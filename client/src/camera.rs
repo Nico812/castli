@@ -35,4 +35,12 @@ impl Camera {
             CameraLocation::Courtyard => self.courtyard,
         }
     }
+
+    pub fn set_pos(&mut self, pos: GameCoord) {
+        match self.location {
+            CameraLocation::Map => self.map = pos,
+            CameraLocation::WorldMap => return,
+            CameraLocation::Courtyard => self.courtyard = pos,
+        }
+    }
 }

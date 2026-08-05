@@ -26,13 +26,10 @@ impl UiState {
     }
 
     pub fn move_camera(&mut self, dx: isize, dy: isize) {
-        let (bound_rows, bound_cols, camera_pos) = match self.camera.location {
-            CameraLocation::Map => (MAP_ROWS - 1, MAP_COLS - 1, &mut self.camera.map),
-            CameraLocation::Courtyard => (
-                COURTYARD_ROWS - 1,
-                COURTYARD_COLS - 1,
-                &mut self.camera.courtyard,
-            ),
+        let camera_pos = self.camera.get_pos();
+        let (bound_rows, bound_cols) = match self.camera.location {
+            CameraLocation::Map => (MAP_ROWS - 1, MAP_COLS - 1),
+            CameraLocation::Courtyard => (COURTYARD_ROWS - 1, COURTYARD_COLS - 1),
             CameraLocation::WorldMap => {
                 return;
             }
@@ -47,8 +44,8 @@ impl UiState {
             .min(bound_rows.saturating_sub((self.camera.fov_size.y - 1) * 2) as isize)
             as usize;
 
-        camera_pos.x = new_x - (new_x % 2);
-        camera_pos.y = new_y - (new_y % 2);
+        let new_pos = GameCoord::new(new_y - (new_y % 2), new_x - (new_x % 2));
+        self.camera.set_pos(new_pos);
     }
 }
 

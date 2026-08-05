@@ -309,11 +309,7 @@ impl InputHandler {
 
     fn toggle_inspect(ui_state: &mut UiState) {
         if let UiMode::Std = ui_state.mode {
-            let coord = match ui_state.camera.location {
-                CameraLocation::WorldMap => GameCoord { x: 0, y: 0 },
-                CameraLocation::Map => ui_state.camera.map,
-                CameraLocation::Courtyard => ui_state.camera.courtyard,
-            };
+            let coord = ui_state.camera.get_pos();
             ui_state.mode = UiMode::Inspect(Inspect {
                 coord,
                 selection: None,
@@ -363,6 +359,7 @@ impl InputHandler {
                 *selection = new_id;
             }
         } else {
+            let camera_pos = camera.get_pos();
             match camera.location {
                 CameraLocation::WorldMap => {
                     dx *= camera.zoom_factor as isize;
@@ -376,25 +373,23 @@ impl InputHandler {
                 }
                 CameraLocation::Map => {
                     inspect.coord.x = (inspect.coord.x as isize + dx)
-                        .max(camera.map.x as isize)
-                        .min((camera.map.x + camera.fov_size.x - 1) as isize)
+                        .max(camera_pos.x as isize)
+                        .min((camera_pos.x + camera.fov_size.x - 1) as isize)
                         as usize;
                     inspect.coord.y = (inspect.coord.y as isize + dy)
-                        .max(camera.map.y as isize)
-                        .min((camera.map.y + camera.fov_size.y * 2 - 1) as isize)
+                        .max(camera_pos.y as isize)
+                        .min((camera_pos.y + camera.fov_size.y * 2 - 1) as isize)
                         as usize;
                 }
                 CameraLocation::Courtyard => {
                     inspect.coord.x = (inspect.coord.x as isize + dx)
-                        .max(camera.courtyard.x as isize)
-                        .min(
-                            (camera.courtyard.x + camera.fov_size.x.min(COURTYARD_COLS) - 1)
-                                as isize,
-                        ) as usize;
+                        .max(camera_pos.x as isize)
+                        .min((camera_pos.x + camera.fov_size.x.min(COURTYARD_COLS) - 1) as isize)
+                        as usize;
                     inspect.coord.y = (inspect.coord.y as isize + dy)
-                        .max(camera.courtyard.y as isize)
+                        .max(camera_pos.y as isize)
                         .min(
-                            (camera.courtyard.y + (camera.fov_size.y * 2).min(COURTYARD_ROWS) - 1)
+                            (camera_pos.y + (camera.fov_size.y * 2).min(COURTYARD_ROWS) - 1)
                                 as isize,
                         ) as usize;
                 }
