@@ -1,6 +1,7 @@
 use common::{
     GameCoord,
     r#const::{MAP_COLS, MAP_ROWS},
+    hitboxes::Hitbox,
     map::Tile,
     packets::MapPayload,
 };
@@ -46,18 +47,11 @@ impl Map {
             .unwrap_or(true)
     }
 
-    pub fn can_build(&self, pos: GameCoord, size: GameCoord) -> bool {
-        let Some(end_y) = pos.y.checked_add(size.y) else {
-            return false;
-        };
-        let Some(end_x) = pos.x.checked_add(size.x) else {
-            return false;
-        };
-
-        for row in pos.y..end_y {
-            for col in pos.x..end_x {
-                let curr_pos = GameCoord::new(row, col);
-                if self.is_occupied(curr_pos) || self.is_obstacle(curr_pos) {
+    pub fn can_build(&self, pos: GameCoord, hitbox: Hitbox) -> bool {
+        for (i, row) in hitbox.iter().enumerate() {
+            for (j, hit) in row.iter().enumerate() {
+                let curr_pos = GameCoord::new(pos.y + i, pos.x + j);
+                if *hit && (self.is_occupied(curr_pos) || self.is_obstacle(curr_pos)) {
                     return false;
                 }
             }
@@ -65,19 +59,16 @@ impl Map {
         true
     }
 
-    pub fn set_occupied(&mut self, pos: GameCoord, size: GameCoord) {
-        let end_y = pos.y.saturating_add(size.y);
-        let end_x = pos.x.saturating_add(size.x);
-
-        for row in pos.y..end_y {
-            if row >= MAP_ROWS {
-                continue;
-            }
-            for col in pos.x..end_x {
-                if col >= MAP_COLS {
-                    continue;
+    pub fn set_occupied(&mut self, pos: GameCoord, hitbox: Hitbox) {
+        for (i, row) in hitbox.iter().enumerate() {
+            for (j, hit) in row.iter().enumerate() {
+                let curr_pos = GameCoord::new(pos.y + i, pos.y + j);
+                if *hit {
+                    self.occupied
+                        .get_mut(curr_pos.y)
+                        .and_then(|row| row.get_mut(curr_pos.x))
+                        .map(|cell| *cell = true);
                 }
-                self.occupied[row][col] = true;
             }
         }
     }

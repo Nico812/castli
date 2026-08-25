@@ -1,6 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{GameCoord, GameId, Resources, units::UnitGroup};
+use crate::{
+    GameCoord, GameId, Resources,
+    hitboxes::{CASTLE_HITBOX, DEPLOYED_UNITS_HITBOX, Hitbox},
+    units::UnitGroup,
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum GameObjE {
@@ -15,6 +19,14 @@ impl GameObjE {
             GameObjE::Castle(c) => c.pos,
             GameObjE::Structure(s) => s.pos,
             GameObjE::DeployedUnits(u) => u.pos,
+        }
+    }
+
+    pub fn get_hitbox(&self) -> Hitbox {
+        match self {
+            GameObjE::Castle(_) => CASTLE_HITBOX,
+            GameObjE::Structure(_) => CASTLE_HITBOX,
+            GameObjE::DeployedUnits(_) => DEPLOYED_UNITS_HITBOX,
         }
     }
 }

@@ -1,9 +1,10 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, iter::Enumerate};
 
 use common::{
     GameCoord, Resources,
     r#const::{COURTYARD_COLS, COURTYARD_ROWS},
     courtyard::{Facility, FacilityType},
+    hitboxes::Hitbox,
     units::{UnitGroup, UnitType},
 };
 
@@ -22,38 +23,21 @@ pub struct Courtyard {
 
 impl Courtyard {
     pub fn new() -> Self {
-        let mut facilities = HashMap::new();
-        let mut occupied = [[None; COURTYARD_COLS]; COURTYARD_ROWS];
-        let mut owned_cnt = [0; FacilityType::COUNT];
+        let facilities = HashMap::new();
+        let occupied = [[None; COURTYARD_COLS]; COURTYARD_ROWS];
+        let owned_cnt = [0; FacilityType::COUNT];
 
-        // Adding wall (because he is a bit special...)
-        let id = 0;
-        let type_idx = FacilityType::Wall.as_index();
-        let facility = Facility::new(FacilityType::Wall, GameCoord::new(0, 0));
-        facilities.insert(id, facility);
-        owned_cnt[type_idx] += 1;
-
-        let wall_size = FacilityType::Wall.size();
-        for i in 0..COURTYARD_ROWS {
-            for j in 0..wall_size.y {
-                occupied[i][j] = Some(id);
-                occupied[i][COURTYARD_COLS - 1 - j] = Some(id);
-            }
-        }
-        for i in 0..COURTYARD_COLS {
-            for j in 0..wall_size.x {
-                occupied[j][i] = Some(id);
-                occupied[COURTYARD_ROWS - 1 - j][i] = Some(id);
-            }
-        }
-
-        Self {
+        let mut self_ = Self {
             peasants: 10,
             facilities,
             occupied,
             owned_cnt,
-            id_cnt: 1,
-        }
+            id_cnt: 0,
+        };
+
+        self_.new_facility(FacilityType::Wall, GameCoord { x: 6, y: 6 });
+
+        self_
     }
 
     pub fn update(&mut self) -> Vec<CourtyardEvent> {
@@ -103,7 +87,7 @@ impl Courtyard {
         if self.owned_cnt[type_idx] >= max_count {
             return false;
         }
-        if !self.is_position_valid(pos, r#type.size()) {
+        if !self.is_position_valid(pos, &r#type.get_hitbox()) {
             return false;
         }
 
@@ -111,7 +95,7 @@ impl Courtyard {
         let facility = Facility::new(r#type, pos);
         self.facilities.insert(id, facility);
         self.owned_cnt[type_idx] += 1;
-        self.mark_occupied(id, pos, r#type.size());
+        self.mark_occupied(id, pos, &r#type.get_hitbox());
 
         true
     }
@@ -121,25 +105,30 @@ impl Courtyard {
         self.id_cnt
     }
 
-    fn is_position_valid(&self, pos: GameCoord, size: GameCoord) -> bool {
+    fn is_position_valid(&self, pos: GameCoord, hitbox: &Hitbox) -> bool {
+        let size = GameCoord::new(hitbox.len(), hitbox[0].len());
+
         if pos.x + size.x > COURTYARD_COLS || pos.y + size.y > COURTYARD_ROWS {
             return false;
         }
 
-        for x in pos.x..pos.x + size.x {
-            for y in pos.y..pos.y + size.y {
-                if self.occupied[y as usize][x as usize].is_some() {
+        for (i, row) in hitbox.iter().enumerate() {
+            for (j, hit) in row.iter().enumerate() {
+                if *hit && self.occupied[pos.y + i][pos.x + j].is_some() {
                     return false;
                 }
             }
         }
+
         true
     }
 
-    fn mark_occupied(&mut self, id: u8, pos: GameCoord, size: GameCoord) {
-        for x in pos.x..pos.x + size.x {
-            for y in pos.y..pos.y + size.y {
-                self.occupied[y as usize][x as usize] = Some(id);
+    fn mark_occupied(&mut self, id: u8, pos: GameCoord, hitbox: &Hitbox) {
+        for (i, row) in hitbox.iter().enumerate() {
+            for (j, hit) in row.iter().enumerate() {
+                if *hit {
+                    self.occupied[pos.y + i][pos.x + j] = Some(id);
+                }
             }
         }
     }

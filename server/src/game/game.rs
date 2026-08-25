@@ -14,7 +14,7 @@ use crate::{
     thread_pool::ThreadPool,
 };
 use common::{
-    GameCoord, GameId, Time, r#const::CASTLE_SIZE, courtyard::FacilityType, game_objs::GameObjE,
+    GameCoord, GameId, Time, courtyard::FacilityType, game_objs::GameObjE, hitboxes::CASTLE_HITBOX,
     packets::MapPayload, units::UnitGroup,
 };
 
@@ -194,10 +194,10 @@ impl Game {
     }
 
     pub fn add_player_castle(&mut self, name: String, pos: GameCoord) -> Option<GameId> {
-        if !pos.is_even() || !self.map.can_build(pos, CASTLE_SIZE) {
+        if !pos.is_even() || !self.map.can_build(pos, CASTLE_HITBOX) {
             return None;
         }
-        self.map.set_occupied(pos, CASTLE_SIZE);
+        self.map.set_occupied(pos, CASTLE_HITBOX);
         let id = Self::new_id(&mut self.id_cnt);
         let castle = Castle::new(name, pos);
         self.game_objs.insert(id, GameObj::Castle(castle));

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{GameCoord, Resources, r#const::FARM_PLOT_SIZE};
+use crate::hitboxes::*;
+use crate::{GameCoord, Resources};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FacilityType {
@@ -27,7 +28,7 @@ macro_rules! all_facilities {
 }
 
 impl FacilityType {
-    pub const COUNT: usize = 6;
+    pub const COUNT: usize = all_facilities!().len();
 
     pub fn max_count(&self) -> u8 {
         match self {
@@ -51,14 +52,14 @@ impl FacilityType {
         }
     }
 
-    pub fn size(&self) -> GameCoord {
+    pub fn get_hitbox(&self) -> Hitbox {
         match self {
-            FacilityType::Wall => GameCoord::new(2, 2),
-            FacilityType::FarmPlot => FARM_PLOT_SIZE,
-            FacilityType::Sawmill => GameCoord::new(6, 7),
-            FacilityType::Mines => GameCoord::new(6, 7),
-            FacilityType::Barracks => GameCoord::new(8, 9),
-            FacilityType::Shipyard => GameCoord::new(8, 11),
+            FacilityType::Wall => WALL_HITBOX,
+            FacilityType::FarmPlot => FARMPLOT_HITBOX,
+            FacilityType::Sawmill => SAWMILL_HITBOX,
+            FacilityType::Mines => MINES_HITBOX,
+            FacilityType::Barracks => BARRACKS_HITBOX,
+            FacilityType::Shipyard => SHIPYARD_HITBOX,
         }
     }
 

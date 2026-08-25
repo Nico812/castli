@@ -1,6 +1,7 @@
 pub mod r#const;
 pub mod courtyard;
 pub mod game_objs;
+pub mod hitboxes;
 pub mod map;
 pub mod packets;
 pub mod player;
