@@ -1,3 +1,4 @@
+use std::ascii::AsciiExt;
 use std::env::current_exe;
 use std::{collections::HashMap, fs::read_to_string};
 
@@ -92,13 +93,18 @@ pub struct Assets {
 }
 
 impl Assets {
-    pub fn load() -> Self {
+    pub fn get_assets_path() -> String {
         let mut exe_path = current_exe().expect("Failed to find executable path");
         exe_path.pop();
         exe_path.pop();
         exe_path.pop();
-        let mut assets_dir_path = exe_path.into_os_string().into_string().unwrap();
-        assets_dir_path.push_str("/client/assets/");
+        let mut assets_path = exe_path.into_os_string().into_string().unwrap();
+        assets_path.push_str("/client/assets/");
+        assets_path
+    }
+
+    pub fn load() -> Self {
+        let assets_dir_path = Self::get_assets_path();
 
         let colors_ui: HashMap<String, Color> = toml::from_str(
             &read_to_string(assets_dir_path.clone() + "/colors_ui.toml")

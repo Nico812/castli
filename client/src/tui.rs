@@ -20,7 +20,7 @@ use crossterm::{
     terminal,
 };
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     io::{self, Stdout},
     ops::DerefMut,
     process::Command,
@@ -107,30 +107,42 @@ impl Tui {
     }
 
     pub fn get_looked_objs<'a>(
+        game_state: &'a GameState,
         coord: GameCoord,
-        game_objs: &'a HashMap<GameId, GameObjE>,
         camera: &Camera,
     ) -> Vec<(GameId, &'a GameObjE)> {
-        let mut looked_objs: Vec<(GameId, &GameObjE)> = game_objs
-            .iter()
-            .filter_map(|(game_id, game_obj)| {
-                if (!(camera.location == CameraLocation::WorldMap)
-                    && game_obj.get_pos().y >= coord.y
-                    && game_obj.get_pos().x >= coord.x
-                    && game_obj.get_pos().y < coord.y + CURSOR_SIZE.y
-                    && game_obj.get_pos().x < coord.x + CURSOR_SIZE.x)
-                    || (camera.location == CameraLocation::WorldMap
-                        && game_obj.get_pos().y >= coord.y
-                        && game_obj.get_pos().x >= coord.x
-                        && game_obj.get_pos().y < coord.y + camera.zoom_factor * CURSOR_SIZE.y
-                        && game_obj.get_pos().x < coord.x + camera.zoom_factor * CURSOR_SIZE.x)
+        let mut looked_objs_ids: HashSet<GameId> = HashSet::new();
+        let mut looked_objs: Vec<(GameId, &GameObjE)> = Vec::new();
+
+        let camera_pos = camera.get_pos();
+
+        let (cursor_bounds_y, cursor_bounds_x) = if camera.location == CameraLocation::WorldMap {
+            (
+                0..CURSOR_SIZE.y * camera.zoom_factor,
+                0..CURSOR_SIZE.x * camera.zoom_factor,
+            )
+        } else {
+            (0..CURSOR_SIZE.y, 0..CURSOR_SIZE.x)
+        };
+
+        for i in cursor_bounds_y {
+            for j in cursor_bounds_x.clone() {
+                if let Some(id) =
+                    game_state.hitbox_map[coord.y + camera_pos.y + i][coord.x + camera_pos.x + j]
                 {
-                    Some((*game_id, game_obj))
-                } else {
-                    None
+                    looked_objs_ids.insert(id);
                 }
-            })
-            .collect();
+            }
+        }
+
+        for id in looked_objs_ids {
+            looked_objs.push((
+                id,
+                game_state
+                    .get_obj(id)
+                    .expect("Looking at a unexistent object."),
+            ));
+        }
 
         looked_objs.sort_by(|a, b| a.0.cmp(&b.0));
         looked_objs.sort_by_key(|a| match a.1 {
@@ -141,11 +153,39 @@ impl Tui {
         looked_objs
     }
 
-    pub fn get_looked_facility(
+    pub fn get_looked_facility<'a>(
+        game_state: &'a GameState,
         coord: GameCoord,
-        facilities: &HashMap<u8, Facility>,
-    ) -> Option<(&u8, &Facility)> {
-        facilities.iter().find(|facility| facility.1.pos == coord)
+        camera: &Camera,
+    ) -> Option<(usize, &'a Facility)> {
+        let mut looked_facility_id: Option<usize> = None;
+        let looked_facility: Option<(usize, &Facility)>;
+
+        let camera_pos = camera.get_pos();
+
+        let cursor_bounds_y = 0..CURSOR_SIZE.y;
+        let cursor_bounds_x = 0..CURSOR_SIZE.x;
+
+        for i in cursor_bounds_y {
+            for j in cursor_bounds_x.clone() {
+                if let Some(id) = game_state.courtyard_hitbox_map[coord.y + camera_pos.y + i]
+                    [coord.x + camera_pos.x + j]
+                {
+                    looked_facility_id = Some(id);
+                }
+            }
+        }
+
+        looked_facility = looked_facility_id.map(|id| {
+            (
+                id,
+                game_state
+                    .get_facility(id)
+                    .expect("Looking at an unexistent faility."),
+            )
+        });
+
+        looked_facility
     }
 
     pub fn login() -> String {

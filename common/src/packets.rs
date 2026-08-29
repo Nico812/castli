@@ -34,7 +34,7 @@ pub struct CourtyardPacket {
     pub time: Time,
     pub player: PlayerE,
     pub castle: OwnedCastleE,
-    pub facilities: HashMap<u8, Facility>,
+    pub facilities: HashMap<usize, Facility>,
 }
 
 // TODO: Change this name to Feedback or something similar

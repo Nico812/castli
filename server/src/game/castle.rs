@@ -102,7 +102,7 @@ impl Castle {
         }
     }
 
-    pub fn export_courtyard(&self) -> HashMap<u8, Facility> {
+    pub fn export_courtyard(&self) -> HashMap<usize, Facility> {
         self.courtyard.export()
     }
 

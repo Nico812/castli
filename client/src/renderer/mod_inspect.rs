@@ -32,7 +32,7 @@ impl ModInspect {
                     let looked_tile = game_state.get_tile(inspect.coord);
 
                     let mut looked_objs =
-                        Tui::get_looked_objs(inspect.coord, &game_state.objs, &ui_state.camera);
+                        Tui::get_looked_objs(game_state, inspect.coord, &ui_state.camera);
                     let selected_id = inspect.selection;
 
                     self.draw_objs_component(
@@ -47,7 +47,7 @@ impl ModInspect {
                 }
                 CameraLocation::Courtyard => {
                     if let Some(looked_facility) =
-                        Tui::get_looked_facility(inspect.coord, &game_state.facilities)
+                        Tui::get_looked_facility(game_state, inspect.coord, &ui_state.camera)
                     {
                         self.draw_facility_component(looked_facility.1);
                     };

@@ -28,9 +28,10 @@ impl ModCentral {
     pub fn new(module: Module) -> Self {
         let mut rng = SmallRng::seed_from_u64(1);
 
-        //TODO: make paths working for everyone
+        let assets_dir_path = Assets::get_assets_path();
+
         let mut courtyard_tiles = vec![vec![Tile::Grass; COURTYARD_COLS]; COURTYARD_ROWS];
-        let courtyard_tiles_str = read_to_string("./client//assets/courtyard.txt")
+        let courtyard_tiles_str = read_to_string(assets_dir_path + "/courtyard.txt")
             .expect("Failed to read courtyard asset");
         for (i, line) in courtyard_tiles_str.lines().enumerate() {
             for (j, char) in line.chars().enumerate() {
@@ -78,7 +79,7 @@ impl ModCentral {
                 );
                 self.draw_objs(
                     &game_state.player.castle_id,
-                    &game_state.objs,
+                    &game_state.get_objs(),
                     &ui_state.camera,
                     game_state.time.night,
                     &assets,
@@ -91,7 +92,7 @@ impl ModCentral {
 
                 self.draw_world_objs(
                     &game_state.player.castle_id,
-                    &game_state.objs,
+                    &game_state.get_objs(),
                     &ui_state.camera,
                     game_state.time.night,
                     &assets,
@@ -109,7 +110,7 @@ impl ModCentral {
                     &assets,
                 );
                 self.draw_facilities(
-                    &game_state.facilities,
+                    &game_state.get_facilities(),
                     &ui_state.camera,
                     game_state.time.night,
                     &assets,
@@ -214,29 +215,6 @@ impl ModCentral {
         }
     }
 
-    fn draw_courtyard(&mut self, camera: &Camera, assets: &Assets) {
-        let drawable_size = self.module.drawable_size();
-        let camera_pos = camera.get_pos();
-
-        for tile_row in camera_pos.y..camera_pos.y + drawable_size.y * 2 {
-            if tile_row & 1 == 1 {
-                continue;
-            }
-            for tile_col in camera_pos.x..camera_pos.x + drawable_size.x {
-                let Some(term_pos) =
-                    TermCoord::from_game_coord(GameCoord::new(tile_row, tile_col), camera)
-                else {
-                    continue;
-                };
-
-                if tile_row < COURTYARD_ROWS && tile_col < COURTYARD_COLS {
-                    self.module
-                        .draw_cell(assets.get_ui_element_drawable("WORLD_MAP_BKG"), term_pos);
-                }
-            }
-        }
-    }
-
     fn draw_objs(
         &mut self,
         castle_id: &Option<GameId>,
@@ -300,7 +278,7 @@ impl ModCentral {
 
     fn draw_facilities(
         &mut self,
-        facilities: &HashMap<u8, Facility>,
+        facilities: &HashMap<usize, Facility>,
         camera: &Camera,
         night: bool,
         assets: &Assets,

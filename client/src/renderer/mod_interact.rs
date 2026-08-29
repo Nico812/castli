@@ -26,7 +26,7 @@ impl ModInteract {
             UiMode::Interact(ref interact_target) => {
                 match interact_target {
                     InteractTarget::GameObj(obj_id) => {
-                        let obj = game_state.objs.get(&obj_id);
+                        let obj = game_state.get_obj(*obj_id);
 
                         match obj {
                             Some(GameObjE::Castle(castle)) => {
@@ -104,7 +104,7 @@ impl ModInteract {
                 for facility_type in all_facilities.iter() {
                     let total = facility_type.max_count();
                     let owned = game_state
-                        .facilities
+                        .get_facilities()
                         .iter()
                         .filter(|facility| facility.1.r#type == *facility_type)
                         .count();

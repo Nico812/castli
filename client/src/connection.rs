@@ -102,11 +102,11 @@ fn handle_server_msg(msg: S2C, game_state: &mut GameState, shutdown: &ShutdownCh
         S2C::L2S4C(L2S4C::MainPacket(packet)) => {
             game_state.castle = packet.castle;
             game_state.player = packet.player;
-            game_state.objs = packet.objs;
+            game_state.update_objs(packet.objs);
             game_state.time = packet.time;
         }
         S2C::L2S4C(L2S4C::CourtyardPacket(packet)) => {
-            game_state.facilities = packet.facilities;
+            game_state.update_facilities(packet.facilities);
             game_state.castle = Some(packet.castle);
             game_state.player = packet.player;
             game_state.time = packet.time;

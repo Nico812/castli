@@ -15,10 +15,10 @@ pub enum CourtyardEvent {
 
 pub struct Courtyard {
     peasants: u32,
-    facilities: HashMap<u8, Facility>,
-    occupied: [[Option<u8>; COURTYARD_COLS]; COURTYARD_ROWS],
+    facilities: HashMap<usize, Facility>,
+    occupied: [[Option<usize>; COURTYARD_COLS]; COURTYARD_ROWS],
     owned_cnt: [u8; FacilityType::COUNT],
-    id_cnt: u8,
+    id_cnt: usize,
 }
 
 impl Courtyard {
@@ -100,7 +100,7 @@ impl Courtyard {
         true
     }
 
-    fn new_id(&mut self) -> u8 {
+    fn new_id(&mut self) -> usize {
         self.id_cnt += 1;
         self.id_cnt
     }
@@ -123,7 +123,7 @@ impl Courtyard {
         true
     }
 
-    fn mark_occupied(&mut self, id: u8, pos: GameCoord, hitbox: &Hitbox) {
+    fn mark_occupied(&mut self, id: usize, pos: GameCoord, hitbox: &Hitbox) {
         for (i, row) in hitbox.iter().enumerate() {
             for (j, hit) in row.iter().enumerate() {
                 if *hit {
@@ -133,7 +133,7 @@ impl Courtyard {
         }
     }
 
-    pub fn export(&self) -> HashMap<u8, Facility> {
+    pub fn export(&self) -> HashMap<usize, Facility> {
         self.facilities.clone()
     }
 }

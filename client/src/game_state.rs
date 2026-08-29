@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use common::{
     GameCoord, GameId, Time,
+    r#const::{COURTYARD_COLS, COURTYARD_ROWS},
     courtyard::Facility,
     game_objs::{GameObjE, OwnedCastleE},
     map::Tile,
@@ -14,10 +15,12 @@ use crate::logs::Logs;
 pub struct GameState {
     pub time: Time,
     pub map: Vec<Vec<Tile>>,
+    pub hitbox_map: Vec<Vec<Option<GameId>>>,
+    pub courtyard_hitbox_map: Vec<Vec<Option<GameId>>>,
     pub player: PlayerE,
     pub castle: Option<OwnedCastleE>,
-    pub facilities: HashMap<u8, Facility>,
-    pub objs: HashMap<GameId, GameObjE>,
+    facilities: HashMap<usize, Facility>,
+    objs: HashMap<GameId, GameObjE>,
     pub logs: Logs,
 }
 
@@ -29,8 +32,12 @@ impl GameState {
         player: PlayerE,
         castle: Option<OwnedCastleE>,
     ) -> Self {
+        let facilities = HashMap::new();
+
         Self {
             time,
+            hitbox_map: Self::init_hitbox_map(&objs, &map),
+            courtyard_hitbox_map: Self::init_courtyard_hitbox_map(&facilities),
             map,
             player,
             castle,
@@ -52,7 +59,102 @@ impl GameState {
             .unwrap_or(Tile::Err)
     }
 
-    pub fn get_facility(&self, facility_id: u8) -> Option<&Facility> {
+    pub fn get_obj(&self, obj_id: GameId) -> Option<&GameObjE> {
+        self.objs.get(&obj_id)
+    }
+
+    pub fn get_facility(&self, facility_id: usize) -> Option<&Facility> {
         self.facilities.get(&facility_id)
+    }
+
+    pub fn get_objs(&self) -> &HashMap<GameId, GameObjE> {
+        &self.objs
+    }
+
+    pub fn get_facilities(&self) -> &HashMap<GameId, Facility> {
+        &self.facilities
+    }
+
+    pub fn update_objs(&mut self, objs: HashMap<GameId, GameObjE>) {
+        for new_obj in objs.iter() {
+            if self.objs.get(&new_obj.0).is_none() {
+                let hitbox = new_obj.1.get_hitbox();
+                let pos = new_obj.1.get_pos();
+
+                for (i, row) in hitbox.iter().enumerate() {
+                    for (j, hit) in row.iter().enumerate() {
+                        if *hit {
+                            self.hitbox_map[pos.y + i][pos.x + j] = Some(*new_obj.0);
+                        }
+                    }
+                }
+            }
+        }
+
+        self.objs = objs;
+    }
+
+    pub fn update_facilities(&mut self, facilities: HashMap<usize, Facility>) {
+        for new_facility in facilities.iter() {
+            if self.facilities.get(&new_facility.0).is_none() {
+                let hitbox = new_facility.1.r#type.get_hitbox();
+                let pos = new_facility.1.pos;
+
+                for (i, row) in hitbox.iter().enumerate() {
+                    for (j, hit) in row.iter().enumerate() {
+                        if *hit {
+                            self.courtyard_hitbox_map[pos.y + i][pos.x + j] = Some(*new_facility.0);
+                        }
+                    }
+                }
+            }
+        }
+
+        self.facilities = facilities;
+    }
+
+    fn init_hitbox_map(
+        objs: &HashMap<GameId, GameObjE>,
+        map: &Vec<Vec<Tile>>,
+    ) -> Vec<Vec<Option<GameId>>> {
+        let map_rows = map.len();
+        let map_cols = map[0].len();
+
+        let mut hitbox_map = vec![vec![None; map_cols]; map_rows];
+        for obj in objs {
+            let hitbox = obj.1.get_hitbox();
+            let pos = obj.1.get_pos();
+
+            for (i, row) in hitbox.iter().enumerate() {
+                for (j, hit) in row.iter().enumerate() {
+                    if *hit {
+                        hitbox_map[i + pos.y][j + pos.x] = Some(*obj.0);
+                    }
+                }
+            }
+        }
+
+        hitbox_map
+    }
+
+    fn init_courtyard_hitbox_map(
+        facilities: &HashMap<GameId, Facility>,
+    ) -> Vec<Vec<Option<GameId>>> {
+        let mut courtyard_hitbox_map = vec![vec![None; COURTYARD_COLS]; COURTYARD_ROWS];
+
+        for facility in facilities {
+            let hitbox = facility.1.r#type.get_hitbox();
+            let pos = facility.1.pos;
+
+            for (i, row) in hitbox.iter().enumerate() {
+                for (j, hit) in row.iter().enumerate() {
+                    if *hit {
+                        courtyard_hitbox_map[i + pos.y][j + pos.x] = Some(*facility.0);
+                    }
+                }
+            }
+        }
+
+        courtyard_hitbox_map
     }
 }

@@ -67,7 +67,7 @@ pub enum InteractTarget {
     MapPos(GameCoord),
     CourtyardPos(GameCoord),
     GameObj(GameId),
-    Facility(u8),
+    Facility(usize),
 }
 
 pub struct UnitSelection {

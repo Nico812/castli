@@ -128,7 +128,7 @@ impl InputHandler {
                             return;
                         }
                         let looked_objs =
-                            Tui::get_looked_objs(inspect.coord, &game_state.objs, &ui_state.camera);
+                            Tui::get_looked_objs(game_state, inspect.coord, &ui_state.camera);
 
                         if looked_objs.len() > 1 && inspect.selection.is_none() {
                             inspect.selection = Some(looked_objs[0].0);
@@ -147,10 +147,10 @@ impl InputHandler {
                             return;
                         }
                         let looked_facility =
-                            Tui::get_looked_facility(inspect.coord, &game_state.facilities);
+                            Tui::get_looked_facility(game_state, inspect.coord, &ui_state.camera);
                         if let Some(looked_facility) = looked_facility {
                             ui_state.mode =
-                                UiMode::Interact(InteractTarget::Facility(*looked_facility.0));
+                                UiMode::Interact(InteractTarget::Facility(looked_facility.0));
                         } else {
                             ui_state.mode =
                                 UiMode::Interact(InteractTarget::CourtyardPos(inspect.coord));
@@ -158,28 +158,28 @@ impl InputHandler {
                     }
                 },
                 (KeyCode::Up, KeyModifiers::NONE) => {
-                    Self::move_inspect(0, -2, inspect, &game_state.objs, &ui_state.camera)
+                    Self::move_inspect(0, -2, inspect, &ui_state.camera, game_state)
                 }
                 (KeyCode::Down, KeyModifiers::NONE) => {
-                    Self::move_inspect(0, 2, inspect, &game_state.objs, &ui_state.camera)
+                    Self::move_inspect(0, 2, inspect, &ui_state.camera, game_state)
                 }
                 (KeyCode::Right, KeyModifiers::NONE) => {
-                    Self::move_inspect(2, 0, inspect, &game_state.objs, &ui_state.camera)
+                    Self::move_inspect(2, 0, inspect, &ui_state.camera, game_state)
                 }
                 (KeyCode::Left, KeyModifiers::NONE) => {
-                    Self::move_inspect(-2, 0, inspect, &game_state.objs, &ui_state.camera)
+                    Self::move_inspect(-2, 0, inspect, &ui_state.camera, game_state)
                 }
                 (KeyCode::Up, KeyModifiers::CONTROL) => {
-                    Self::move_inspect(0, -8, inspect, &game_state.objs, &ui_state.camera)
+                    Self::move_inspect(0, -8, inspect, &ui_state.camera, game_state)
                 }
                 (KeyCode::Down, KeyModifiers::CONTROL) => {
-                    Self::move_inspect(0, 8, inspect, &game_state.objs, &ui_state.camera)
+                    Self::move_inspect(0, 8, inspect, &ui_state.camera, game_state)
                 }
                 (KeyCode::Right, KeyModifiers::CONTROL) => {
-                    Self::move_inspect(8, 0, inspect, &game_state.objs, &ui_state.camera)
+                    Self::move_inspect(8, 0, inspect, &ui_state.camera, game_state)
                 }
                 (KeyCode::Left, KeyModifiers::CONTROL) => {
-                    Self::move_inspect(-8, 0, inspect, &game_state.objs, &ui_state.camera)
+                    Self::move_inspect(-8, 0, inspect, &ui_state.camera, game_state)
                 }
                 _ => {}
             },
@@ -335,11 +335,11 @@ impl InputHandler {
         mut dx: isize,
         mut dy: isize,
         inspect: &mut Inspect,
-        objs: &HashMap<GameId, GameObjE>,
         camera: &Camera,
+        game_state: &GameState,
     ) {
         if let Some(ref mut selection) = inspect.selection {
-            let looked_objs = Tui::get_looked_objs(inspect.coord, objs, camera);
+            let looked_objs = Tui::get_looked_objs(game_state, inspect.coord, camera);
             let new_selection = {
                 let current_pos = looked_objs.iter().position(|(id, _)| *id == *selection);
                 match dy {
