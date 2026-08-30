@@ -1,5 +1,7 @@
 use crate::{
+    assets::BLOCK,
     camera::{Camera, CameraLocation},
+    connection::Connection,
     r#const::CURSOR_SIZE,
     game_state::GameState,
     input_handler::InputHandler,
@@ -16,12 +18,14 @@ use common::{
 };
 use crossterm::{
     ExecutableCommand, cursor,
-    event::{poll, read},
+    event::{Event, KeyCode, KeyEventKind, poll, read},
+    execute,
+    style::Stylize,
     terminal,
 };
 use std::{
     collections::{HashMap, HashSet},
-    io::{self, Stdout},
+    io::{self, Stdout, Write},
     ops::DerefMut,
     process::Command,
     sync::Arc,
@@ -44,20 +48,106 @@ pub enum T2C {
 
 pub struct Tui {
     stdout: Stdout,
+    tx: mpsc::UnboundedSender<T2C>,
+    shutdown: ShutdownChannel,
 }
 
 impl Tui {
-    pub async fn new() -> Self {
-        let stdout = io::stdout();
-        Self { stdout }
+    pub async fn new(tx: mpsc::UnboundedSender<T2C>, shutdown: ShutdownChannel) -> Self {
+        let mut stdout = io::stdout();
+        terminal::enable_raw_mode().expect("Failed to set terminal to raw mode");
+        let _ = stdout.execute(cursor::Hide);
+        let _ = execute!(stdout, terminal::Clear(terminal::ClearType::All));
+
+        Self {
+            stdout,
+            tx,
+            shutdown,
+        }
     }
 
-    pub async fn run(
-        &mut self,
-        tx: mpsc::UnboundedSender<T2C>,
-        game_state: Arc<Mutex<GameState>>,
-        shutdown: ShutdownChannel,
-    ) {
+    pub fn login(&mut self) -> String {
+        let mut username = String::new();
+
+        loop {
+            self.clear_screen();
+
+            let _ = self.stdout.execute(cursor::MoveTo(2, 1));
+            print!("{}", "Login");
+
+            let _ = self.stdout.execute(cursor::MoveTo(4, 3));
+            print!("Username: {}_", username);
+
+            let _ = self.stdout.execute(cursor::MoveTo(4, 5));
+            print!("Type your username | enter: confirm");
+
+            let _ = self.stdout.flush();
+
+            match read() {
+                Ok(Event::Key(key)) if key.kind != KeyEventKind::Release => match key.code {
+                    KeyCode::Char(character) => {
+                        username.push(character);
+                    }
+                    KeyCode::Backspace => {
+                        username.pop();
+                    }
+                    KeyCode::Enter if !username.trim().is_empty() => {
+                        break;
+                    }
+                    _ => {}
+                },
+
+                _ => {}
+            }
+        }
+
+        self.clear_screen();
+        let _ = self.stdout.execute(cursor::MoveTo(0, 0));
+
+        username
+    }
+
+    pub async fn choose_lobby(&mut self) -> usize {
+        let mut selected = 0;
+
+        let choice = loop {
+            self.clear_screen();
+            let _ = self.stdout.execute(cursor::MoveTo(2, 1));
+            print!("Choose lobby");
+
+            for i in 0..MAX_LOBBIES {
+                let _ = self.stdout.execute(cursor::MoveTo(4, 3 + i as u16));
+                if i == selected {
+                    print!("{}", format!("> Lobby {}", i).yellow());
+                } else {
+                    print!("  Lobby {}", i);
+                }
+            }
+            let _ = self
+                .stdout
+                .execute(cursor::MoveTo(2, 4 + MAX_LOBBIES as u16));
+
+            print!("arrows: move | enter: confirm");
+            let _ = self.stdout.flush();
+
+            match read() {
+                Ok(Event::Key(key)) if key.kind != KeyEventKind::Release => match key.code {
+                    KeyCode::Up => selected = selected.saturating_sub(1),
+                    KeyCode::Down => selected = (selected + 1).min(MAX_LOBBIES - 1),
+                    KeyCode::Enter => break selected,
+                    _ => {}
+                },
+                _ => {}
+            }
+        };
+
+        self.clear_screen();
+        let _ = self.stdout.execute(cursor::MoveTo(0, 0));
+
+        choice
+    }
+
+    pub async fn run_game(&mut self, game_state: Arc<Mutex<GameState>>) {
         let mut render_tick = time::interval(time::Duration::from_millis(16));
         let mut last_frame = time::Instant::now();
         let mut frame_dt: u64 = 0;
@@ -65,17 +155,13 @@ impl Tui {
         let mut renderer = match Renderer::new() {
             Ok(renderer) => renderer,
             Err(_) => {
-                shutdown.shutdown(ShutdownReason::TermSize);
+                self.shutdown.shutdown(ShutdownReason::TermSize);
                 return;
             }
         };
         let mut ui_state = UiState::new(renderer.fov_size(), renderer.zoom_factor());
 
-        Self::set_raw_mode();
-        self.hide_cursor();
-        Self::clear_screen();
-
-        while !shutdown.is_shutdown() {
+        while !self.shutdown.is_shutdown() {
             let mut game_guard = game_state.lock().await;
             let game_state = game_guard.deref_mut();
 
@@ -83,10 +169,10 @@ impl Tui {
                 if let Ok(event) = read() {
                     InputHandler::handle_input(
                         &event,
-                        &tx,
+                        &self.tx,
                         game_state,
                         &mut ui_state,
-                        ShutdownChannel::clone(&shutdown),
+                        ShutdownChannel::clone(&self.shutdown),
                     );
                 }
             }
@@ -103,7 +189,7 @@ impl Tui {
 
             render_tick.tick().await;
         }
-        Self::clear_screen();
+        self.clear_screen();
     }
 
     pub fn get_looked_objs<'a>(
@@ -188,50 +274,14 @@ impl Tui {
         looked_facility
     }
 
-    pub fn login() -> String {
-        println!("Login:");
-
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        input.trim().to_string()
-    }
-
-    pub fn choose_lobby() -> usize {
-        println!("Choose lobby (0..{}):", MAX_LOBBIES - 1);
-
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        input.trim().parse::<usize>().expect("Invalid lobby number")
-    }
-
-    fn clear_screen() {
-        if cfg!(target_os = "windows") {
-            let _ = Command::new("cmd").arg("/c").arg("cls").status();
-        } else {
-            let _ = Command::new("clear").status();
-        }
-    }
-
-    fn set_raw_mode() {
-        terminal::enable_raw_mode().expect("Failed to set terminal to raw mode");
-    }
-
-    fn reset_mode() {
-        terminal::disable_raw_mode().expect("Failed to reset terminal mode");
-    }
-
-    fn hide_cursor(&mut self) {
-        let _ = self.stdout.execute(cursor::Hide);
-    }
-
-    fn show_cursor(&mut self) {
-        let _ = self.stdout.execute(cursor::Show);
+    fn clear_screen(&mut self) {
+        execute!(self.stdout, terminal::Clear(terminal::ClearType::All));
     }
 }
 
 impl Drop for Tui {
     fn drop(&mut self) {
-        self.show_cursor();
-        Self::reset_mode();
+        let _ = self.stdout.execute(cursor::Show);
+        terminal::disable_raw_mode().expect("Failed to reset terminal mode");
     }
 }

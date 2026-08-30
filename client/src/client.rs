@@ -37,13 +37,16 @@ impl Client {
 
         let (reader, mut writer) = stream.into_split();
 
-        println!("Connection established. Please log in.");
-        let name = Tui::login();
+        let (t2c_tx, t2c_rx) = mpsc::unbounded_channel();
+
+        let mut tui = Tui::new(t2c_tx, ShutdownChannel::clone(&self.shutdown)).await;
+
+        let name = tui.login();
         stream::send_msg_to_server(&mut writer, &C2S::Login(name))
             .await
             .unwrap();
 
-        let lobby = Tui::choose_lobby();
+        let lobby = tui.choose_lobby().await;
         stream::send_msg_to_server(&mut writer, &C2S::Lobby(lobby))
             .await
             .unwrap();
@@ -53,7 +56,6 @@ impl Client {
             reader: BufReader::new(reader),
         };
 
-        println!("Fetching initial game state...");
         let game_state = Arc::new(Mutex::new(
             connection
                 .fetch_initial_state()
@@ -61,18 +63,13 @@ impl Client {
                 .expect("Failed to receive initial state."),
         ));
 
-        let (t2c_tx, t2c_rx) = mpsc::unbounded_channel();
-
         let communication_handle = tokio::spawn(connection.communicate_with_server(
             t2c_rx,
             ShutdownChannel::clone(&self.shutdown),
             Arc::clone(&game_state),
         ));
 
-        let mut tui = Tui::new().await;
-        tui.run(t2c_tx, game_state, ShutdownChannel::clone(&self.shutdown))
-            .await;
-
+        tui.run_game(game_state).await;
         let _ = communication_handle.await;
     }
 }
