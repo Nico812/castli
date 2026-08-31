@@ -11,7 +11,7 @@ use common::{
 };
 
 use crate::{
-    r#const::{GAME_TICK, LOBBY_POOL_LEN},
+    r#const::{GAME_TICK, LOBBY_POOL_LEN, SERVER_COM_TICK},
     game::game::Game,
     player::Player,
     server::{Client, ClientId, S2L},
@@ -45,47 +45,62 @@ impl Lobby {
     }
 
     pub fn run(mut self, mut main_rx: Receiver<S2L>) {
-        let tick_duration = Duration::from_millis(GAME_TICK);
-        let mut next_tick = Instant::now();
         let mut running = true;
 
-        let mut tick_count = 0;
-        let mut total_comput = Duration::new(0, 0);
+        let game_tick_duration = Duration::from_millis(GAME_TICK);
+        let mut game_next_tick = Instant::now();
+        let mut game_tick_count = 0;
+        let mut game_total_comput = Duration::ZERO;
+
+        let server_com_tick_duration = Duration::from_millis(SERVER_COM_TICK);
 
         while running {
-            let tick_start = Instant::now();
-
+            // Server comunication
+            let server_com_tick_start = Instant::now();
             self.listen_server(&mut main_rx, &mut running);
-            self.listen_clients();
 
-            let dead_castles = self.game.as_mut().map(Game::step).unwrap_or_default();
-            for dead_castle in dead_castles.iter() {
-                if let Some((_, player)) = self
-                    .players
-                    .iter_mut()
-                    .find(|(_, player)| Some(*dead_castle) == player.castle_id)
-                {
-                    player.castle_id = None;
+            // Client comunication and game loop
+            let now = Instant::now();
+            if game_next_tick < now && running {
+                let game_tick_start = now;
+
+                self.listen_clients();
+
+                let dead_castles = self.game.as_mut().map(Game::step).unwrap_or_default();
+                for dead_castle in dead_castles {
+                    if let Some((_, player)) = self
+                        .players
+                        .iter_mut()
+                        .find(|(_, player)| Some(dead_castle) == player.castle_id)
+                    {
+                        player.castle_id = None;
+                    }
                 }
+
+                self.send_updates();
+
+                let comput_time = game_tick_start.elapsed();
+                game_tick_count += 1;
+                game_total_comput += comput_time;
+
+                if game_tick_count % 10 == 0 {
+                    let avg_time = game_total_comput / 10;
+
+                    println!(
+                        "[lobby {}] Avg game loop compute time over last 10: {:} ms",
+                        self.id,
+                        avg_time.as_millis()
+                    );
+                    game_total_comput = Duration::new(0, 0);
+                }
+
+                game_next_tick = game_tick_start + game_tick_duration;
             }
 
-            self.send_updates();
-
-            let comput_time = tick_start.elapsed();
-            tick_count += 1;
-            total_comput += comput_time;
-            if tick_count % 10 == 0 {
-                let avg_time = total_comput / 10;
-                println!(
-                    "[lobby {}] Avg tick time over last 10: {:} ms",
-                    self.id,
-                    avg_time.as_millis()
-                );
-                total_comput = Duration::new(0, 0);
-            }
-
-            next_tick += tick_duration;
-            thread::sleep(next_tick.saturating_duration_since(Instant::now()));
+            thread::sleep(
+                (server_com_tick_start + server_com_tick_duration)
+                    .saturating_duration_since(Instant::now()),
+            );
         }
     }
 

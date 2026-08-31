@@ -184,7 +184,7 @@ impl Server {
             if loop_count % 100 == 0 {
                 let avg_time = total_loop_time / 100;
                 println!(
-                    "[server] Performance Stats - Avg loop time over last 100: {} ms",
+                    "[server] Avg loop time over last 100: {} ms",
                     avg_time.as_millis()
                 );
                 total_loop_time = Duration::new(0, 0);

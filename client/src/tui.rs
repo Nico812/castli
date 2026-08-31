@@ -215,8 +215,6 @@ impl Tui {
         let mut looked_objs_ids: HashSet<GameId> = HashSet::new();
         let mut looked_objs: Vec<(GameId, &GameObjE)> = Vec::new();
 
-        let camera_pos = camera.get_pos();
-
         let (cursor_bounds_y, cursor_bounds_x) = if camera.location == CameraLocation::WorldMap {
             (
                 0..CURSOR_SIZE.y * camera.zoom_factor,
@@ -228,9 +226,7 @@ impl Tui {
 
         for i in cursor_bounds_y {
             for j in cursor_bounds_x.clone() {
-                if let Some(id) =
-                    game_state.hitbox_map[coord.y + camera_pos.y + i][coord.x + camera_pos.x + j]
-                {
+                if let Some(id) = game_state.hitbox_map[coord.y + i][coord.x + j] {
                     looked_objs_ids.insert(id);
                 }
             }
