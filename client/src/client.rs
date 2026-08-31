@@ -35,26 +35,28 @@ impl Client {
             }
         };
 
-        let (reader, mut writer) = stream.into_split();
+        let (reader, writer) = stream.into_split();
+        let mut connection = Connection {
+            writer,
+            reader: BufReader::new(reader),
+        };
 
         let (t2c_tx, t2c_rx) = mpsc::unbounded_channel();
 
         let mut tui = Tui::new(t2c_tx, ShutdownChannel::clone(&self.shutdown)).await;
 
         let name = tui.login();
-        stream::send_msg_to_server(&mut writer, &C2S::Login(name))
+        connection
+            .send_msg_to_server(&C2S::Login(name))
             .await
             .unwrap();
 
-        let lobby = tui.choose_lobby().await;
-        stream::send_msg_to_server(&mut writer, &C2S::Lobby(lobby))
+        let lobbies_info = connection.fetch_lobbies_info().await;
+        let lobby = tui.choose_lobby(lobbies_info).await;
+        connection
+            .send_msg_to_server(&C2S::Lobby(lobby))
             .await
             .unwrap();
-
-        let mut connection = Connection {
-            writer,
-            reader: BufReader::new(reader),
-        };
 
         let game_state = Arc::new(Mutex::new(
             connection

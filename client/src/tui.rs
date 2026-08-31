@@ -11,7 +11,7 @@ use crate::{
 };
 use common::{
     GameCoord, GameId,
-    r#const::MAX_LOBBIES,
+    r#const::{MAX_LOBBIES, MAX_LOBBY_PLAYERS},
     courtyard::{Facility, FacilityType},
     game_objs::GameObjE,
     units::UnitGroup,
@@ -107,7 +107,7 @@ impl Tui {
         username
     }
 
-    pub async fn choose_lobby(&mut self) -> usize {
+    pub async fn choose_lobby(&mut self, lobbies_info: Result<[usize; MAX_LOBBIES], ()>) -> usize {
         let mut selected = 0;
 
         let choice = loop {
@@ -116,11 +116,26 @@ impl Tui {
             print!("Choose lobby");
 
             for i in 0..MAX_LOBBIES {
+                let players_str = match lobbies_info {
+                    Ok(lobbies_info) => lobbies_info[i].to_string(),
+                    Err(()) => "Err".to_string(),
+                };
+
                 let _ = self.stdout.execute(cursor::MoveTo(4, 3 + i as u16));
                 if i == selected {
-                    print!("{}", format!("> Lobby {}", i).yellow());
+                    print!(
+                        "{}",
+                        format!(
+                            "> Lobby {}; players: {}/{}",
+                            i, players_str, MAX_LOBBY_PLAYERS
+                        )
+                        .yellow()
+                    );
                 } else {
-                    print!("  Lobby {}", i);
+                    print!(
+                        "  Lobby {}; players: {}/{}",
+                        i, players_str, MAX_LOBBY_PLAYERS
+                    );
                 }
             }
             let _ = self

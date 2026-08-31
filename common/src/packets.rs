@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     GameCoord, GameId, Time,
+    r#const::MAX_LOBBIES,
     courtyard::{Facility, FacilityType},
     game_objs::{GameObjE, OwnedCastleE},
     map::Tile,
@@ -16,6 +17,7 @@ use crate::{
 pub enum S2C {
     LobbyFound,
     LobbyFull,
+    LobbiesOverview([usize; MAX_LOBBIES]),
     ConnectionFailed,
     ServerShutdown,
     L2S4C(L2S4C),

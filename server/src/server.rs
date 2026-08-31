@@ -13,6 +13,7 @@ use common::{
 
 pub enum S2L {
     IsFull(Sender<bool>),
+    HowManyPlayers(Sender<usize>),
     NewClient(Client, Sender<L2S4C>, Receiver<C2S4L>),
     Disconnection(ClientId),
     Shutdown,
@@ -106,6 +107,14 @@ impl Server {
                     Ok(Some(C2S::Login(user_name))) => {
                         conn.client = Some(Client::new(conn.id, user_name));
                         println!("User authenticated");
+
+                        let mut lobbies_overview = [0; MAX_LOBBIES];
+                        for (i, tx) in self.txs.iter().enumerate() {
+                            let (resp_tx, resp_rx) = mpsc::channel();
+                            let _ = tx.send(S2L::HowManyPlayers(resp_tx));
+                            lobbies_overview[i] = resp_rx.recv().unwrap_or(999);
+                        }
+                        conn.queue_msg(&S2C::LobbiesOverview(lobbies_overview));
                     }
                     Ok(Some(C2S::Lobby(lobby_id))) => {
                         let Some(ref mut client) = conn.client else {

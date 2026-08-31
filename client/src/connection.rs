@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use common::{
+    r#const::MAX_LOBBIES,
     packets::{C2S, C2S4L, L2S4C, LogE, S2C},
     stream::{StreamErr, get_msg_from_server, send_msg_to_server},
 };
@@ -61,6 +62,16 @@ impl Connection {
         }
     }
 
+    pub async fn fetch_lobbies_info(&mut self) -> Result<[usize; MAX_LOBBIES], ()> {
+        match get_msg_from_server(&mut self.reader).await {
+            Ok(S2C::LobbiesOverview(msg)) => Ok(msg),
+            _ => {
+                println!("Failed to receive lobbies info");
+                return Err(());
+            }
+        }
+    }
+
     pub async fn fetch_initial_state(&mut self) -> Result<GameState, ()> {
         let map = match get_msg_from_server(&mut self.reader).await {
             Ok(S2C::L2S4C(L2S4C::Map(payload))) => payload.unflatten(),
@@ -83,6 +94,10 @@ impl Connection {
         println!("Received main packet");
 
         Ok(GameState::new(time, objs, map, client, castle))
+    }
+
+    pub async fn send_msg_to_server(&mut self, msg: &C2S) -> tokio::io::Result<()> {
+        send_msg_to_server(&mut self.writer, msg).await
     }
 }
 
@@ -126,14 +141,9 @@ fn handle_server_msg(msg: S2C, game_state: &mut GameState, shutdown: &ShutdownCh
         S2C::ServerShutdown => {
             shutdown.shutdown(ShutdownReason::ServerShutdown);
         }
-        S2C::LobbyFound => {
-            game_state.add_log("Lobby found");
-        }
-        S2C::LobbyFull => {
-            game_state.add_log("Lobby full");
-        }
-        S2C::ConnectionFailed => {
-            game_state.add_log("Connection failed");
-        }
+        S2C::LobbyFound => {}
+        S2C::LobbyFull => {}
+        S2C::ConnectionFailed => {}
+        S2C::LobbiesOverview(_) => {}
     }
 }

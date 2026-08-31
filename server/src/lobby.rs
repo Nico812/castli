@@ -27,7 +27,7 @@ pub struct Lobby {
     id: usize,
     clients_ch: HashMap<ClientId, ClientCh>,
     players: HashMap<ClientId, Player>,
-    num_players: usize,
+    alive_players: usize,
     game: Option<Game>,
     pool: ThreadPool,
 }
@@ -38,7 +38,7 @@ impl Lobby {
             id,
             players: HashMap::new(),
             clients_ch: HashMap::new(),
-            num_players: 0,
+            alive_players: 0,
             game: None,
             pool: ThreadPool::new(LOBBY_POOL_LEN),
         }
@@ -92,7 +92,7 @@ impl Lobby {
     fn add_player(&mut self, client: Client, client_ch: ClientCh) {
         let client_id = client.id;
         let player = Player::new(self.id, client);
-        self.num_players += 1;
+        self.alive_players += 1;
         println!("New player joined in a lobby, ID: {}", client_id);
 
         let game = self.game.get_or_insert_with(|| {
@@ -113,6 +113,9 @@ impl Lobby {
                 S2L::IsFull(temp_tx) => {
                     let _ = temp_tx.send(self.is_full());
                 }
+                S2L::HowManyPlayers(temp_tx) => {
+                    let _ = temp_tx.send(self.alive_players);
+                }
                 S2L::NewClient(client, client_tx, client_rx) => {
                     self.add_player(
                         client,
@@ -127,9 +130,19 @@ impl Lobby {
                     *running = false;
                 }
                 S2L::Disconnection(client_id) => {
-                    println!("Removed client from lobby");
+                    // If the player entered the lobby but did not create a castle,
+                    // he is not considered to be member of the lobby anymore.
+                    if !self
+                        .players
+                        .get(&client_id)
+                        .is_some_and(|player| player.castle_id.is_some())
+                    {
+                        self.players.remove_entry(&client_id);
+                        self.alive_players = self.alive_players.saturating_sub(1);
+                        println!("Removed player from lobby");
+                    };
                     self.clients_ch.remove_entry(&client_id);
-                    self.players.remove_entry(&client_id);
+                    println!("Removed client from lobby");
                 }
             };
         }
@@ -255,6 +268,6 @@ impl Lobby {
     }
 
     pub fn is_full(&self) -> bool {
-        self.num_players >= MAX_LOBBY_PLAYERS
+        self.alive_players >= MAX_LOBBY_PLAYERS
     }
 }
