@@ -1,3 +1,8 @@
+IMPORTANTISSIMO decidi se avere la hitbox map shared e inviata dal server al client, cosi da non dover iterare ad ogni update dal server su tutti gli oggetti e modificare la hitbox map dal client e aggiungere complessita per niente.
+A sto punto quello che faro e` rinizializzare la hitbox map sul cliuent ad ogni update zio can
+
+fai si che i castelli non si possono creare uno sopra l altro, e che le unita non possono camminare sopra castelli.
+
 implementa che il client rileva quando la connessione col server è interrotta.
 
 add discovery (fog of war) to the map as nathan suggested

@@ -56,7 +56,6 @@ pub struct Renderer {
 impl Renderer {
     pub const PADDING: TermCoord = TermCoord { y: 0, x: 0 };
 
-    // TODO: use resize_modules, dont duplicate code.
     pub fn new() -> Result<Self, ()> {
         let terminal_size = if let Ok((w, h)) = terminal::size() {
             TermCoord::new(h as usize, w as usize)
@@ -68,19 +67,8 @@ impl Renderer {
 
         let canvas_size = terminal_size - Self::PADDING * 2;
 
-        let mod_padding = TermCoord::new(1, 2);
-        let mod_player_info_size = TermCoord::new(MOD_PLAYER_INFO_ROWS, canvas_size.x);
-        let mod_central_size = canvas_size - TermCoord::new(mod_player_info_size.y + 1, 0);
-        let mod_inspect_size = TermCoord::new(0, MOD_INSPECT_COLS);
-        let mod_interact_size = TermCoord::new(0, MOD_INTERACT_COLS);
-
-        let mod_central = ModCentral::new(Module::new(mod_central_size, mod_padding));
-        let mod_player_info = ModPlayerInfo::new(Module::new(mod_player_info_size, mod_padding));
-        let mod_inspect = ModInspect::new(Module::new(mod_inspect_size, mod_padding));
-        let mod_interact = ModInteract::new(Module::new(mod_interact_size, mod_padding));
-
-        let prev_frame =
-            vec![vec![assets.get_ui_element_drawable("UI_BKG"); canvas_size.x]; canvas_size.y];
+        let (mod_central, mod_player_info, mod_inspect, mod_interact, prev_frame) =
+            Self::initialize_modules(canvas_size, &assets);
 
         Ok(Self {
             assets,
@@ -95,26 +83,6 @@ impl Renderer {
         })
     }
 
-    fn resize_modules(&mut self) {
-        let mod_padding = TermCoord::new(1, 2);
-        let mod_player_info_size = TermCoord::new(MOD_PLAYER_INFO_ROWS, self.canvas_size.x);
-        let mod_central_size = self.canvas_size - TermCoord::new(mod_player_info_size.y + 1, 0);
-        let mod_inspect_size = TermCoord::new(0, MOD_INSPECT_COLS);
-        let mod_interact_size = TermCoord::new(0, MOD_INTERACT_COLS);
-
-        self.mod_central = ModCentral::new(Module::new(mod_central_size, mod_padding));
-        self.mod_player_info = ModPlayerInfo::new(Module::new(mod_player_info_size, mod_padding));
-        self.mod_inspect = ModInspect::new(Module::new(mod_inspect_size, mod_padding));
-        self.mod_interact = ModInteract::new(Module::new(mod_interact_size, mod_padding));
-
-        // TODO: dont fetch err assets like this every time lol
-        self.prev_frame =
-            vec![
-                vec![self.assets.get_ui_element_drawable("UI_BKG"); self.canvas_size.x];
-                self.canvas_size.y
-            ];
-    }
-
     pub fn render(
         &mut self,
         stdout: &mut Stdout,
@@ -124,14 +92,21 @@ impl Renderer {
     ) {
         if let Some(new_term_size) = ui_state.term_size_change {
             self.canvas_size = new_term_size - Self::PADDING * 2;
-            self.resize_modules();
+
+            (
+                self.mod_central,
+                self.mod_player_info,
+                self.mod_inspect,
+                self.mod_interact,
+                self.prev_frame,
+            ) = Self::initialize_modules(self.canvas_size, &self.assets);
+
             ui_state.camera.zoom_factor = self.zoom_factor();
             ui_state.camera.fov_size = self.fov_size();
             let _ = queue!(stdout, Clear(terminal::ClearType::Purge));
             ui_state.term_size_change = None;
         };
 
-        // TODO: dont fetch err assets like this every time lol
         let mut new_frame: Vec<Vec<DrawableCell>> =
             vec![
                 vec![self.assets.get_ui_element_drawable("UI_BKG"); self.canvas_size.x];
@@ -228,5 +203,38 @@ impl Renderer {
 
     pub fn zoom_factor(&self) -> usize {
         self.mod_central.zoom_factor()
+    }
+
+    fn initialize_modules(
+        canvas_size: TermCoord,
+        assets: &Assets,
+    ) -> (
+        ModCentral,
+        ModPlayerInfo,
+        ModInspect,
+        ModInteract,
+        Vec<Vec<DrawableCell>>,
+    ) {
+        let mod_padding = TermCoord::new(1, 2);
+        let mod_player_info_size = TermCoord::new(MOD_PLAYER_INFO_ROWS, canvas_size.x);
+        let mod_central_size = canvas_size - TermCoord::new(mod_player_info_size.y + 1, 0);
+        let mod_inspect_size = TermCoord::new(0, MOD_INSPECT_COLS);
+        let mod_interact_size = TermCoord::new(0, MOD_INTERACT_COLS);
+
+        let mod_central = ModCentral::new(Module::new(mod_central_size, mod_padding));
+        let mod_player_info = ModPlayerInfo::new(Module::new(mod_player_info_size, mod_padding));
+        let mod_inspect = ModInspect::new(Module::new(mod_inspect_size, mod_padding));
+        let mod_interact = ModInteract::new(Module::new(mod_interact_size, mod_padding));
+
+        let prev_frame =
+            vec![vec![assets.get_ui_element_drawable("UI_BKG"); canvas_size.x]; canvas_size.y];
+
+        (
+            mod_central,
+            mod_player_info,
+            mod_inspect,
+            mod_interact,
+            prev_frame,
+        )
     }
 }

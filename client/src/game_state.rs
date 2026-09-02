@@ -5,6 +5,7 @@ use common::{
     r#const::{COURTYARD_COLS, COURTYARD_ROWS},
     courtyard::Facility,
     game_objs::{GameObjE, OwnedCastleE},
+    hitboxes::Hitbox,
     map::Tile,
     player::PlayerE,
 };
@@ -76,21 +77,7 @@ impl GameState {
     }
 
     pub fn update_objs(&mut self, objs: HashMap<GameId, GameObjE>) {
-        for new_obj in objs.iter() {
-            if self.objs.get(&new_obj.0).is_none() {
-                let hitbox = new_obj.1.get_hitbox();
-                let pos = new_obj.1.get_pos();
-
-                for (i, row) in hitbox.iter().enumerate() {
-                    for (j, hit) in row.iter().enumerate() {
-                        if *hit {
-                            self.hitbox_map[pos.y + i][pos.x + j] = Some(*new_obj.0);
-                        }
-                    }
-                }
-            }
-        }
-
+        self.hitbox_map = Self::init_hitbox_map(&objs, &self.map);
         self.objs = objs;
     }
 
@@ -100,13 +87,12 @@ impl GameState {
                 let hitbox = new_facility.1.r#type.get_hitbox();
                 let pos = new_facility.1.pos;
 
-                for (i, row) in hitbox.iter().enumerate() {
-                    for (j, hit) in row.iter().enumerate() {
-                        if *hit {
-                            self.courtyard_hitbox_map[pos.y + i][pos.x + j] = Some(*new_facility.0);
-                        }
-                    }
-                }
+                Self::add_hitbox_entry(
+                    &mut self.courtyard_hitbox_map,
+                    hitbox,
+                    pos,
+                    *new_facility.0,
+                );
             }
         }
 
@@ -125,13 +111,7 @@ impl GameState {
             let hitbox = obj.1.get_hitbox();
             let pos = obj.1.get_pos();
 
-            for (i, row) in hitbox.iter().enumerate() {
-                for (j, hit) in row.iter().enumerate() {
-                    if *hit {
-                        hitbox_map[i + pos.y][j + pos.x] = Some(*obj.0);
-                    }
-                }
-            }
+            Self::add_hitbox_entry(&mut hitbox_map, hitbox, pos, *obj.0);
         }
 
         hitbox_map
@@ -146,15 +126,24 @@ impl GameState {
             let hitbox = facility.1.r#type.get_hitbox();
             let pos = facility.1.pos;
 
-            for (i, row) in hitbox.iter().enumerate() {
-                for (j, hit) in row.iter().enumerate() {
-                    if *hit {
-                        courtyard_hitbox_map[i + pos.y][j + pos.x] = Some(*facility.0);
-                    }
-                }
-            }
+            Self::add_hitbox_entry(&mut courtyard_hitbox_map, hitbox, pos, *facility.0);
         }
 
         courtyard_hitbox_map
+    }
+
+    fn add_hitbox_entry(
+        hitbox_map: &mut Vec<Vec<Option<GameId>>>,
+        hitbox_entry: Hitbox,
+        pos: GameCoord,
+        id: GameId,
+    ) {
+        for (i, row) in hitbox_entry.iter().enumerate() {
+            for (j, hit) in row.iter().enumerate() {
+                if *hit {
+                    hitbox_map[pos.y + i][pos.x + j] = Some(id);
+                }
+            }
+        }
     }
 }

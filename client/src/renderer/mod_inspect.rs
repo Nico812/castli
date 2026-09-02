@@ -122,7 +122,7 @@ impl ModInspect {
                 GameObjE::DeployedUnits(units) => {
                     let owned = *owned_castle == Some(*id);
                     let icon = assets.get_world_obj_asset_drawable(obj, owned, night)[0][0];
-                    let name_string = "{Units}".to_string();
+                    let name_string = " : Units".to_string();
 
                     self.module.push_row_with_text(&name_string);
                     if let Some(icon) = icon {

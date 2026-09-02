@@ -66,6 +66,7 @@ impl Lobby {
 
                 self.listen_clients();
 
+                // Steps the game and returns a collection of dead castles.
                 let dead_castles = self.game.as_mut().map(Game::step).unwrap_or_default();
                 for dead_castle in dead_castles {
                     if let Some((_, player)) = self

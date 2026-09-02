@@ -234,7 +234,7 @@ impl Tui {
                 id,
                 game_state
                     .get_obj(id)
-                    .expect("Looking at a unexistent object."),
+                    .expect("Looking at unexistent object."),
             ));
         }
 
