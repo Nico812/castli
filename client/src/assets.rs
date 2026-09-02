@@ -1,4 +1,3 @@
-use std::ascii::AsciiExt;
 use std::env::current_exe;
 use std::{collections::HashMap, fs::read_to_string};
 

@@ -49,7 +49,7 @@ impl Castle {
         self.is_alive
     }
 
-    pub fn new_facility(&mut self, r#type: FacilityType, mut pos: GameCoord) -> bool {
+    pub fn new_facility(&mut self, r#type: FacilityType, pos: GameCoord) -> bool {
         let cost = r#type.base_cost();
         if !self.resources.contains(&cost) {
             return false;

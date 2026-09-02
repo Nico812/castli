@@ -1,7 +1,6 @@
 use std::io::Stdout;
 use std::io::Write;
 
-use common::map::Tile;
 use crossterm::cursor;
 use crossterm::queue;
 use crossterm::style::Color;

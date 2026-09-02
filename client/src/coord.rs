@@ -1,9 +1,6 @@
 use std::ops::{Add, Div, Mul, Sub};
 
-use common::{
-    GameCoord,
-    r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS},
-};
+use common::GameCoord;
 
 use crate::camera::{Camera, CameraLocation};
 
@@ -44,42 +41,42 @@ impl TermCoord {
     // If the camera is in WorldMap gives the upper left GameCoords
     // If are_mod_central_relative it takes the given TermCoord as having origin at top left of ModCentral content
     // Returns None if the GameCoords are out of bounds
-    pub fn to_game_coord(&self, camera: &Camera) -> Option<GameCoord> {
-        match camera.location {
-            CameraLocation::WorldMap => {
-                let game_y = self.y * 2 * camera.zoom_factor;
-                let game_x = self.x * camera.zoom_factor;
+    // pub fn to_game_coord(&self, camera: &Camera) -> Option<GameCoord> {
+    //     match camera.location {
+    //         CameraLocation::WorldMap => {
+    //             let game_y = self.y * 2 * camera.zoom_factor;
+    //             let game_x = self.x * camera.zoom_factor;
 
-                if game_y >= MAP_ROWS || game_x >= MAP_COLS {
-                    None
-                } else {
-                    Some(GameCoord::new(game_y, game_x))
-                }
-            }
-            CameraLocation::Map => {
-                let camera_pos = camera.get_pos();
-                let game_y = camera_pos.y + self.y * 2;
-                let game_x = camera_pos.x + self.x;
+    //             if game_y >= MAP_ROWS || game_x >= MAP_COLS {
+    //                 None
+    //             } else {
+    //                 Some(GameCoord::new(game_y, game_x))
+    //             }
+    //         }
+    //         CameraLocation::Map => {
+    //             let camera_pos = camera.get_pos();
+    //             let game_y = camera_pos.y + self.y * 2;
+    //             let game_x = camera_pos.x + self.x;
 
-                if game_y >= MAP_ROWS || game_x >= MAP_COLS {
-                    None
-                } else {
-                    Some(GameCoord::new(game_y, game_x))
-                }
-            }
-            CameraLocation::Courtyard => {
-                let camera_pos = camera.get_pos();
-                let game_y = camera_pos.y + self.y * 2;
-                let game_x = camera_pos.x + self.x;
+    //             if game_y >= MAP_ROWS || game_x >= MAP_COLS {
+    //                 None
+    //             } else {
+    //                 Some(GameCoord::new(game_y, game_x))
+    //             }
+    //         }
+    //         CameraLocation::Courtyard => {
+    //             let camera_pos = camera.get_pos();
+    //             let game_y = camera_pos.y + self.y * 2;
+    //             let game_x = camera_pos.x + self.x;
 
-                if game_y >= COURTYARD_ROWS || game_x >= COURTYARD_COLS {
-                    None
-                } else {
-                    Some(GameCoord::new(game_y, game_x))
-                }
-            }
-        }
-    }
+    //             if game_y >= COURTYARD_ROWS || game_x >= COURTYARD_COLS {
+    //                 None
+    //             } else {
+    //                 Some(GameCoord::new(game_y, game_x))
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 impl Add for TermCoord {

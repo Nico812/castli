@@ -1,7 +1,5 @@
-use std::fmt::Pointer;
-
 use crate::{
-    assets::{Assets, TileAsset},
+    assets::Assets,
     camera::CameraLocation,
     game_state::GameState,
     renderer::{module::Module, renderer::DrawableCell},

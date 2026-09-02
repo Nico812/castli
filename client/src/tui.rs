@@ -1,7 +1,5 @@
 use crate::{
-    assets::BLOCK,
     camera::{Camera, CameraLocation},
-    connection::Connection,
     r#const::CURSOR_SIZE,
     game_state::GameState,
     input_handler::InputHandler,
@@ -24,10 +22,9 @@ use crossterm::{
     terminal,
 };
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashSet,
     io::{self, Stdout, Write},
     ops::DerefMut,
-    process::Command,
     sync::Arc,
     time::Duration,
 };
@@ -286,12 +283,13 @@ impl Tui {
     }
 
     fn clear_screen(&mut self) {
-        execute!(self.stdout, terminal::Clear(terminal::ClearType::All));
+        let _ = execute!(self.stdout, terminal::Clear(terminal::ClearType::All));
     }
 }
 
 impl Drop for Tui {
     fn drop(&mut self) {
+        let _ = self.stdout.execute(cursor::MoveTo(0, 0));
         let _ = self.stdout.execute(cursor::Show);
         terminal::disable_raw_mode().expect("Failed to reset terminal mode");
     }

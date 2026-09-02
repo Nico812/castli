@@ -11,7 +11,6 @@ use crate::tui::Tui;
 use common::{
     r#const::{IP_LOCAL, ONLINE},
     packets::C2S,
-    stream,
 };
 
 pub struct Client {
