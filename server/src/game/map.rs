@@ -10,33 +10,20 @@ use crate::game::map_gen;
 
 pub struct Map {
     tiles: Vec<Vec<Tile>>,
-    obstacles: Vec<Vec<bool>>,
     occupied: Vec<Vec<bool>>,
 }
 
 impl Map {
     pub fn new() -> Self {
         let tiles = map_gen::generate_tiles();
-        let obstacles: Vec<Vec<bool>> = tiles
-            .iter()
-            .map(|row| row.iter().map(|t| *t == Tile::Water).collect())
-            .collect();
         let occupied = vec![vec![false; MAP_COLS]; MAP_ROWS];
 
         println!("mappa caricata LOL");
-        Self {
-            tiles,
-            obstacles,
-            occupied,
-        }
+        Self { tiles, occupied }
     }
 
-    pub fn is_obstacle(&self, pos: GameCoord) -> bool {
-        self.obstacles
-            .get(pos.y)
-            .and_then(|row| row.get(pos.x))
-            .copied()
-            .unwrap_or(true)
+    pub fn is_water(&self, pos: GameCoord) -> bool {
+        self.get_tile(pos) == Some(Tile::Water)
     }
 
     pub fn is_occupied(&self, pos: GameCoord) -> bool {
@@ -51,7 +38,7 @@ impl Map {
         for (i, row) in hitbox.iter().enumerate() {
             for (j, hit) in row.iter().enumerate() {
                 let curr_pos = GameCoord::new(pos.y + i, pos.x + j);
-                if *hit && (self.is_occupied(curr_pos) || self.is_obstacle(curr_pos)) {
+                if *hit && (self.is_occupied(curr_pos) || self.is_water(curr_pos)) {
                     return false;
                 }
             }
@@ -62,7 +49,7 @@ impl Map {
     pub fn set_occupied(&mut self, pos: GameCoord, hitbox: Hitbox) {
         for (i, row) in hitbox.iter().enumerate() {
             for (j, hit) in row.iter().enumerate() {
-                let curr_pos = GameCoord::new(pos.y + i, pos.y + j);
+                let curr_pos = GameCoord::new(pos.y + i, pos.x + j);
                 if *hit {
                     self.occupied
                         .get_mut(curr_pos.y)
@@ -73,15 +60,19 @@ impl Map {
         }
     }
 
-    pub fn get_obstacles(&self) -> &Vec<Vec<bool>> {
-        &self.obstacles
-    }
-
     pub fn get_tile(&self, pos: GameCoord) -> Option<Tile> {
         self.tiles
             .get(pos.y)
             .and_then(|row| row.get(pos.x))
             .copied()
+    }
+
+    pub fn get_tiles(&self) -> &Vec<Vec<Tile>> {
+        &self.tiles
+    }
+
+    pub fn get_occupied_map(&self) -> &Vec<Vec<bool>> {
+        &self.occupied
     }
 
     pub fn export(&self) -> MapPayload {

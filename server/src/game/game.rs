@@ -162,7 +162,7 @@ impl Game {
             return false;
         }
 
-        if self.map.is_obstacle(target_pos) {
+        if self.map.is_water(target_pos) {
             return false;
         }
 
@@ -174,17 +174,28 @@ impl Game {
             return false;
         }
 
-        let deployed_units = DeployedUnits::new(attacker_id, target_id, None, unit_group);
         let attacker_pos = attacker_castle.get_pos();
-        let map_obstacles = self.map.get_obstacles().clone();
+        let deployed_units = DeployedUnits::new(attacker_id, target_id, None, unit_group);
         let id = Self::new_id(&mut self.id_cnt);
+
+        // Need to remove starting and target position (if target is a solid object) from obstacles or the pathfinding will not work
+        let mut map_obstacles =
+            deployed_units.get_obstacles(self.map.get_tiles(), self.map.get_occupied_map());
+        map_obstacles[attacker_pos.y][attacker_pos.x] = false;
+
+        if let Some(target_id) = target_id
+            && let Some(target_castle) = self.get_castle(target_id)
+        {
+            let target_pos_sigmavariable = target_castle.get_pos();
+            map_obstacles[target_pos_sigmavariable.y][target_pos_sigmavariable.x] = false;
+        }
 
         self.game_objs
             .insert(id, GameObj::DeployedUnits(deployed_units));
 
         let task = PathTask::new(
             pool.execute_with_result(move || {
-                pathfinding::a_star(attacker_pos, target_pos, &map_obstacles)
+                pathfinding::a_star(attacker_pos, target_pos, map_obstacles)
             }),
             id,
         );

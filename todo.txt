@@ -1,7 +1,8 @@
 IMPORTANTISSIMO decidi se avere la hitbox map shared e inviata dal server al client, cosi da non dover iterare ad ogni update dal server su tutti gli oggetti e modificare la hitbox map dal client e aggiungere complessita per niente.
 A sto punto quello che faro e` rinizializzare la hitbox map sul cliuent ad ogni update zio can
+=> se inviassi ad ogni update la hitbox map sarebbe size(usize)*MAPSIZE**2 = approx 2 milioni di bytes = 2Mb il che non va bene
 
-fai si che i castelli non si possono creare uno sopra l altro, e che le unita non possono camminare sopra castelli.
+se crei un castello, le unita deployed che gia erano in viaggio non lo vedranno come ostacolo. solo le unita deployed future
 
 implementa che il client rileva quando la connessione col server è interrotta.
 

@@ -1,6 +1,11 @@
 use std::collections::VecDeque;
 
-use common::{GameCoord, GameId, game_objs::DeployedUnitsE, units::UnitGroup};
+use common::{
+    GameCoord, GameId,
+    game_objs::DeployedUnitsE,
+    map::Tile,
+    units::{UnitGroup, UnitType},
+};
 
 pub enum DeployedUnitsEvent {
     AtDest,
@@ -62,6 +67,32 @@ impl DeployedUnits {
         };
 
         None
+    }
+
+    pub fn get_obstacles(
+        &self,
+        tiles: &Vec<Vec<Tile>>,
+        occupied: &Vec<Vec<bool>>,
+    ) -> Vec<Vec<bool>> {
+        let unit_obstacles: &[Tile] = if self.unit_group.contains(UnitType::Ship) {
+            &[]
+        } else {
+            &[Tile::Water]
+        };
+
+        let obstacles = tiles
+            .iter()
+            .enumerate()
+            .map(|(i, tile_row)| {
+                tile_row
+                    .iter()
+                    .enumerate()
+                    .map(|(j, tile)| unit_obstacles.contains(tile) || occupied[i][j])
+                    .collect()
+            })
+            .collect();
+
+        obstacles
     }
 
     // This needs to be fully rethinked because i want dynamic battles!

@@ -37,7 +37,7 @@ impl Eq for Node {}
 pub fn a_star(
     start: GameCoord,
     end: GameCoord,
-    obstacles: &[Vec<bool>],
+    obstacles: Vec<Vec<bool>>,
 ) -> Option<VecDeque<GameCoord>> {
     fn chebyshev(p1: GameCoord, p2: GameCoord) -> u16 {
         p1.x.abs_diff(p2.x).max(p1.y.abs_diff(p2.y)) as u16

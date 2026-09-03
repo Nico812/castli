@@ -23,14 +23,12 @@ impl Castle {
         let mut units = UnitGroup::new();
         let mut resources = Resources::new(10, 10);
 
-        if name == "gabbiano" {
-            resources.saturating_add(&Resources::new(100, 100));
-            units.add_single_type(UnitType::Knight, 100);
-        } else if name == "pellicano" {
+        if name == "gabbiano" || name == "pellicano" || name == "asd" {
             resources.saturating_add(&Resources::new(1000, 1000));
             units.add_single_type(UnitType::Knight, 1000);
             units.add_single_type(UnitType::Mage, 1000);
             units.add_single_type(UnitType::Dragon, 1000);
+            units.add_single_type(UnitType::Ship, 1000);
         } else {
             units.add_single_type(UnitType::Knight, 5);
         }

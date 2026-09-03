@@ -12,9 +12,9 @@ use common::{
     map::Tile,
 };
 
-struct TerrainParams {
+struct TerrainParams<'a> {
     spreading: Tile,
-    spreads_on: &'static [Tile],
+    spreads_on: &'a [Tile],
     iters: usize,
     percent: u8,
     counts_to_spread: u8,
