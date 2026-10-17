@@ -24,7 +24,7 @@ impl InputHandler {
         shutdown: ShutdownChannel,
     ) {
         if let Event::Resize(col, row) = event {
-            ui_state.term_size_change = Some(TermCoord::new(*row as usize, *col as usize));
+            ui_state.term_size_change = Some(TermCoord::new(*row as isize, *col as isize));
             return;
         }
 
@@ -371,23 +371,26 @@ impl InputHandler {
                 CameraLocation::Map => {
                     inspect.coord.x = (inspect.coord.x as isize + dx)
                         .max(camera_pos.x as isize)
-                        .min((camera_pos.x + camera.fov_size.x - 1) as isize)
+                        .min(camera_pos.x as isize + camera.fov_size.x - 1)
                         as usize;
                     inspect.coord.y = (inspect.coord.y as isize + dy)
                         .max(camera_pos.y as isize)
-                        .min((camera_pos.y + camera.fov_size.y * 2 - 1) as isize)
+                        .min(camera_pos.y as isize + camera.fov_size.y * 2 - 1)
                         as usize;
                 }
                 CameraLocation::Courtyard => {
                     inspect.coord.x = (inspect.coord.x as isize + dx)
                         .max(camera_pos.x as isize)
-                        .min((camera_pos.x + camera.fov_size.x.min(COURTYARD_COLS) - 1) as isize)
-                        as usize;
+                        .min(
+                            camera_pos.x as isize + camera.fov_size.x.min(COURTYARD_COLS as isize)
+                                - 1,
+                        ) as usize;
                     inspect.coord.y = (inspect.coord.y as isize + dy)
                         .max(camera_pos.y as isize)
                         .min(
-                            (camera_pos.y + (camera.fov_size.y * 2).min(COURTYARD_ROWS) - 1)
-                                as isize,
+                            camera_pos.y as isize
+                                + (camera.fov_size.y * 2).min(COURTYARD_ROWS as isize)
+                                - 1,
                         ) as usize;
                 }
             }

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
 
 use common::r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS};
@@ -73,30 +73,18 @@ impl ModCentral {
                     &mut self.module,
                     &game_state.map,
                     &self.variants_map,
-                    game_state.time.night,
                     &ui_state.camera,
                     &assets,
+                    &game_state,
                 );
-                self.draw_objs(
-                    &game_state.player.castle_id,
-                    &game_state.get_objs(),
-                    &ui_state.camera,
-                    game_state.time.night,
-                    &assets,
-                );
+                self.draw_objs(&ui_state.camera, &assets, game_state);
                 title
             }
             CameraLocation::WorldMap => {
                 let title = "Castli | world map".to_string();
                 self.draw_world_map(&ui_state.camera, &assets);
 
-                self.draw_world_objs(
-                    &game_state.player.castle_id,
-                    &game_state.get_objs(),
-                    &ui_state.camera,
-                    game_state.time.night,
-                    &assets,
-                );
+                self.draw_world_objs(&ui_state.camera, &assets, &game_state);
                 title
             }
             CameraLocation::Courtyard => {
@@ -105,29 +93,23 @@ impl ModCentral {
                     &mut self.module,
                     &self.courtyard_tiles,
                     &self.variants_courtyard,
-                    game_state.time.night,
                     &ui_state.camera,
                     &assets,
+                    game_state,
                 );
-                self.draw_facilities(
-                    &game_state.get_facilities(),
-                    &ui_state.camera,
-                    game_state.time.night,
-                    &assets,
-                );
+                self.draw_facilities(&ui_state.camera, &assets, &game_state);
                 title
             }
         };
 
         // Adding the cursor
-        if let UiMode::Inspect(ref inspect) = ui_state.mode
-            && let Some(term_coord) = TermCoord::from_game_coord(inspect.coord, &ui_state.camera)
-        {
+        if let UiMode::Inspect(ref inspect) = ui_state.mode {
+            let cursor_pos = TermCoord::from_game_coord(inspect.coord, &ui_state.camera);
             self.module
-                .draw_cell(assets.get_ui_element_drawable("CURSOR_L"), term_coord);
+                .draw_cell(assets.get_ui_element_drawable("CURSOR_L"), cursor_pos);
             self.module.draw_cell(
                 assets.get_ui_element_drawable("CURSOR_R"),
-                term_coord + TermCoord::new(0, 1),
+                cursor_pos + TermCoord::new(0, 1),
             );
         }
 
@@ -142,32 +124,31 @@ impl ModCentral {
 
     pub fn zoom_factor(&self) -> usize {
         let fov_size = self.fov_size();
-        let y_factor = MAP_ROWS.div_ceil((fov_size.y * 2).max(1));
-        let x_factor = MAP_COLS.div_ceil((fov_size.x).max(1));
+        let y_factor = MAP_ROWS.div_ceil((fov_size.y * 2).max(1) as usize);
+        let x_factor = MAP_COLS.div_ceil((fov_size.x).max(1) as usize);
         x_factor.max(y_factor).max(1)
     }
 
     fn draw_tiles(
         module: &mut Module,
-        tiles: &[Vec<Tile>],
+        tiles: &Vec<Vec<Tile>>,
         variants: &Vec<Vec<bool>>,
-        night: bool,
         camera: &Camera,
         assets: &Assets,
+        game_state: &GameState,
     ) {
         let drawable_size = module.drawable_size();
         let camera_pos = camera.get_pos();
+        let night = game_state.time.night;
 
-        for tile_row in camera_pos.y..camera_pos.y + drawable_size.y * 2 {
+        for tile_row in camera_pos.y..camera_pos.y + drawable_size.y as usize * 2 {
             if tile_row & 1 == 1 {
                 continue;
             }
-            for tile_col in camera_pos.x..camera_pos.x + drawable_size.x {
-                let Some(term_pos) =
-                    TermCoord::from_game_coord(GameCoord::new(tile_row, tile_col), camera)
-                else {
-                    continue;
-                };
+            for tile_col in camera_pos.x..camera_pos.x + drawable_size.x as usize {
+                let term_pos =
+                    TermCoord::from_game_coord(GameCoord::new(tile_row, tile_col), camera);
+
                 let tile_top = tiles.get(tile_row).and_then(|row| row.get(tile_col));
                 let tile_bot = tiles.get(tile_row + 1).and_then(|row| row.get(tile_col));
 
@@ -202,8 +183,7 @@ impl ModCentral {
     }
 
     fn draw_world_map(&mut self, camera: &Camera, assets: &Assets) {
-        let map_term_size =
-            TermCoord::from_game_coord(GameCoord::new(MAP_ROWS, MAP_COLS), camera).unwrap();
+        let map_term_size = TermCoord::from_game_coord(GameCoord::new(MAP_ROWS, MAP_COLS), camera);
 
         for tile_row in 0..map_term_size.y {
             for tile_col in 0..map_term_size.x {
@@ -215,59 +195,77 @@ impl ModCentral {
         }
     }
 
-    fn draw_objs(
-        &mut self,
-        castle_id: &Option<GameId>,
-        objs: &HashMap<GameId, GameObjE>,
-        camera: &Camera,
-        night: bool,
-        assets: &Assets,
-    ) {
+    fn draw_objs(&mut self, camera: &Camera, assets: &Assets, game_state: &GameState) {
         let drawable_size = self.module.drawable_size();
+        let camera_pos = camera.get_pos();
+        let castle_id = game_state.player.castle_id;
+        let night = game_state.time.night;
+        let hitbox_map = &game_state.hitbox_map;
 
-        for (id, obj) in objs.iter() {
-            let pos = obj.get_pos();
-            let camera_pos = camera.get_pos();
-            if pos.y < camera_pos.y
-                || pos.x < camera_pos.x
-                || pos.y >= camera_pos.y + drawable_size.y * 2
-                || pos.x >= camera_pos.x + drawable_size.x
-            {
+        let mut seen_objs = HashSet::new();
+        for row in camera_pos.y..camera_pos.y + drawable_size.y as usize * 2 {
+            for col in camera_pos.x..camera_pos.x + drawable_size.x as usize {
+                if let Some(obj_id) = hitbox_map[row][col] {
+                    seen_objs.insert(obj_id);
+                }
+            }
+        }
+
+        for obj_id in seen_objs {
+            let Some(obj) = game_state.get_obj(obj_id) else {
                 continue;
             };
-            let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
-                continue;
-            };
+
+            let term_coord = TermCoord::from_game_coord(obj.get_pos(), camera);
 
             let owned = match obj {
-                GameObjE::Castle(_) => *castle_id == Some(*id),
-                GameObjE::DeployedUnits(units) => Some(units.owner_id) == *castle_id,
+                GameObjE::Castle(_) => castle_id == Some(obj_id),
+                GameObjE::DeployedUnits(units) => Some(units.owner_id) == castle_id,
                 _ => false,
             };
 
             let asset = assets.get_world_obj_asset_drawable(obj, owned, night);
             self.module.draw_asset(asset, term_coord);
         }
+
+        // for (id, obj) in objs.iter() {
+        //     let pos = obj.get_pos();
+        //     let camera_pos = camera.get_pos();
+        //     if pos.y < camera_pos.y
+        //         || pos.x < camera_pos.x
+        //         || pos.y >= camera_pos.y + drawable_size.y * 2
+        //         || pos.x >= camera_pos.x + drawable_size.x
+        //     {
+        //         continue;
+        //     };
+        //     let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
+        //         continue;
+        //     };
+
+        //     let owned = match obj {
+        //         GameObjE::Castle(_) => *castle_id == Some(*id),
+        //         GameObjE::DeployedUnits(units) => Some(units.owner_id) == *castle_id,
+        //         _ => false,
+        //     };
+
+        //     let asset = assets.get_world_obj_asset_drawable(obj, owned, night);
+        //     self.module.draw_asset(asset, term_coord);
+        // }
     }
 
-    fn draw_world_objs(
-        &mut self,
-        castle_id: &Option<GameId>,
-        world_objs: &HashMap<GameId, GameObjE>,
-        camera: &Camera,
-        night: bool,
-        assets: &Assets,
-    ) {
+    fn draw_world_objs(&mut self, camera: &Camera, assets: &Assets, game_state: &GameState) {
+        let night = game_state.time.night;
+        let world_objs = game_state.get_objs();
+        let castle_id = game_state.player.castle_id;
+
         for (id, obj) in world_objs.iter() {
             let pos = obj.get_pos();
 
-            let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
-                continue;
-            };
+            let term_coord = TermCoord::from_game_coord(pos, camera);
 
             let owned = match obj {
-                GameObjE::Castle(_) => *castle_id == Some(*id),
-                GameObjE::DeployedUnits(units) => Some(units.owner_id) == *castle_id,
+                GameObjE::Castle(_) => castle_id == Some(*id),
+                GameObjE::DeployedUnits(units) => Some(units.owner_id) == castle_id,
                 _ => false,
             };
 
@@ -276,20 +274,15 @@ impl ModCentral {
         }
     }
 
-    fn draw_facilities(
-        &mut self,
-        facilities: &HashMap<usize, Facility>,
-        camera: &Camera,
-        night: bool,
-        assets: &Assets,
-    ) {
+    fn draw_facilities(&mut self, camera: &Camera, assets: &Assets, game_state: &GameState) {
+        let night = game_state.time.night;
+        let facilities = game_state.get_facilities();
+
         for (_, facility) in facilities.iter() {
             let asset = assets.get_facility_asset_drawable(facility, night);
 
             let pos = facility.pos;
-            let Some(term_coord) = TermCoord::from_game_coord(pos, camera) else {
-                continue;
-            };
+            let term_coord = TermCoord::from_game_coord(pos, camera);
 
             self.module.draw_asset(asset, term_coord);
         }

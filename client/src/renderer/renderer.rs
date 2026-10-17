@@ -58,7 +58,7 @@ impl Renderer {
 
     pub fn new() -> Result<Self, ()> {
         let terminal_size = if let Ok((w, h)) = terminal::size() {
-            TermCoord::new(h as usize, w as usize)
+            TermCoord::new(h as isize, w as isize)
         } else {
             return Err(());
         };
@@ -109,8 +109,8 @@ impl Renderer {
 
         let mut new_frame: Vec<Vec<DrawableCell>> =
             vec![
-                vec![self.assets.get_ui_element_drawable("UI_BKG"); self.canvas_size.x];
-                self.canvas_size.y
+                vec![self.assets.get_ui_element_drawable("UI_BKG"); self.canvas_size.x as usize];
+                self.canvas_size.y as usize
             ];
 
         for (row, line_contents) in self
@@ -128,7 +128,8 @@ impl Renderer {
             }
         }
 
-        let mod_player_info_pos = TermCoord::new(self.canvas_size.y - MOD_PLAYER_INFO_ROWS, 0);
+        let mod_player_info_pos =
+            TermCoord::new(self.canvas_size.y - MOD_PLAYER_INFO_ROWS as isize, 0);
         for (row, line_contents) in self
             .mod_player_info
             .render(frame_dt, game_state, ui_state)
@@ -137,21 +138,23 @@ impl Renderer {
         {
             for (col, cell) in line_contents.iter().enumerate() {
                 new_frame
-                    .get_mut(row + mod_player_info_pos.y)
-                    .map(|frame_row| frame_row.get_mut(col + mod_player_info_pos.x))
+                    .get_mut(row + mod_player_info_pos.y as usize)
+                    .map(|frame_row| frame_row.get_mut(col + mod_player_info_pos.x as usize))
                     .flatten()
                     .map(|frame_cell| *frame_cell = *cell);
             }
         }
 
-        let mod_inspect_pos =
-            TermCoord::new(3, self.canvas_size.x.saturating_sub(MOD_INSPECT_COLS + 5));
+        let mod_inspect_pos = TermCoord::new(
+            3,
+            (self.canvas_size.x - (MOD_INSPECT_COLS as isize + 5)).max(0),
+        );
         if let Some(renderable) = self.mod_inspect.render(game_state, ui_state, &self.assets) {
             for (row, line_contents) in renderable.iter().enumerate() {
                 for (col, cell) in line_contents.iter().enumerate() {
                     new_frame
-                        .get_mut(row + mod_inspect_pos.y)
-                        .map(|frame_row| frame_row.get_mut(col + mod_inspect_pos.x))
+                        .get_mut(row + mod_inspect_pos.y as usize)
+                        .map(|frame_row| frame_row.get_mut(col + mod_inspect_pos.x as usize))
                         .flatten()
                         .map(|frame_cell| *frame_cell = *cell);
                 }
@@ -160,27 +163,27 @@ impl Renderer {
 
         let mod_interact_pos = TermCoord::new(
             3,
-            (self.canvas_size.x.saturating_sub(MOD_INTERACT_COLS)) / 2,
+            (self.canvas_size.x - MOD_INTERACT_COLS as isize).max(0) / 2,
         );
         if let Some(renderable) = self.mod_interact.render(game_state, ui_state, &self.assets) {
             for (row, line_contents) in renderable.iter().enumerate() {
                 for (col, cell) in line_contents.iter().enumerate() {
                     new_frame
-                        .get_mut(row + mod_interact_pos.y)
-                        .map(|frame_row| frame_row.get_mut(col + mod_interact_pos.x))
+                        .get_mut(row + mod_interact_pos.y as usize)
+                        .map(|frame_row| frame_row.get_mut(col + mod_interact_pos.x as usize))
                         .flatten()
                         .map(|frame_cell| *frame_cell = *cell);
                 }
             }
         }
 
-        for row in 0..self.canvas_size.y {
-            for col in 0..self.canvas_size.x {
+        for row in 0..self.canvas_size.y as usize {
+            for col in 0..self.canvas_size.x as usize {
                 let new_cell = &new_frame[row][col];
                 let last_cell = &self.prev_frame[row][col];
                 if (new_cell != last_cell) || (self.prev_is_night != game_state.time.night) {
-                    let x = (Self::PADDING.x + col) as u16;
-                    let y = (Self::PADDING.y + row) as u16;
+                    let x = (Self::PADDING.x as usize + col) as u16;
+                    let y = (Self::PADDING.y as usize + row) as u16;
                     let _ = queue!(
                         stdout,
                         cursor::MoveTo(x, y),
@@ -216,18 +219,20 @@ impl Renderer {
         Vec<Vec<DrawableCell>>,
     ) {
         let mod_padding = TermCoord::new(1, 2);
-        let mod_player_info_size = TermCoord::new(MOD_PLAYER_INFO_ROWS, canvas_size.x);
+        let mod_player_info_size = TermCoord::new(MOD_PLAYER_INFO_ROWS as isize, canvas_size.x);
         let mod_central_size = canvas_size - TermCoord::new(mod_player_info_size.y + 1, 0);
-        let mod_inspect_size = TermCoord::new(0, MOD_INSPECT_COLS);
-        let mod_interact_size = TermCoord::new(0, MOD_INTERACT_COLS);
+        let mod_inspect_size = TermCoord::new(0, MOD_INSPECT_COLS as isize);
+        let mod_interact_size = TermCoord::new(0, MOD_INTERACT_COLS as isize);
 
         let mod_central = ModCentral::new(Module::new(mod_central_size, mod_padding));
         let mod_player_info = ModPlayerInfo::new(Module::new(mod_player_info_size, mod_padding));
         let mod_inspect = ModInspect::new(Module::new(mod_inspect_size, mod_padding));
         let mod_interact = ModInteract::new(Module::new(mod_interact_size, mod_padding));
 
-        let prev_frame =
-            vec![vec![assets.get_ui_element_drawable("UI_BKG"); canvas_size.x]; canvas_size.y];
+        let prev_frame = vec![
+            vec![assets.get_ui_element_drawable("UI_BKG"); canvas_size.x as usize];
+            canvas_size.y as usize
+        ];
 
         (
             mod_central,

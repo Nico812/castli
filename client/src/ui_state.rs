@@ -37,11 +37,11 @@ impl UiState {
 
         let new_x = (camera_pos.x as isize + 2 * dx)
             .max(0)
-            .min(bound_cols.saturating_sub(self.camera.fov_size.x - 1) as isize)
+            .min(bound_cols.saturating_sub(self.camera.fov_size.x as usize - 1) as isize)
             as usize;
         let new_y = (camera_pos.y as isize + 2 * dy)
             .max(0)
-            .min(bound_rows.saturating_sub((self.camera.fov_size.y - 1) * 2) as isize)
+            .min(bound_rows.saturating_sub((self.camera.fov_size.y as usize - 1) * 2) as isize)
             as usize;
 
         let new_pos = GameCoord::new(new_y - (new_y % 2), new_x - (new_x % 2));

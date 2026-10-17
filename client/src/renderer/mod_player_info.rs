@@ -95,8 +95,8 @@ impl ModPlayerInfo {
 
         let mut all_lines: Vec<String> = Vec::new();
 
-        for log in logs.content.iter().rev().take(drawable_size.y) {
-            if log.len() <= drawable_size.x {
+        for log in logs.content.iter().rev().take(drawable_size.y as usize) {
+            if log.len() <= drawable_size.x as usize {
                 all_lines.push(log.clone());
             } else {
                 let chars: Vec<char> = log.chars().collect();
@@ -105,12 +105,12 @@ impl ModPlayerInfo {
 
                 while pos < chars.len() {
                     let end = if is_first_line {
-                        (pos + drawable_size.x).min(chars.len())
+                        (pos + drawable_size.x as usize).min(chars.len())
                     } else {
-                        (pos + drawable_size.x).min(chars.len())
+                        (pos + drawable_size.x as usize).min(chars.len())
                     };
 
-                    let mut line = String::with_capacity(drawable_size.x);
+                    let mut line = String::with_capacity(drawable_size.x as usize);
                     if !is_first_line {
                         line.push_str(&" ".repeat(tab_width));
                     }
@@ -125,8 +125,9 @@ impl ModPlayerInfo {
 
         for (line_row, line) in all_lines.iter().enumerate() {
             for (char_col, ch) in line.chars().enumerate() {
-                if line_row < drawable_size.y {
-                    let pos = TermCoord::new(drawable_size.y - line_row - 1, char_col);
+                if line_row < drawable_size.y as usize {
+                    let pos =
+                        TermCoord::new(drawable_size.y - line_row as isize - 1, char_col as isize);
                     self.module
                         .draw_cell(DrawableCell::new(ch, Color::White, Color::Black), pos);
                 }

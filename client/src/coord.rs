@@ -8,33 +8,30 @@ use crate::camera::{Camera, CameraLocation};
 // A TermCoord y-displacement corresponds to a GameCoord 2y-displacement
 #[derive(Clone, Copy)]
 pub struct TermCoord {
-    pub x: usize,
-    pub y: usize,
+    pub x: isize,
+    pub y: isize,
 }
 
 impl TermCoord {
-    pub fn new(y: usize, x: usize) -> Self {
+    pub fn new(y: isize, x: isize) -> Self {
         Self { x, y }
     }
 
-    pub fn from_game_coord(game_coord: GameCoord, camera: &Camera) -> Option<Self> {
+    pub fn from_game_coord(game_coord: GameCoord, camera: &Camera) -> Self {
         let (term_y, term_x) = if camera.location == CameraLocation::WorldMap {
             let term_y = game_coord.y / 2 / camera.zoom_factor;
             let term_x = game_coord.x / camera.zoom_factor;
 
-            (term_y, term_x)
+            (term_y as isize, term_x as isize)
         } else {
             let camera_pos = camera.get_pos();
-            if game_coord.y < camera_pos.y || game_coord.x < camera_pos.x {
-                return None;
-            }
-            let rel_game_y = game_coord.y - camera_pos.y;
-            let rel_game_x = game_coord.x - camera_pos.x;
+            let rel_game_y = game_coord.y as isize - camera_pos.y as isize;
+            let rel_game_x = game_coord.x as isize - camera_pos.x as isize;
 
             (rel_game_y / 2, rel_game_x)
         };
 
-        Some(Self::new(term_y, term_x))
+        Self::new(term_y, term_x)
     }
 
     // This calculates the GameCoords of an object shown at a certain TermCoord
@@ -106,8 +103,8 @@ impl Mul<usize> for TermCoord {
 
     fn mul(self, scalar: usize) -> Self {
         Self {
-            x: self.x * scalar,
-            y: self.y * scalar,
+            x: self.x * scalar as isize,
+            y: self.y * scalar as isize,
         }
     }
 }
@@ -117,8 +114,8 @@ impl Div<usize> for TermCoord {
 
     fn div(self, scalar: usize) -> Self {
         Self {
-            x: self.x / scalar,
-            y: self.y / scalar,
+            x: self.x / scalar as isize,
+            y: self.y / scalar as isize,
         }
     }
 }
