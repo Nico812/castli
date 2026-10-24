@@ -1,8 +1,9 @@
 **Castli**
 Ongoing project of a multiplayer terminal based strategy game.
 
+![Game screenshot](screenshots/readme_preview.png)
+
 **How to build and run**
-(If you have windows I don't think it will work)
 You will need to have the Rust toolchain installed.
 
 git clone <repo-url>
@@ -14,16 +15,16 @@ cargo run --bin server
 Open a second terminal and run the client:
 cargo run --bin client
 
-If the client looks messy you can probably fix by lowering the terminal font size.
-This is because the game is rendered on a canvas of fixed terminal rows/cols.
-
 **Controls**
-l: look
-n: create your castle
-a: send units
-z: toggle zoom
-q: quit
-enter/esc: toggle on/off selection in inspect panel
-arrowkeys: move camera / cursor
-CTRL+arrowkeys: (move camera / cursor) x8
-1,2,3: right panel tabs
+- `q`: quit
+- `l`: toggle inspect mode
+- `M`: switch to world map
+- `m`: switch to map
+- `k`: switch to courtyard
+- Arrow keys: move camera in standard mode; move inspect cursor in inspect mode
+- `Ctrl` + arrow keys: move camera or inspect cursor by a factor of 8
+- `Enter`: use intuition
+- `Esc`: exit inspect or interaction mode
+- `y`: Castle tab
+- `x`: Logs tab
+- `c`: Debug tab
