@@ -13,15 +13,15 @@ Open a second terminal and run the client from the project root:
 cargo run --bin client
 
 **Controls**
-`q`: quit
-`l`: toggle inspect mode
-`M`: switch to world map
-`m`: switch to map
-`k`: switch to courtyard
-`Arrow keys`: move camera in standard mode; move inspect cursor in inspect mode
-`Ctrl` + arrow keys: move camera or inspect cursor by a factor of 8
-`Enter`: use intuition
-`Esc`: exit inspect or interaction mode
-`y`: Castle tab
-`x`: Logs tab
-`c`: Debug tab
+- `q`: quit
+- `l`: toggle inspect mode
+- `M`: switch to world map
+- `m`: switch to map
+- `k`: switch to courtyard
+- `Arrow keys`: move camera in standard mode; move inspect cursor in inspect mode
+- `Ctrl` + arrow keys: move camera or inspect cursor by a factor of 8
+- `Enter`: use intuition
+- `Esc`: exit inspect or interaction mode
+- `y`: Castle tab
+- `x`: Logs tab
+- `c`: Debug tab
