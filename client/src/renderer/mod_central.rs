@@ -31,7 +31,7 @@ impl ModCentral {
         let assets_dir_path = Assets::get_assets_path();
 
         let mut courtyard_tiles = vec![vec![Tile::Grass; COURTYARD_COLS]; COURTYARD_ROWS];
-        let courtyard_tiles_str = read_to_string(assets_dir_path + "/courtyard.txt")
+        let courtyard_tiles_str = read_to_string(assets_dir_path.join("courtyard.txt"))
             .expect("Failed to read courtyard asset");
         for (i, line) in courtyard_tiles_str.lines().enumerate() {
             for (j, char) in line.chars().enumerate() {
