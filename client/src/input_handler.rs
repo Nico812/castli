@@ -205,8 +205,12 @@ impl InputHandler {
                 match (key.code, key.modifiers) {
                     (KeyCode::Esc, _) => ui_state.mode = UiMode::Std,
                     (KeyCode::Char('a'), _) => {
-                        Self::handle_unit_deploy(tx, selection);
-                        ui_state.mode = UiMode::Std;
+                        if selection.selected_units.is_empty() {
+                            game_state.add_log("You didn't select any units. Make sure to confirm the selection with enter.");
+                        } else {
+                            Self::handle_unit_deploy(tx, selection);
+                            ui_state.mode = UiMode::Std;
+                        };
                     }
                     (KeyCode::Enter, _) => {
                         if let Some(ref string) = selection.active_input.1 {
@@ -243,17 +247,20 @@ impl InputHandler {
                 }
             }
             UiMode::FacilitySelection(ref mut selection) => {
-                let Some(_) = game_state.castle else {
+                if game_state.castle.is_none() {
                     return;
                 };
                 match (key.code, key.modifiers) {
                     (KeyCode::Esc, _) => ui_state.mode = UiMode::Std,
                     (KeyCode::Enter, _) => {
                         let _ = tx.send(T2C::NewFacility((selection.pos, selection.active)));
-                        ui_state.mode = UiMode::Inspect(Inspect {
-                            coord: selection.pos,
-                            selection: None,
-                        });
+
+                        // TODO: Should the client wait for a erver response and if positive return to Inspect mode?
+                        // More user friendly but also more useless communication. But the server responds anyways. Maybe i have to review the communication.
+                        // ui_state.mode = UiMode::Inspect(Inspect {
+                        //     coord: selection.pos,
+                        //     selection: None,
+                        // });
                     }
                     (KeyCode::Up, KeyModifiers::NONE) => {
                         Self::move_facility_selection(-1, selection)
