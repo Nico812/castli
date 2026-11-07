@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::r#const::{DRAGON_STR, KNIGHT_STR, MAGE_STR, SHIP_STR};
+use crate::{
+    GameCoord, GameId,
+    r#const::{DRAGON_STR, KNIGHT_STR, MAGE_STR, SHIP_STR},
+};
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum UnitType {
@@ -55,6 +58,12 @@ impl UnitType {
     pub fn as_mask(&self) -> u8 {
         1 << self.as_index()
     }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub enum UnitsTarget {
+    Coord(GameCoord),
+    Castle(GameId),
 }
 
 #[derive(Serialize, Deserialize, Clone)]

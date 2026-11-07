@@ -1,4 +1,5 @@
 use std::{
+    any::Any,
     collections::HashMap,
     sync::mpsc::{Receiver, Sender},
     thread,
@@ -7,6 +8,7 @@ use std::{
 
 use common::{
     r#const::MAX_LOBBY_PLAYERS,
+    game_objs::DeployedUnitsE,
     packets::{C2S4L, CourtyardPacket, L2S4C, LobbyResponse, MainPacket},
 };
 
@@ -44,7 +46,7 @@ impl Lobby {
         }
     }
 
-    pub fn run(mut self, mut main_rx: Receiver<S2L>) {
+    pub fn run(&mut self, mut main_rx: Receiver<S2L>) {
         let mut running = true;
 
         let game_tick_duration = Duration::from_millis(GAME_TICK);
@@ -61,13 +63,18 @@ impl Lobby {
 
             // Client comunication and game loop
             let now = Instant::now();
-            if game_next_tick < now && running {
+            if let Some(game) = self.game.as_mut()
+                && game_next_tick < now
+                && running
+            {
                 let game_tick_start = now;
 
-                self.listen_clients();
-
                 // Steps the game and returns a collection of dead castles.
-                let dead_castles = self.game.as_mut().map(Game::step).unwrap_or_default();
+                let Some(game) = self.game.as_mut() else {
+                    break;
+                };
+                let dead_castles = game.step();
+
                 for dead_castle in dead_castles {
                     if let Some((_, player)) = self
                         .players
@@ -97,6 +104,8 @@ impl Lobby {
 
                 game_next_tick = game_tick_start + game_tick_duration;
             }
+
+            self.listen_clients();
 
             thread::sleep(
                 (server_com_tick_start + server_com_tick_duration)
@@ -194,26 +203,12 @@ impl Lobby {
                         }
                     }
 
-                    C2S4L::AttackCastle(target_id, unit_group_e) => {
-                        if let Some(castle_id) = player.castle_id
-                            && game.attack_castle(castle_id, target_id, unit_group_e, &self.pool)
-                        {
-                            response = Some(LobbyResponse::AttackCastle(true));
-                        } else {
-                            response = Some(LobbyResponse::AttackCastle(false));
+                    C2S4L::SendUnits(target, unit_group) => {
+                        let Some(castle_id) = player.castle_id else {
+                            continue;
                         };
-                    }
 
-                    C2S4L::SendUnits(target_pos, unit_group_e) => {
-                        if let Some(castle_id) = player.castle_id
-                            && game.request_send_units(
-                                castle_id,
-                                target_pos,
-                                unit_group_e,
-                                None,
-                                &self.pool,
-                            )
-                        {
+                        if game.request_send_units(castle_id, target, unit_group, &self.pool) {
                             response = Some(LobbyResponse::SendUnits(true));
                         } else {
                             response = Some(LobbyResponse::SendUnits(false));

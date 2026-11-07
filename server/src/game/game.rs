@@ -8,14 +8,18 @@ use crate::{
         castle::Castle,
         game_obj::GameObj,
         map::Map,
-        pathfinding,
+        pathfinding::{self, a_star},
         units::{DeployedUnits, DeployedUnitsEvent},
     },
     thread_pool::ThreadPool,
 };
 use common::{
-    GameCoord, GameId, Time, courtyard::FacilityType, game_objs::GameObjE, hitboxes::CASTLE_HITBOX,
-    packets::MapPayload, units::UnitGroup,
+    GameCoord, GameId, Time,
+    courtyard::FacilityType,
+    game_objs::GameObjE,
+    hitboxes::CASTLE_HITBOX,
+    packets::MapPayload,
+    units::{UnitGroup, UnitsTarget},
 };
 
 struct PathTask {
@@ -74,7 +78,7 @@ impl Game {
                 // No path found, give back units to owner
                 None => {
                     let owner_id = depl_units.get_owner_id();
-                    let units = depl_units.get_unit_group().clone();
+                    let units = depl_units.unit_group.clone();
                     if let Some(GameObj::Castle(owner)) = self.game_objs.get_mut(&owner_id) {
                         owner.add_units(&units);
                     }
@@ -107,29 +111,24 @@ impl Game {
             }
         }
 
-        for (id, deployed_units) in units_to_home.iter() {
+        for (id, deployed_units) in units_to_home.into_iter() {
             let owner_id = deployed_units.get_owner_id();
             let Some(owner_castle) = self.get_castle_mut(owner_id) else {
                 continue;
             };
-            owner_castle.add_units(deployed_units.get_unit_group());
-            self.game_objs.remove_entry(id);
+            owner_castle.add_units(&deployed_units.unit_group);
+            self.game_objs.remove_entry(&id);
         }
 
-        for (_, deployed_units) in units_to_dest.iter() {
-            let Some(target_id) = deployed_units.get_target() else {
-                continue;
-            };
-            let Some(target) = self.get_castle_mut(target_id) else {
-                continue;
-            };
-            let target_str = target.get_strength();
-            let attack_str = deployed_units.get_strength();
-            if target_str < attack_str {
-                target.kill();
-                dead_castles.push(target_id);
-                println!("Someone died :(");
-                println!("Attack str: {} | Def str: {}", attack_str, target_str);
+        for (id, mut deployed_units) in units_to_dest.into_iter() {
+            match deployed_units.get_target() {
+                UnitsTarget::Castle(_) => {
+                    self.compute_attack(&mut deployed_units, &mut dead_castles);
+                    if let Some(GameObj::DeployedUnits(obj)) = self.game_objs.get_mut(&id) {
+                        *obj = deployed_units;
+                    }
+                }
+                UnitsTarget::Coord(_) => {}
             }
         }
 
@@ -137,59 +136,46 @@ impl Game {
         dead_castles
     }
 
-    pub fn attack_castle(
-        &mut self,
-        attacker_id: GameId,
-        target_id: GameId,
-        unit_group_e: UnitGroup,
-        pool: &ThreadPool,
-    ) -> bool {
-        let Some(target_pos) = self.get_castle(target_id).map(|castle| castle.get_pos()) else {
-            return false;
-        };
-        self.request_send_units(attacker_id, target_pos, unit_group_e, Some(target_id), pool)
-    }
-
     pub fn request_send_units(
         &mut self,
-        attacker_id: GameId,
-        target_pos: GameCoord,
+        castle_id: GameId,
+        target: UnitsTarget,
         unit_group: UnitGroup,
-        target_id: Option<GameId>,
         pool: &ThreadPool,
     ) -> bool {
         if unit_group.is_empty() {
             return false;
         }
-
-        if self.map.is_water(target_pos) {
-            return false;
-        }
-
-        let Some(attacker_castle) = self.get_castle_mut(attacker_id) else {
+        let Some(attacker_castle) = self.get_castle_mut(castle_id) else {
             return false;
         };
-
         if !attacker_castle.subtract_units_if_enough(&unit_group) {
             return false;
         }
-
         let attacker_pos = attacker_castle.get_pos();
-        let deployed_units = DeployedUnits::new(attacker_id, target_id, None, unit_group);
-        let id = Self::new_id(&mut self.id_cnt);
 
-        // Need to remove starting and target position (if target is a solid object) from obstacles or the pathfinding will not work
+        let deployed_units = DeployedUnits::new(castle_id, target, None, unit_group);
+
         let mut map_obstacles =
             deployed_units.get_obstacles(self.map.get_tiles(), self.map.get_occupied_map());
+
+        // Need to remove starting and target position (if target is a solid object)
+        // from obstacles or the pathfinding will not work
+        let target_pos = match deployed_units.get_target() {
+            UnitsTarget::Coord(target_pos) => target_pos,
+            UnitsTarget::Castle(target_id) => {
+                let Some(target_pos) = self.get_castle(target_id).map(|castle| castle.get_pos())
+                else {
+                    return false;
+                };
+
+                map_obstacles[target_pos.y][target_pos.x] = false;
+                target_pos
+            }
+        };
         map_obstacles[attacker_pos.y][attacker_pos.x] = false;
 
-        if let Some(target_id) = target_id
-            && let Some(target_castle) = self.get_castle(target_id)
-        {
-            let target_pos_sigmavariable = target_castle.get_pos();
-            map_obstacles[target_pos_sigmavariable.y][target_pos_sigmavariable.x] = false;
-        }
-
+        let id = Self::new_id(&mut self.id_cnt);
         self.game_objs
             .insert(id, GameObj::DeployedUnits(deployed_units));
 
@@ -200,7 +186,6 @@ impl Game {
             id,
         );
         self.pathfinding_tasks.push(task);
-
         true
     }
 
@@ -267,6 +252,32 @@ impl Game {
             .iter()
             .filter_map(|(&id, game_obj)| game_obj.export().map(|obj_e| (id, obj_e)))
             .collect()
+    }
+
+    fn compute_attack(
+        &mut self,
+        deployed_units: &mut DeployedUnits,
+        dead_castles: &mut Vec<GameId>,
+    ) {
+        let UnitsTarget::Castle(target_id) = deployed_units.get_target() else {
+            return;
+        };
+        let Some(target) = self.get_castle_mut(target_id) else {
+            return;
+        };
+        let target_str = target.get_strength();
+        let attack_str = deployed_units.get_strength();
+        if target_str < attack_str {
+            let defender_unit_group = target.get_units();
+            deployed_units
+                .unit_group
+                .subtract_if_enough(defender_unit_group);
+
+            target.kill();
+            dead_castles.push(target_id);
+            println!("Someone died :(");
+            println!("Attack str: {} | Def str: {}", attack_str, target_str);
+        }
     }
 
     // TODO: Manage max amount of objects

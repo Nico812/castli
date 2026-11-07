@@ -1,10 +1,12 @@
-IMPORTANTISSIMO decidi se avere la hitbox map shared e inviata dal server al client, cosi da non dover iterare ad ogni update dal server su tutti gli oggetti e modificare la hitbox map dal client e aggiungere complessita per niente.
+IMPORTANTISSIMO decidi se avere la hitbox map shared e inviata dal server al client,
+cosi da non dover iterare ad ogni update dal server su tutti gli oggetti e modificare la hitbox map dal client e aggiungere complessita per niente.
 A sto punto quello che faro e` rinizializzare la hitbox map sul cliuent ad ogni update zio can
 => se inviassi ad ogni update la hitbox map sarebbe size(usize)*MAPSIZE**2 = approx 2 milioni di bytes = 2Mb il che non va bene
 
-se crei un castello, le unita deployed che gia erano in viaggio non lo vedranno come ostacolo. solo le unita deployed future
+metti i custom keybinds in un toml. Asegnagli una descrizione dettagliata e una descrizione breve (da affichare nella ui).
+fai che con "h" si apre un pannello centrale con tutti i tasti presi direttamente da quel toml (piu quelli tipo esc e quit).
 
-implementa che il client rileva quando la connessione col server è interrotta.
+Prima dell inizializzazione della connection nel client, se il server si spegne il client panica senza spiegazione.
 
 add discovery (fog of war) to the map as nathan suggested
 

@@ -12,7 +12,7 @@ use common::{
     r#const::{MAX_LOBBIES, MAX_LOBBY_PLAYERS},
     courtyard::{Facility, FacilityType},
     game_objs::GameObjE,
-    units::UnitGroup,
+    units::{UnitGroup, UnitsTarget},
 };
 use crossterm::{
     ExecutableCommand, cursor,
@@ -36,8 +36,7 @@ use tokio::{
 /// Messages sent from the TUI to the client's network task.
 pub enum T2C {
     NewCastle(GameCoord),
-    AttackCastle(GameId, UnitGroup),
-    SendUnits(GameCoord, UnitGroup),
+    SendUnits(UnitsTarget, UnitGroup),
     InCourtyard,
     OutCourtyard,
     NewFacility((GameCoord, FacilityType)),
@@ -287,10 +286,6 @@ impl Tui {
     fn update_ui_on_lobby_resp(ll_responses: &mut LastLobbyResponses, ui_state: &mut UiState) {
         match &ui_state.mode {
             UiMode::UnitSelection(_) => {
-                if ll_responses.attack_castle.is_some_and(|resp| resp) {
-                    ui_state.restore_inspect();
-                    ll_responses.attack_castle = None;
-                }
                 if ll_responses.send_units.is_some_and(|resp| resp) {
                     ui_state.restore_inspect();
                     ll_responses.send_units = None;

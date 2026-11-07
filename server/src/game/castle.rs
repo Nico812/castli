@@ -75,6 +75,10 @@ impl Castle {
         self.pos
     }
 
+    pub fn get_units(&self) -> &UnitGroup {
+        &self.units
+    }
+
     pub fn kill(&mut self) {
         self.is_alive = false;
     }

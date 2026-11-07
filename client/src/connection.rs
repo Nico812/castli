@@ -104,8 +104,7 @@ impl Connection {
 fn t2c_to_c2s4l(msg: T2C) -> C2S4L {
     match msg {
         T2C::NewCastle(pos) => C2S4L::NewCastle(pos),
-        T2C::AttackCastle(target_id, units) => C2S4L::AttackCastle(target_id, units),
-        T2C::SendUnits(target_pos, units) => C2S4L::SendUnits(target_pos, units),
+        T2C::SendUnits(target, units) => C2S4L::SendUnits(target, units),
         T2C::InCourtyard => C2S4L::InCourtyard,
         T2C::OutCourtyard => C2S4L::OutCourtyard,
         T2C::NewFacility(payload) => C2S4L::NewFacility(payload),
@@ -135,8 +134,6 @@ fn handle_server_msg(msg: S2C, game_state: &mut GameState, shutdown: &ShutdownCh
                 LobbyResponse::NewCastle(false) => "Could not create castle",
                 LobbyResponse::SendUnits(true) => "Units deployed",
                 LobbyResponse::SendUnits(false) => "Could not deploy units",
-                LobbyResponse::AttackCastle(true) => "Attack successful",
-                LobbyResponse::AttackCastle(false) => "Could not attack Ziocan",
                 LobbyResponse::NewFacility(true) => "Facility created",
                 LobbyResponse::NewFacility(false) => "Could not create new facility",
             };

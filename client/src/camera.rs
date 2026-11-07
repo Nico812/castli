@@ -1,4 +1,7 @@
-use common::GameCoord;
+use common::{
+    GameCoord,
+    r#const::{MAP_COLS, MAP_ROWS},
+};
 
 use crate::coord::TermCoord;
 
@@ -20,7 +23,7 @@ pub struct Camera {
 impl Camera {
     pub fn new(fov_size: TermCoord, zoom_factor: usize) -> Self {
         Self {
-            map: GameCoord::new(0, 0),
+            map: GameCoord::new(MAP_COLS / 2, MAP_ROWS / 2),
             courtyard: GameCoord::new(0, 0),
             location: CameraLocation::Map,
             fov_size,

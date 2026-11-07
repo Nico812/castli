@@ -30,7 +30,6 @@ pub struct GameState {
 #[derive(Default)]
 pub struct LastLobbyResponses {
     pub new_castle: Option<bool>,
-    pub attack_castle: Option<bool>,
     pub send_units: Option<bool>,
     pub new_facility: Option<bool>,
 }
@@ -163,7 +162,6 @@ impl LastLobbyResponses {
     pub fn update(&mut self, response: LobbyResponse) {
         match response {
             LobbyResponse::NewCastle(value) => self.new_castle = Some(value),
-            LobbyResponse::AttackCastle(value) => self.attack_castle = Some(value),
             LobbyResponse::SendUnits(value) => self.send_units = Some(value),
             LobbyResponse::NewFacility(value) => self.new_facility = Some(value),
         }

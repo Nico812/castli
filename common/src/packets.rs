@@ -9,7 +9,7 @@ use crate::{
     game_objs::{GameObjE, OwnedCastleE},
     map::Tile,
     player::PlayerE,
-    units::UnitGroup,
+    units::{UnitGroup, UnitsTarget},
 };
 
 /// Represents messages sent from the Server to the Client (S2C).
@@ -44,8 +44,7 @@ pub enum C2S {
 #[derive(Serialize, Deserialize)]
 pub enum C2S4L {
     NewCastle(GameCoord),
-    AttackCastle(GameId, UnitGroup),
-    SendUnits(GameCoord, UnitGroup),
+    SendUnits(UnitsTarget, UnitGroup),
     InCourtyard,
     OutCourtyard,
     NewFacility((GameCoord, FacilityType)),
@@ -70,7 +69,6 @@ pub struct CourtyardPacket {
 #[derive(Serialize, Deserialize)]
 pub enum LobbyResponse {
     NewCastle(bool),
-    AttackCastle(bool),
     SendUnits(bool),
     NewFacility(bool),
 }

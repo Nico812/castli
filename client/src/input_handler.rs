@@ -1,5 +1,5 @@
 use common::courtyard::FacilityType;
-use common::units::UnitType;
+use common::units::{UnitType, UnitsTarget};
 use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers};
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -241,14 +241,14 @@ impl InputHandler {
     }
 
     fn handle_unit_deploy(tx: &tokio::sync::mpsc::UnboundedSender<T2C>, selection: &UnitSelection) {
-        match selection.interact_target {
-            InteractTarget::GameObj(obj_id) => {
-                let _ = tx.send(T2C::AttackCastle(obj_id, selection.selected_units.clone()));
+        let target = match selection.interact_target {
+            InteractTarget::GameObj(obj_id) => UnitsTarget::Castle(obj_id),
+            InteractTarget::MapPos(pos) => UnitsTarget::Coord(pos),
+            _ => {
+                return;
             }
-            InteractTarget::MapPos(pos) => {
-                let _ = tx.send(T2C::SendUnits(pos, selection.selected_units.clone()));
-            }
-            _ => {}
         };
+
+        let _ = tx.send(T2C::SendUnits(target, selection.selected_units.clone()));
     }
 }

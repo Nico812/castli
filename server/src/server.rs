@@ -62,7 +62,7 @@ impl Server {
             txs.push(tx);
 
             pool.execute(move || {
-                let lobby = Lobby::new(lobby_id);
+                let mut lobby = Lobby::new(lobby_id);
                 lobby.run(rx);
             });
         }

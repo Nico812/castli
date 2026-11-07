@@ -4,7 +4,7 @@ use common::{
     GameCoord, GameId,
     game_objs::DeployedUnitsE,
     map::Tile,
-    units::{UnitGroup, UnitType},
+    units::{UnitGroup, UnitType, UnitsTarget},
 };
 
 pub enum DeployedUnitsEvent {
@@ -14,9 +14,9 @@ pub enum DeployedUnitsEvent {
 
 #[derive(Clone)]
 pub struct DeployedUnits {
-    unit_group: UnitGroup,
+    pub unit_group: UnitGroup,
     owner_id: GameId,
-    target_id: Option<GameId>,
+    target: UnitsTarget,
     returning: bool,
     path: Option<VecDeque<GameCoord>>,
     path_index: usize,
@@ -26,7 +26,7 @@ pub struct DeployedUnits {
 impl DeployedUnits {
     pub fn new(
         owner_id: GameId,
-        target_id: Option<GameId>,
+        target: UnitsTarget,
         path: Option<VecDeque<GameCoord>>,
         unit_group: UnitGroup,
     ) -> Self {
@@ -34,7 +34,7 @@ impl DeployedUnits {
 
         Self {
             owner_id,
-            target_id,
+            target,
             path_size,
             path,
             unit_group,
@@ -109,12 +109,8 @@ impl DeployedUnits {
         self.owner_id
     }
 
-    pub fn get_unit_group(&self) -> &UnitGroup {
-        &self.unit_group
-    }
-
-    pub fn get_target(&self) -> Option<GameId> {
-        self.target_id
+    pub fn get_target(&self) -> UnitsTarget {
+        self.target.clone()
     }
 
     pub fn export(&self) -> Option<DeployedUnitsE> {
