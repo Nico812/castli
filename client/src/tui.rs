@@ -1,11 +1,11 @@
 use crate::{
     camera::{Camera, CameraLocation},
     r#const::CURSOR_SIZE,
-    game_state::GameState,
+    game_state::{GameState, LastLobbyResponses},
     input_handler::InputHandler,
     renderer::renderer::Renderer,
     shutdown::{ShutdownChannel, ShutdownReason},
-    ui_state::UiState,
+    ui_state::{UiMode, UiState},
 };
 use common::{
     GameCoord, GameId,
@@ -177,6 +177,16 @@ impl Tui {
             let mut game_guard = game_state.lock().await;
             let game_state = game_guard.deref_mut();
 
+            // Cap render fps and skip frames where dt is suspiciously short.
+            let now = time::Instant::now();
+            let dt = now.duration_since(last_frame).as_millis() as u64;
+            if dt >= 10 {
+                frame_dt = dt;
+            };
+            last_frame = now;
+
+            Self::update_ui_on_lobby_resp(&mut game_state.ll_responses, &mut ui_state);
+
             while let Ok(true) = poll(Duration::from_millis(0)) {
                 if let Ok(event) = read() {
                     InputHandler::handle_input(
@@ -188,14 +198,6 @@ impl Tui {
                     );
                 }
             }
-
-            // Cap render fps and skip frames where dt is suspiciously short.
-            let now = time::Instant::now();
-            let dt = now.duration_since(last_frame).as_millis() as u64;
-            if dt >= 10 {
-                frame_dt = dt;
-            };
-            last_frame = now;
 
             renderer.render(&mut self.stdout, game_state, &mut ui_state, frame_dt);
 
@@ -280,6 +282,28 @@ impl Tui {
         });
 
         looked_facility
+    }
+
+    fn update_ui_on_lobby_resp(ll_responses: &mut LastLobbyResponses, ui_state: &mut UiState) {
+        match &ui_state.mode {
+            UiMode::UnitSelection(_) => {
+                if ll_responses.attack_castle.is_some_and(|resp| resp) {
+                    ui_state.restore_inspect();
+                    ll_responses.attack_castle = None;
+                }
+                if ll_responses.send_units.is_some_and(|resp| resp) {
+                    ui_state.restore_inspect();
+                    ll_responses.send_units = None;
+                }
+            }
+            UiMode::FacilitySelection(_) => {
+                if ll_responses.new_facility.is_some_and(|resp| resp) {
+                    ui_state.restore_inspect();
+                    ll_responses.new_facility = None;
+                }
+            }
+            _ => {}
+        }
     }
 
     fn clear_screen(&mut self) {

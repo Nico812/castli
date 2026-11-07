@@ -7,7 +7,7 @@ use std::{
 
 use common::{
     r#const::MAX_LOBBY_PLAYERS,
-    packets::{C2S4L, CourtyardPacket, L2S4C, LogE, MainPacket},
+    packets::{C2S4L, CourtyardPacket, L2S4C, LobbyResponse, MainPacket},
 };
 
 use crate::{
@@ -129,9 +129,11 @@ impl Lobby {
                 S2L::IsFull(temp_tx) => {
                     let _ = temp_tx.send(self.is_full());
                 }
+
                 S2L::HowManyPlayers(temp_tx) => {
                     let _ = temp_tx.send(self.alive_players);
                 }
+
                 S2L::NewClient(client, client_tx, client_rx) => {
                     self.add_player(
                         client,
@@ -141,10 +143,12 @@ impl Lobby {
                         },
                     );
                 }
+
                 S2L::Shutdown => {
                     println!("Lobby shutting down");
                     *running = false;
                 }
+
                 S2L::Disconnection(client_id) => {
                     // If the player entered the lobby but did not create a castle,
                     // he is not considered to be member of the lobby anymore.
@@ -168,13 +172,14 @@ impl Lobby {
         let Some(game) = self.game.as_mut() else {
             return;
         };
+
         for (client_id, client_ch) in self.clients_ch.iter_mut() {
             let Some(player) = self.players.get_mut(client_id) else {
                 continue;
             };
 
             if let Ok(msg) = client_ch.rx.try_recv() {
-                let mut log = None;
+                let mut response = None;
                 match msg {
                     C2S4L::NewCastle(pos) => {
                         println!("Client ({}) requested to build a new castle", client_id);
@@ -183,20 +188,25 @@ impl Lobby {
                                 game.add_player_castle(player.name.clone(), pos)
                         {
                             player.set_castle_id(castle_id);
+                            response = Some(LobbyResponse::NewCastle(true));
                         } else {
-                            log = Some(LogE::CastleCreationErr);
+                            response = Some(LobbyResponse::NewCastle(false));
                         }
                     }
+
                     C2S4L::AttackCastle(target_id, unit_group_e) => {
                         if let Some(castle_id) = player.castle_id
-                            && !game.attack_castle(castle_id, target_id, unit_group_e, &self.pool)
+                            && game.attack_castle(castle_id, target_id, unit_group_e, &self.pool)
                         {
-                            log = Some(LogE::AttackDeployErr);
-                        }
+                            response = Some(LobbyResponse::AttackCastle(true));
+                        } else {
+                            response = Some(LobbyResponse::AttackCastle(false));
+                        };
                     }
+
                     C2S4L::SendUnits(target_pos, unit_group_e) => {
                         if let Some(castle_id) = player.castle_id
-                            && !game.request_send_units(
+                            && game.request_send_units(
                                 castle_id,
                                 target_pos,
                                 unit_group_e,
@@ -204,26 +214,33 @@ impl Lobby {
                                 &self.pool,
                             )
                         {
-                            log = Some(LogE::UnitDeployErr);
-                        }
+                            response = Some(LobbyResponse::SendUnits(true));
+                        } else {
+                            response = Some(LobbyResponse::SendUnits(false));
+                        };
                     }
+
                     C2S4L::InCourtyard => {
                         player.in_courtyard = true;
                     }
+
                     C2S4L::OutCourtyard => {
                         player.in_courtyard = false;
                     }
+
                     C2S4L::NewFacility((pos, facility_type)) => {
-                        let Some(castle_id) = player.castle_id else {
-                            continue;
+                        if let Some(castle_id) = player.castle_id
+                            && game.add_facility(castle_id, facility_type, pos)
+                        {
+                            response = Some(LobbyResponse::NewFacility(true));
+                        } else {
+                            response = Some(LobbyResponse::NewFacility(false));
                         };
-                        if !game.add_facility(castle_id, facility_type, pos) {
-                            log = Some(LogE::FacilityCreationErr);
-                        }
                     }
                 }
-                if let Some(log) = log {
-                    let _ = client_ch.tx.send(L2S4C::Log(log));
+
+                if let Some(response) = response {
+                    let _ = client_ch.tx.send(L2S4C::Response(response));
                 }
             }
         }

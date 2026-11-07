@@ -43,37 +43,23 @@ impl InputHandler {
             KeyCode::Char('y') => ui_state.tab = ModPlayerInfoTab::Castle,
             KeyCode::Char('x') => ui_state.tab = ModPlayerInfoTab::Logs,
             KeyCode::Char('c') => ui_state.tab = ModPlayerInfoTab::Debug,
+            KeyCode::Esc => ui_state.restore_prev_mode(),
             _ => {}
         }
 
         match ui_state.mode {
             UiMode::Std => match (key.code, key.modifiers) {
                 (KeyCode::Char('M'), _) => {
-                    Self::change_camera_location(
-                        &mut ui_state.camera,
-                        CameraLocation::WorldMap,
-                        None,
-                        tx,
-                    );
+                    ui_state.change_camera_location(CameraLocation::WorldMap, tx);
                 }
                 (KeyCode::Char('m'), _) => {
-                    Self::change_camera_location(
-                        &mut ui_state.camera,
-                        CameraLocation::Map,
-                        None,
-                        tx,
-                    );
+                    ui_state.change_camera_location(CameraLocation::Map, tx);
                 }
                 (KeyCode::Char('k'), _) => {
-                    Self::change_camera_location(
-                        &mut ui_state.camera,
-                        CameraLocation::Courtyard,
-                        None,
-                        tx,
-                    );
+                    ui_state.change_camera_location(CameraLocation::Courtyard, tx);
                 }
                 (KeyCode::Char('l'), _) => {
-                    Self::toggle_inspect(ui_state);
+                    ui_state.toggle_inspect();
                 }
                 (KeyCode::Up, KeyModifiers::NONE) => ui_state.move_camera(0, -1),
                 (KeyCode::Down, KeyModifiers::NONE) => ui_state.move_camera(0, 1),
@@ -86,33 +72,17 @@ impl InputHandler {
                 _ => {}
             },
             UiMode::Inspect(ref mut inspect) => match (key.code, key.modifiers) {
-                (KeyCode::Esc, _) => ui_state.mode = UiMode::Std,
                 (KeyCode::Char('M'), _) => {
-                    Self::change_camera_location(
-                        &mut ui_state.camera,
-                        CameraLocation::WorldMap,
-                        Some(inspect),
-                        tx,
-                    );
+                    ui_state.change_camera_location(CameraLocation::WorldMap, tx);
                 }
                 (KeyCode::Char('m'), _) => {
-                    Self::change_camera_location(
-                        &mut ui_state.camera,
-                        CameraLocation::Map,
-                        Some(inspect),
-                        tx,
-                    );
+                    ui_state.change_camera_location(CameraLocation::Map, tx);
                 }
                 (KeyCode::Char('k'), _) => {
-                    Self::change_camera_location(
-                        &mut ui_state.camera,
-                        CameraLocation::Courtyard,
-                        Some(inspect),
-                        tx,
-                    );
+                    ui_state.change_camera_location(CameraLocation::Courtyard, tx);
                 }
                 (KeyCode::Char('l'), _) => {
-                    Self::toggle_inspect(ui_state);
+                    ui_state.toggle_inspect();
                 }
                 (KeyCode::Enter, _) => match ui_state.camera.location {
                     CameraLocation::Map | CameraLocation::WorldMap => {
@@ -136,7 +106,7 @@ impl InputHandler {
                                 _ => InteractTarget::GameObj(inspect.selection.unwrap()),
                             };
 
-                            ui_state.mode = UiMode::Interact(interact_target);
+                            ui_state.change_mode(UiMode::Interact(interact_target));
                         }
                     }
                     CameraLocation::Courtyard => {
@@ -146,53 +116,56 @@ impl InputHandler {
                         let looked_facility =
                             Tui::get_looked_facility(game_state, inspect.coord, &ui_state.camera);
                         if let Some(looked_facility) = looked_facility {
-                            ui_state.mode =
-                                UiMode::Interact(InteractTarget::Facility(looked_facility.0));
+                            ui_state.change_mode(UiMode::Interact(InteractTarget::Facility(
+                                looked_facility.0,
+                            )));
                         } else {
-                            ui_state.mode =
-                                UiMode::Interact(InteractTarget::CourtyardPos(inspect.coord));
+                            let inspect_coord = inspect.coord;
+                            ui_state.change_mode(UiMode::Interact(InteractTarget::CourtyardPos(
+                                inspect_coord,
+                            )));
                         }
                     }
                 },
                 (KeyCode::Up, KeyModifiers::NONE) => {
-                    Self::move_inspect(0, -2, inspect, &ui_state.camera, game_state)
+                    inspect.displace(0, -2, &ui_state.camera, game_state)
                 }
                 (KeyCode::Down, KeyModifiers::NONE) => {
-                    Self::move_inspect(0, 2, inspect, &ui_state.camera, game_state)
+                    inspect.displace(0, 2, &ui_state.camera, game_state)
                 }
                 (KeyCode::Right, KeyModifiers::NONE) => {
-                    Self::move_inspect(2, 0, inspect, &ui_state.camera, game_state)
+                    inspect.displace(2, 0, &ui_state.camera, game_state)
                 }
                 (KeyCode::Left, KeyModifiers::NONE) => {
-                    Self::move_inspect(-2, 0, inspect, &ui_state.camera, game_state)
+                    inspect.displace(-2, 0, &ui_state.camera, game_state)
                 }
                 (KeyCode::Up, KeyModifiers::CONTROL) => {
-                    Self::move_inspect(0, -8, inspect, &ui_state.camera, game_state)
+                    inspect.displace(0, -8, &ui_state.camera, game_state)
                 }
                 (KeyCode::Down, KeyModifiers::CONTROL) => {
-                    Self::move_inspect(0, 8, inspect, &ui_state.camera, game_state)
+                    inspect.displace(0, 8, &ui_state.camera, game_state)
                 }
                 (KeyCode::Right, KeyModifiers::CONTROL) => {
-                    Self::move_inspect(8, 0, inspect, &ui_state.camera, game_state)
+                    inspect.displace(8, 0, &ui_state.camera, game_state)
                 }
                 (KeyCode::Left, KeyModifiers::CONTROL) => {
-                    Self::move_inspect(-8, 0, inspect, &ui_state.camera, game_state)
+                    inspect.displace(-8, 0, &ui_state.camera, game_state)
                 }
                 _ => {}
             },
-            UiMode::Interact(ref mut interact_target) => match (key.code, key.modifiers) {
-                (KeyCode::Esc, _) => ui_state.mode = UiMode::Std,
+            UiMode::Interact(ref interact_target) => match (key.code, key.modifiers) {
                 (KeyCode::Char('a'), _) => match interact_target {
                     InteractTarget::MapPos(_) | InteractTarget::GameObj(_) => {
-                        ui_state.mode = UiMode::UnitSelection(UnitSelection::from_interact(
+                        ui_state.change_mode(UiMode::UnitSelection(UnitSelection::from_interact(
                             interact_target.clone(),
-                        ))
+                        )))
                     }
                     _ => {}
                 },
                 (KeyCode::Char('n'), _) => {
                     if let InteractTarget::CourtyardPos(pos) = interact_target {
-                        ui_state.mode = UiMode::FacilitySelection(FacilitySelection::new(*pos));
+                        ui_state
+                            .change_mode(UiMode::FacilitySelection(FacilitySelection::new(*pos)));
                     }
                 }
                 _ => {}
@@ -203,13 +176,11 @@ impl InputHandler {
                 };
 
                 match (key.code, key.modifiers) {
-                    (KeyCode::Esc, _) => ui_state.mode = UiMode::Std,
                     (KeyCode::Char('a'), _) => {
                         if selection.selected_units.is_empty() {
                             game_state.add_log("You didn't select any units. Make sure to confirm the selection with enter.");
                         } else {
                             Self::handle_unit_deploy(tx, selection);
-                            ui_state.mode = UiMode::Std;
                         };
                     }
                     (KeyCode::Enter, _) => {
@@ -235,14 +206,10 @@ impl InputHandler {
                             let _ = string.pop();
                         }
                     }
-                    (KeyCode::Up, KeyModifiers::NONE) => Self::move_unit_selection(-1, selection),
-                    (KeyCode::Down, KeyModifiers::NONE) => Self::move_unit_selection(1, selection),
-                    (KeyCode::Up, KeyModifiers::CONTROL) => {
-                        Self::move_unit_selection(-8, selection)
-                    }
-                    (KeyCode::Down, KeyModifiers::CONTROL) => {
-                        Self::move_unit_selection(8, selection)
-                    }
+                    (KeyCode::Up, KeyModifiers::NONE) => selection.move_selection(-1),
+                    (KeyCode::Down, KeyModifiers::NONE) => selection.move_selection(1),
+                    (KeyCode::Up, KeyModifiers::CONTROL) => selection.move_selection(-8),
+                    (KeyCode::Down, KeyModifiers::CONTROL) => selection.move_selection(8),
                     _ => {}
                 }
             }
@@ -251,7 +218,6 @@ impl InputHandler {
                     return;
                 };
                 match (key.code, key.modifiers) {
-                    (KeyCode::Esc, _) => ui_state.mode = UiMode::Std,
                     (KeyCode::Enter, _) => {
                         let _ = tx.send(T2C::NewFacility((selection.pos, selection.active)));
 
@@ -262,12 +228,8 @@ impl InputHandler {
                         //     selection: None,
                         // });
                     }
-                    (KeyCode::Up, KeyModifiers::NONE) => {
-                        Self::move_facility_selection(-1, selection)
-                    }
-                    (KeyCode::Down, KeyModifiers::NONE) => {
-                        Self::move_facility_selection(1, selection)
-                    }
+                    (KeyCode::Up, KeyModifiers::NONE) => selection.move_selection(-1),
+                    (KeyCode::Down, KeyModifiers::NONE) => selection.move_selection(1),
                     _ => {}
                 }
             }
@@ -276,51 +238,6 @@ impl InputHandler {
 
     fn handle_new_castle(tx: &tokio::sync::mpsc::UnboundedSender<T2C>, inspect: &Inspect) {
         let _ = tx.send(T2C::NewCastle(inspect.coord));
-    }
-
-    fn change_camera_location(
-        camera: &mut Camera,
-        new: CameraLocation,
-        mut inspect: Option<&mut Inspect>,
-        tx: &UnboundedSender<T2C>,
-    ) {
-        if camera.location == new {
-            return;
-        }
-
-        if new == CameraLocation::Courtyard {
-            let _ = tx.send(T2C::InCourtyard);
-        };
-
-        if camera.location == CameraLocation::Courtyard {
-            let _ = tx.send(T2C::OutCourtyard);
-        };
-
-        if new == CameraLocation::Courtyard
-            && let Some(ref mut inspect) = inspect
-        {
-            inspect.coord = GameCoord { x: 0, y: 0 };
-        };
-        if new == CameraLocation::WorldMap
-            && camera.location == CameraLocation::Map
-            && let Some(ref mut inspect) = inspect
-        {
-            inspect.coord.y -= inspect.coord.y % camera.zoom_factor;
-            inspect.coord.x -= inspect.coord.x % camera.zoom_factor;
-        }
-        camera.location = new;
-    }
-
-    fn toggle_inspect(ui_state: &mut UiState) {
-        if let UiMode::Std = ui_state.mode {
-            let coord = ui_state.camera.get_pos();
-            ui_state.mode = UiMode::Inspect(Inspect {
-                coord,
-                selection: None,
-            });
-        } else if let UiMode::Inspect(_) = ui_state.mode {
-            ui_state.mode = UiMode::Std;
-        }
     }
 
     fn handle_unit_deploy(tx: &tokio::sync::mpsc::UnboundedSender<T2C>, selection: &UnitSelection) {
@@ -333,110 +250,5 @@ impl InputHandler {
             }
             _ => {}
         };
-    }
-
-    fn move_inspect(
-        mut dx: isize,
-        mut dy: isize,
-        inspect: &mut Inspect,
-        camera: &Camera,
-        game_state: &GameState,
-    ) {
-        if let Some(ref mut selection) = inspect.selection {
-            let looked_objs = Tui::get_looked_objs(game_state, inspect.coord, camera);
-            let new_selection = {
-                let current_pos = looked_objs.iter().position(|(id, _)| *id == *selection);
-                match dy {
-                    dy if dy > 0 => current_pos.and_then(|pos| {
-                        let new_pos = (pos + 1).min(looked_objs.len() - 1);
-                        looked_objs.get(new_pos).map(|(id, _)| *id)
-                    }),
-                    dy if dy < 0 => current_pos.and_then(|pos| {
-                        let new_pos = pos.saturating_sub(1);
-                        looked_objs.get(new_pos).map(|(id, _)| *id)
-                    }),
-                    _ => None,
-                }
-            };
-
-            if let Some(new_id) = new_selection {
-                *selection = new_id;
-            }
-        } else {
-            let camera_pos = camera.get_pos();
-            match camera.location {
-                CameraLocation::WorldMap => {
-                    dx *= camera.zoom_factor as isize;
-                    dy *= camera.zoom_factor as isize;
-                    inspect.coord.x = (inspect.coord.x as isize + dx)
-                        .max(0)
-                        .min(MAP_COLS as isize - 1) as usize;
-                    inspect.coord.y = (inspect.coord.y as isize + dy)
-                        .max(0)
-                        .min(MAP_ROWS as isize - 1) as usize;
-                }
-                CameraLocation::Map => {
-                    inspect.coord.x = (inspect.coord.x as isize + dx)
-                        .max(camera_pos.x as isize)
-                        .min(camera_pos.x as isize + camera.fov_size.x - 1)
-                        as usize;
-                    inspect.coord.y = (inspect.coord.y as isize + dy)
-                        .max(camera_pos.y as isize)
-                        .min(camera_pos.y as isize + camera.fov_size.y * 2 - 1)
-                        as usize;
-                }
-                CameraLocation::Courtyard => {
-                    inspect.coord.x = (inspect.coord.x as isize + dx)
-                        .max(camera_pos.x as isize)
-                        .min(
-                            camera_pos.x as isize + camera.fov_size.x.min(COURTYARD_COLS as isize)
-                                - 1,
-                        ) as usize;
-                    inspect.coord.y = (inspect.coord.y as isize + dy)
-                        .max(camera_pos.y as isize)
-                        .min(
-                            camera_pos.y as isize
-                                + (camera.fov_size.y * 2).min(COURTYARD_ROWS as isize)
-                                - 1,
-                        ) as usize;
-                }
-            }
-            inspect.coord.x -= inspect.coord.x % 2;
-            inspect.coord.y -= inspect.coord.y % 2;
-        }
-    }
-
-    fn move_unit_selection(dy: isize, selection: &mut UnitSelection) {
-        if selection.active_input.1.is_some() {
-            return;
-        }
-
-        match dy {
-            dy if dy > 0 => {
-                let new_unit_index =
-                    (selection.active_input.0.as_index() + 1).min(UnitType::COUNT - 1);
-                selection.active_input.0 = UnitType::from_index(new_unit_index);
-            }
-            dy if dy < 0 => {
-                let new_unit_index = selection.active_input.0.as_index().saturating_sub(1);
-                selection.active_input.0 = UnitType::from_index(new_unit_index);
-            }
-            _ => {}
-        }
-    }
-
-    fn move_facility_selection(dy: isize, selection: &mut FacilitySelection) {
-        match dy {
-            dy if dy > 0 => {
-                let new_facility_index =
-                    (selection.active.as_index() + 1).min(FacilityType::COUNT - 1);
-                selection.active = FacilityType::from_index(new_facility_index);
-            }
-            dy if dy < 0 => {
-                let new_facility_index = selection.active.as_index().saturating_sub(1);
-                selection.active = FacilityType::from_index(new_facility_index);
-            }
-            _ => {}
-        }
     }
 }

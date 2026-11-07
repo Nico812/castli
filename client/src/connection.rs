@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use common::{
     r#const::MAX_LOBBIES,
-    packets::{C2S, C2S4L, L2S4C, LogE, S2C},
+    packets::{C2S, C2S4L, L2S4C, LobbyResponse, S2C},
     stream::{StreamErr, get_msg_from_server, send_msg_to_server},
 };
 use tokio::{
@@ -129,14 +129,21 @@ fn handle_server_msg(msg: S2C, game_state: &mut GameState, shutdown: &ShutdownCh
         S2C::L2S4C(L2S4C::Map(payload)) => {
             game_state.map = payload.unflatten();
         }
-        S2C::L2S4C(L2S4C::Log(log)) => {
-            let string = match log {
-                LogE::CastleCreationErr => "Could not create castle".to_string(),
-                LogE::UnitDeployErr => "Could not deploy units".to_string(),
-                LogE::AttackDeployErr => "Could not attack ziocan".to_string(),
-                LogE::FacilityCreationErr => "Could not create new facility".to_string(),
+        S2C::L2S4C(L2S4C::Response(resp)) => {
+            let message_str = match resp {
+                LobbyResponse::NewCastle(true) => "Castle created",
+                LobbyResponse::NewCastle(false) => "Could not create castle",
+                LobbyResponse::SendUnits(true) => "Units deployed",
+                LobbyResponse::SendUnits(false) => "Could not deploy units",
+                LobbyResponse::AttackCastle(true) => "Attack successful",
+                LobbyResponse::AttackCastle(false) => "Could not attack Ziocan",
+                LobbyResponse::NewFacility(true) => "Facility created",
+                LobbyResponse::NewFacility(false) => "Could not create new facility",
             };
-            game_state.add_log(string);
+
+            let message = message_str.to_string();
+            game_state.add_log(message);
+            game_state.ll_responses.update(resp);
         }
         S2C::ServerShutdown => {
             shutdown.shutdown(ShutdownReason::ServerShutdown);

@@ -7,6 +7,7 @@ use common::{
     game_objs::{GameObjE, OwnedCastleE},
     hitboxes::Hitbox,
     map::Tile,
+    packets::LobbyResponse,
     player::PlayerE,
 };
 
@@ -23,6 +24,15 @@ pub struct GameState {
     facilities: HashMap<usize, Facility>,
     objs: HashMap<GameId, GameObjE>,
     pub logs: Logs,
+    pub ll_responses: LastLobbyResponses,
+}
+
+#[derive(Default)]
+pub struct LastLobbyResponses {
+    pub new_castle: Option<bool>,
+    pub attack_castle: Option<bool>,
+    pub send_units: Option<bool>,
+    pub new_facility: Option<bool>,
 }
 
 impl GameState {
@@ -45,6 +55,7 @@ impl GameState {
             facilities: HashMap::new(),
             objs,
             logs: Logs::new(LOGS_CAPACITY),
+            ll_responses: LastLobbyResponses::default(),
         }
     }
 
@@ -144,6 +155,17 @@ impl GameState {
                     hitbox_map[pos.y + i][pos.x + j] = Some(id);
                 }
             }
+        }
+    }
+}
+
+impl LastLobbyResponses {
+    pub fn update(&mut self, response: LobbyResponse) {
+        match response {
+            LobbyResponse::NewCastle(value) => self.new_castle = Some(value),
+            LobbyResponse::AttackCastle(value) => self.attack_castle = Some(value),
+            LobbyResponse::SendUnits(value) => self.send_units = Some(value),
+            LobbyResponse::NewFacility(value) => self.new_facility = Some(value),
         }
     }
 }

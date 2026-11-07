@@ -23,6 +23,34 @@ pub enum S2C {
     L2S4C(L2S4C),
 }
 
+// Represents messages sent from a Lobby, to the Server, for a Client (L2S4C).
+#[derive(Serialize, Deserialize)]
+pub enum L2S4C {
+    MainPacket(MainPacket),
+    CourtyardPacket(CourtyardPacket),
+    Map(MapPayload),
+    Response(LobbyResponse),
+}
+
+// Represents messages sent from the Client to the Server (C2S).
+#[derive(Serialize, Deserialize)]
+pub enum C2S {
+    C2S4L(C2S4L),
+    Login(String),
+    Lobby(usize),
+}
+
+// Represents messages sent from a Client, to the Server, for the Lobby (C2S4L).
+#[derive(Serialize, Deserialize)]
+pub enum C2S4L {
+    NewCastle(GameCoord),
+    AttackCastle(GameId, UnitGroup),
+    SendUnits(GameCoord, UnitGroup),
+    InCourtyard,
+    OutCourtyard,
+    NewFacility((GameCoord, FacilityType)),
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct MainPacket {
     pub time: Time,
@@ -39,13 +67,12 @@ pub struct CourtyardPacket {
     pub facilities: HashMap<usize, Facility>,
 }
 
-// TODO: Change this name to Feedback or something similar
 #[derive(Serialize, Deserialize)]
-pub enum LogE {
-    CastleCreationErr,
-    UnitDeployErr,
-    AttackDeployErr,
-    FacilityCreationErr,
+pub enum LobbyResponse {
+    NewCastle(bool),
+    AttackCastle(bool),
+    SendUnits(bool),
+    NewFacility(bool),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -70,32 +97,4 @@ impl MapPayload {
         }
         out
     }
-}
-
-// Represents messages sent from a Lobby, to the Server, for a Client (L2S4C).
-#[derive(Serialize, Deserialize)]
-pub enum L2S4C {
-    MainPacket(MainPacket),
-    CourtyardPacket(CourtyardPacket),
-    Map(MapPayload),
-    Log(LogE),
-}
-
-// Represents messages sent from the Client to the Server (C2S).
-#[derive(Serialize, Deserialize)]
-pub enum C2S {
-    C2S4L(C2S4L),
-    Login(String),
-    Lobby(usize),
-}
-
-// Represents messages sent from a Client, to the Server, for the Lobby (C2S4L).
-#[derive(Serialize, Deserialize)]
-pub enum C2S4L {
-    NewCastle(GameCoord),
-    AttackCastle(GameId, UnitGroup),
-    SendUnits(GameCoord, UnitGroup),
-    InCourtyard,
-    OutCourtyard,
-    NewFacility((GameCoord, FacilityType)),
 }

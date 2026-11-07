@@ -5,7 +5,7 @@ pub const COURTYARD_ROWS: usize = 64;
 pub const COURTYARD_COLS: usize = 64;
 
 pub const MAX_LOBBY_PLAYERS: usize = 15;
-pub const MAX_LOBBIES: usize = 10;
+pub const MAX_LOBBIES: usize = 2;
 
 pub const ONLINE: bool = false;
 pub const IP_LOCAL: &str = "127.0.0.1:7878";
