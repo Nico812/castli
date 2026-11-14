@@ -41,6 +41,17 @@ impl FacilityType {
         }
     }
 
+    pub fn max_lv(&self) -> u8 {
+        match self {
+            FacilityType::Wall => 10,
+            FacilityType::FarmPlot => 10,
+            FacilityType::Sawmill => 10,
+            FacilityType::Mines => 10,
+            FacilityType::Barracks => 10,
+            FacilityType::Shipyard => 2,
+        }
+    }
+
     pub fn base_cost(&self) -> Resources {
         match self {
             FacilityType::Wall => Resources::new(10, 10),
@@ -63,6 +74,19 @@ impl FacilityType {
         }
     }
 
+    pub fn get_desc(&self) -> &str {
+        match self {
+            FacilityType::Wall => {
+                "Its a fucking wall... what do you want from me????? ????????????? ??????????????? ???????? ???????????? ??????????????????????? ????????????????? ???????"
+            }
+            FacilityType::FarmPlot => "yessssss as asas as asasa",
+            FacilityType::Sawmill => "yes",
+            FacilityType::Mines => "a",
+            FacilityType::Barracks => "a",
+            FacilityType::Shipyard => "a",
+        }
+    }
+
     pub fn as_index(&self) -> usize {
         *self as usize
     }
@@ -82,5 +106,9 @@ pub struct Facility {
 impl Facility {
     pub fn new(r#type: FacilityType, pos: GameCoord) -> Self {
         Self { lv: 1, r#type, pos }
+    }
+
+    pub fn lv_up_cost(&self) -> Resources {
+        self.r#type.base_cost() * self.lv * self.lv
     }
 }

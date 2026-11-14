@@ -49,11 +49,11 @@ impl Courtyard {
         for facility in self.facilities.values() {
             match facility.r#type {
                 FacilityType::Wall => {}
-                FacilityType::FarmPlot => peasants_prod += facility.lv,
+                FacilityType::FarmPlot => peasants_prod += facility.lv * 2,
                 FacilityType::Sawmill => resource_prod.wood += facility.lv * 10,
                 FacilityType::Mines => resource_prod.stone += facility.lv * 10,
                 FacilityType::Barracks => {
-                    let knights = facility.lv * 5;
+                    let knights = facility.lv;
                     if self.peasants >= knights {
                         self.peasants -= knights;
                         units_prod.add_single_type(UnitType::Knight, knights);

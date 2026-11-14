@@ -9,7 +9,7 @@ pub mod stream;
 pub mod units;
 
 use serde::{Deserialize, Serialize};
-use std::fmt;
+use std::{fmt, ops::Mul};
 
 /// Global IDs for game objects
 pub type GameId = usize;
@@ -101,5 +101,13 @@ impl Resources {
 
     pub fn contains(&self, other: &Self) -> bool {
         self.wood >= other.wood && self.stone >= other.stone
+    }
+}
+
+impl Mul<u32> for Resources {
+    type Output = Self;
+
+    fn mul(self, rhs: u32) -> Self {
+        return Self::new(self.wood * rhs, self.stone * rhs);
     }
 }

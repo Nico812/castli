@@ -2,6 +2,7 @@ use common::{all_facilities, all_units, game_objs::GameObjE};
 
 use crate::{
     assets::Assets,
+    coord::TermCoord,
     game_state::GameState,
     renderer::{module::Module, renderer::DrawableCell},
     ui_state::{InteractTarget, UiMode, UiState},
@@ -54,6 +55,12 @@ impl ModInteract {
                             .push_row_with_text(&format!("{:?}", facility.r#type));
                         self.module
                             .push_row_with_text(&format!("lv {}", facility.lv));
+                        self.module.draw_text_in_box(
+                            facility.r#type.get_desc(),
+                            TermCoord::new(3, 0),
+                            15,
+                            true,
+                        );
                     }
                     InteractTarget::CourtyardPos(_) => {
                         self.module.push_row_with_text("n: build");

@@ -38,55 +38,71 @@ impl ModPlayerInfo {
     }
 
     fn draw_debug_tab(&mut self, frame_dt: u64, player: &PlayerE, time: &Time) {
+        let mut pos_to_draw = TermCoord::new(0, 0);
         let lobby_str = format!("Lobby {}", player.lobby);
-        self.module.draw_text_in_row(&lobby_str, 0);
+        self.module.draw_text_in_pos(&lobby_str, pos_to_draw);
+
+        pos_to_draw.y += 1;
         let id_str = format!("Castle ID: {:?}", player.castle_id);
-        self.module.draw_text_in_row(&id_str, 1);
+        self.module.draw_text_in_pos(&id_str, pos_to_draw);
+
+        pos_to_draw.y += 1;
         let dt_str = format!("Frame dt: {} ms", frame_dt);
-        self.module.draw_text_in_row(&dt_str, 2);
+        self.module.draw_text_in_pos(&dt_str, pos_to_draw);
+
+        pos_to_draw.y += 1;
         let tick_str = format!("Tick: {}", time.tick_cnt);
-        self.module.draw_text_in_row(&tick_str, 3);
+        self.module.draw_text_in_pos(&tick_str, pos_to_draw);
     }
 
     fn draw_castle_tab(&mut self, game_state: &GameState) {
-        let Some(ref castle) = game_state.castle else {
-            self.module.draw_text_in_row("Welcome to Castli!", 0);
+        let mut pos_to_draw = TermCoord::new(0, 0);
+
+        if let Some(ref castle) = game_state.castle {
+            let alive_str = if castle.alive { "Alive :)" } else { "Dead x|" };
+            let pos_str = format!("{}", castle.pos);
+            let time_str = format!("Time: {}", game_state.time.h);
+            let wood_str = format!("Wood: {}", castle.resources.wood);
+            let stone_str = format!("Stone: {}", castle.resources.stone);
+
+            let mut unit_strings = Vec::new();
+            for unit_type in all_units!() {
+                let count = castle.units.quantities[unit_type.as_index()];
+                let s = format!("{:?}: {}", unit_type, count);
+                unit_strings.push(s);
+            }
+
+            let mut infos_to_print = vec![
+                (castle.name.as_str(), 0),
+                (alive_str, 1),
+                (pos_str.as_str(), 1),
+                (time_str.as_str(), 1),
+                (wood_str.as_str(), 1),
+                (stone_str.as_str(), 2),
+            ];
+
+            for (i, unit_str) in unit_strings.iter().enumerate() {
+                if i == 0 {
+                    infos_to_print.push((unit_str.as_str(), 2))
+                } else {
+                    infos_to_print.push((unit_str.as_str(), 1))
+                };
+            }
+
+            for (text, row) in infos_to_print {
+                pos_to_draw.y += row;
+                self.module.draw_text_in_pos(text, pos_to_draw);
+            }
+        } else {
             self.module
-                .draw_text_in_row("Press \"l\" then arrowkeys to move", 2);
+                .draw_text_in_pos("Welcome to Castli!", pos_to_draw);
+            pos_to_draw.y += 2;
             self.module
-                .draw_text_in_row("Press enter to create your castle :)", 3);
-            return;
+                .draw_text_in_pos("Press \"l\" then arrowkeys to move", pos_to_draw);
+            pos_to_draw.y += 1;
+            self.module
+                .draw_text_in_pos("Press enter to create your castle :)", pos_to_draw);
         };
-
-        let alive_str = if castle.alive { "Alive :)" } else { "Dead x|" };
-        let pos_str = format!("{}", castle.pos);
-        let time_str = format!("Time: {}", game_state.time.h);
-        let wood_str = format!("Wood: {}", castle.resources.wood);
-        let stone_str = format!("Stone: {}", castle.resources.stone);
-
-        let mut unit_strings = Vec::new();
-        for unit_type in all_units!() {
-            let count = castle.units.quantities[unit_type.as_index()];
-            let s = format!("{:?}: {}", unit_type, count);
-            unit_strings.push(s);
-        }
-
-        let mut infos_to_print = vec![
-            (castle.name.as_str(), 0),
-            (alive_str, 1),
-            (pos_str.as_str(), 2),
-            (time_str.as_str(), 3),
-            (wood_str.as_str(), 5),
-            (stone_str.as_str(), 6),
-        ];
-
-        for (i, unit_str) in unit_strings.iter().enumerate() {
-            infos_to_print.push((unit_str.as_str(), 8 + i));
-        }
-
-        for (text, row) in infos_to_print {
-            self.module.draw_text_in_row(text, row);
-        }
     }
 
     pub fn draw_logs_tab(&mut self, logs: &Logs) {

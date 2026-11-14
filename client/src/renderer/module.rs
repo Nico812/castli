@@ -1,4 +1,4 @@
-use crossterm::style::Color;
+use crossterm::style::{Color, Stylize};
 
 use crate::{
     r#const::FRAME_WIDTH,
@@ -39,6 +39,7 @@ impl Module {
         }
     }
 
+    // It will create new rows in the module if the y position is out of bounds
     pub fn draw_cell(&mut self, asset: DrawableCell, pos: TermCoord) {
         let drawable_size = self.drawable_size();
         let content_start = self.content_start_pos();
@@ -176,20 +177,59 @@ impl Module {
         size
     }
 
-    pub fn draw_text_in_row(&mut self, string: &str, row: usize) {
-        for (i, ch) in string.chars().enumerate() {
+    pub fn draw_text_in_pos(&mut self, string: &str, pos: TermCoord) {
+        let mut curr_pos = pos;
+        for ch in string.chars() {
             let cell = DrawableCell {
                 ch,
                 fg: Color::White,
                 bg: Color::Black,
             };
-            self.draw_cell(cell, TermCoord::new(row as isize, i as isize));
+            self.draw_cell(cell, curr_pos);
+            curr_pos.x += 1;
+        }
+    }
+
+    pub fn draw_text_in_box(
+        &mut self,
+        string: &str,
+        top_left: TermCoord,
+        cols: isize,
+        push_rows_if_necessary: bool,
+    ) {
+        let mut curr_pos = top_left;
+
+        for word in string.split_inclusive(" ") {
+            if word.len() as isize > cols - curr_pos.x {
+                curr_pos.y += 1;
+                curr_pos.x = top_left.x;
+            }
+
+            while curr_pos.y >= self.drawable_size().y {
+                if push_rows_if_necessary {
+                    self.push_empty_row();
+                } else {
+                    return;
+                }
+            }
+
+            for ch in word.chars() {
+                let cell = DrawableCell::new(ch, Color::White, Color::Black);
+                self.draw_cell(cell, curr_pos);
+                curr_pos.x += 1;
+            }
         }
     }
 
     pub fn push_row_with_text(&mut self, text: &str) {
         self.push_empty_row();
-        self.draw_text_in_row(text, (self.drawable_size().y as usize).saturating_sub(1));
+        self.draw_text_in_pos(
+            text,
+            TermCoord::new(
+                (self.drawable_size().y as usize).saturating_sub(1) as isize,
+                0,
+            ),
+        );
     }
 
     fn update_frame(&mut self) {
