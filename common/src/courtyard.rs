@@ -3,7 +3,7 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::units::{UnitGroup, UnitType};
-use crate::{GameCoord, Resources};
+use crate::{GameCoord, ResourceGroup};
 use crate::{ResourceType, hitboxes::*};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -55,14 +55,44 @@ impl FacilityType {
         }
     }
 
-    pub fn base_cost(&self) -> Resources {
+    pub fn base_cost(&self) -> ResourceGroup {
         match self {
-            FacilityType::Wall => Resources::new(10, 10),
-            FacilityType::FarmPlot => Resources::new(4, 4),
-            FacilityType::Sawmill => Resources::new(2, 2),
-            FacilityType::Mines => Resources::new(2, 2),
-            FacilityType::Barracks => Resources::new(50, 50),
-            FacilityType::Shipyard => Resources::new(1000, 1000),
+            FacilityType::FarmPlot => {
+                let mut cost = ResourceGroup::new();
+                cost.add_single_type(ResourceType::Wood, 15);
+                cost.add_single_type(ResourceType::Stone, 15);
+                cost
+            }
+            FacilityType::Sawmill => {
+                let mut cost = ResourceGroup::new();
+                cost.add_single_type(ResourceType::Wood, 5);
+                cost.add_single_type(ResourceType::Stone, 5);
+                cost
+            }
+            FacilityType::Mines => {
+                let mut cost = ResourceGroup::new();
+                cost.add_single_type(ResourceType::Wood, 5);
+                cost.add_single_type(ResourceType::Stone, 5);
+                cost
+            }
+            FacilityType::Barracks => {
+                let mut cost = ResourceGroup::new();
+                cost.add_single_type(ResourceType::Wood, 50);
+                cost.add_single_type(ResourceType::Stone, 50);
+                cost
+            }
+            FacilityType::Shipyard => {
+                let mut cost = ResourceGroup::new();
+                cost.add_single_type(ResourceType::Wood, 1000);
+                cost.add_single_type(ResourceType::Stone, 1000);
+                cost
+            }
+            FacilityType::Wall => {
+                let mut cost = ResourceGroup::new();
+                cost.add_single_type(ResourceType::Wood, 50);
+                cost.add_single_type(ResourceType::Stone, 50);
+                cost
+            }
         }
     }
 
@@ -111,7 +141,7 @@ impl Facility {
         Self { lv: 1, r#type, pos }
     }
 
-    pub fn lv_up_cost(&self) -> Resources {
+    pub fn lv_up_cost(&self) -> ResourceGroup {
         self.r#type.base_cost() * self.lv * self.lv
     }
 

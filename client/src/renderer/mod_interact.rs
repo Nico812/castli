@@ -54,32 +54,35 @@ impl ModInteract {
                         };
                         self.module
                             .push_row_with_text(&format!("{:?}", facility.r#type));
-                        self.module
-                            .push_row_with_text(&format!("lv {}", facility.lv));
                         self.module.draw_text_in_box(
                             facility.r#type.get_desc(),
-                            TermCoord::new(3, 0),
+                            TermCoord::new(2, 0),
                             desc_textbox_cols,
                             true,
                         );
                         let mut curr_pos =
                             TermCoord::new(0, desc_textbox_cols + self.module.get_padding().x);
 
-                        if let Some(production) = facility.production() {
-                            self.module.draw_text_in_pos("Production", curr_pos);
-                            curr_pos.y += 1;
-                            self.module
-                                .draw_text_in_pos(&production.to_string(), curr_pos);
-                            curr_pos.y += 2;
-                        }
-
                         self.module.draw_text_in_pos(
                             &format!("lv {}/{}", facility.lv, facility.r#type.max_lv()),
                             curr_pos,
+                            true,
                         );
+                        curr_pos.y += 2;
 
-                        curr_pos.y += 1;
-                        self.module.draw_text_in_pos("lv up cost", curr_pos);
+                        if let Some(production) = facility.production() {
+                            self.module.draw_text_in_pos("Production", curr_pos, true);
+                            curr_pos.y += 1;
+                            self.module
+                                .draw_text_in_pos(&production.to_string(), curr_pos, true);
+                            curr_pos.y += 2;
+                        }
+
+                        self.module.draw_text_in_pos("a: lv up", curr_pos, true);
+                        for string in facility.lv_up_cost().as_string_vector_nonempty() {
+                            curr_pos.y += 1;
+                            self.module.draw_text_in_pos(&string, curr_pos, true);
+                        }
                     }
                     InteractTarget::CourtyardPos(_) => {
                         self.module.push_row_with_text("n: build");
@@ -93,21 +96,20 @@ impl ModInteract {
                 let Some(ref castle) = game_state.castle else {
                     return None;
                 };
-                let all_units = all_units!();
 
-                for (i, unit) in all_units.iter().enumerate() {
-                    let is_active = selection.active_input.0 == *unit;
-                    let total = castle.units.quantities[i];
+                for (ty, amt) in castle.units.iter() {
+                    let ty_index = ty.as_index();
+                    let is_active = selection.active_input.0 == ty;
 
                     let display_quantities =
                         if is_active && let Some(ref input_str) = selection.active_input.1 {
-                            format!("{}_/{}", input_str, total)
+                            format!("{}_/{}", input_str, amt)
                         } else {
-                            let selected = selection.selected_units.quantities[i];
-                            format!("{}/{}", selected, total)
+                            let selected = selection.selected_units.quantities[ty_index];
+                            format!("{}/{}", selected, amt)
                         };
 
-                    let text = format!("{:?}: {}", unit, display_quantities);
+                    let text = format!("{:?}: {}", ty, display_quantities);
 
                     self.module.push_row_with_text(&text);
 
@@ -139,11 +141,7 @@ impl ModInteract {
 
                     let display_quantities = format!("{}/{}", owned, total);
                     let quantities_text = format!("{:?}: {}", facility_type, display_quantities);
-                    let price_text = format!(
-                        "Wood: {}, Stone: {}",
-                        facility_type.base_cost().wood,
-                        facility_type.base_cost().stone
-                    );
+                    let price_text = facility_type.base_cost().to_string();
 
                     self.module.push_row_with_text(&quantities_text);
                     if is_active {

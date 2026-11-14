@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use common::{
-    GameCoord, ResourceType, Resources,
+    GameCoord, ResourceGroup, ResourceType,
     r#const::{COURTYARD_COLS, COURTYARD_ROWS},
     courtyard::{Facility, FacilityType, Production},
     hitboxes::Hitbox,
@@ -9,30 +9,30 @@ use common::{
 };
 
 pub enum CourtyardEvent {
-    ResourceProduction(Resources),
+    ResourceProduction(ResourceGroup),
     UnitsProduction(UnitGroup),
 }
 
 pub struct Courtyard {
-    peasants: u32,
     facilities: HashMap<usize, Facility>,
     occupied: [[Option<usize>; COURTYARD_COLS]; COURTYARD_ROWS],
     owned_cnt: [u8; FacilityType::COUNT],
     id_cnt: usize,
+    peasants: u32,
 }
 
 impl Courtyard {
-    pub fn new() -> Self {
+    pub fn new(peasants: u32) -> Self {
         let facilities = HashMap::new();
         let occupied = [[None; COURTYARD_COLS]; COURTYARD_ROWS];
         let owned_cnt = [0; FacilityType::COUNT];
 
         let mut self_ = Self {
-            peasants: 10,
             facilities,
             occupied,
             owned_cnt,
             id_cnt: 0,
+            peasants,
         };
 
         self_.new_facility(FacilityType::Wall, GameCoord { x: 6, y: 6 });
@@ -42,7 +42,7 @@ impl Courtyard {
 
     pub fn update(&mut self) -> Vec<CourtyardEvent> {
         let mut events = Vec::new();
-        let mut resource_prod = Resources::new(0, 0);
+        let mut resource_prod = ResourceGroup::new();
         let mut units_prod = UnitGroup::new();
         let mut peasants_prod = 0;
 
@@ -52,10 +52,7 @@ impl Courtyard {
             };
 
             match production {
-                Production::Resources(r#type, amt) => match r#type {
-                    ResourceType::Wood => resource_prod.wood += amt,
-                    ResourceType::Stone => resource_prod.stone += amt,
-                },
+                Production::Resources(r#type, amt) => resource_prod.add_single_type(r#type, amt),
                 Production::Units(r#type, amt) => {
                     if self.peasants >= amt {
                         self.peasants -= amt;
@@ -66,7 +63,7 @@ impl Courtyard {
             }
         }
 
-        if resource_prod.wood > 0 || resource_prod.stone > 0 {
+        if !resource_prod.is_empty() {
             events.push(CourtyardEvent::ResourceProduction(resource_prod));
         }
 

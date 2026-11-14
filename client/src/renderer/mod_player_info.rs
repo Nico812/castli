@@ -6,6 +6,7 @@ use crate::renderer::module::Module;
 use crate::renderer::renderer::DrawableCell;
 use crate::ui_state::UiState;
 use common::Time;
+use common::all_resources;
 use common::all_units;
 use common::player::PlayerE;
 use crossterm::style::Color;
@@ -40,19 +41,19 @@ impl ModPlayerInfo {
     fn draw_debug_tab(&mut self, frame_dt: u64, player: &PlayerE, time: &Time) {
         let mut pos_to_draw = TermCoord::new(0, 0);
         let lobby_str = format!("Lobby {}", player.lobby);
-        self.module.draw_text_in_pos(&lobby_str, pos_to_draw);
+        self.module.draw_text_in_pos(&lobby_str, pos_to_draw, false);
 
         pos_to_draw.y += 1;
         let id_str = format!("Castle ID: {:?}", player.castle_id);
-        self.module.draw_text_in_pos(&id_str, pos_to_draw);
+        self.module.draw_text_in_pos(&id_str, pos_to_draw, false);
 
         pos_to_draw.y += 1;
         let dt_str = format!("Frame dt: {} ms", frame_dt);
-        self.module.draw_text_in_pos(&dt_str, pos_to_draw);
+        self.module.draw_text_in_pos(&dt_str, pos_to_draw, false);
 
         pos_to_draw.y += 1;
         let tick_str = format!("Tick: {}", time.tick_cnt);
-        self.module.draw_text_in_pos(&tick_str, pos_to_draw);
+        self.module.draw_text_in_pos(&tick_str, pos_to_draw, false);
     }
 
     fn draw_castle_tab(&mut self, game_state: &GameState) {
@@ -62,24 +63,24 @@ impl ModPlayerInfo {
             let alive_str = if castle.alive { "Alive :)" } else { "Dead x|" };
             let pos_str = format!("{}", castle.pos);
             let time_str = format!("Time: {}", game_state.time.h);
-            let wood_str = format!("Wood: {}", castle.resources.wood);
-            let stone_str = format!("Stone: {}", castle.resources.stone);
 
-            let mut unit_strings = Vec::new();
-            for unit_type in all_units!() {
-                let count = castle.units.quantities[unit_type.as_index()];
-                let s = format!("{:?}: {}", unit_type, count);
-                unit_strings.push(s);
-            }
+            let resource_strings = castle.resources.as_string_vector();
+            let unit_strings = castle.units.as_string_vector();
 
             let mut infos_to_print = vec![
                 (castle.name.as_str(), 0),
                 (alive_str, 1),
                 (pos_str.as_str(), 1),
                 (time_str.as_str(), 1),
-                (wood_str.as_str(), 1),
-                (stone_str.as_str(), 2),
             ];
+
+            for (i, resource_str) in resource_strings.iter().enumerate() {
+                if i == 0 {
+                    infos_to_print.push((resource_str.as_str(), 2))
+                } else {
+                    infos_to_print.push((resource_str.as_str(), 1))
+                };
+            }
 
             for (i, unit_str) in unit_strings.iter().enumerate() {
                 if i == 0 {
@@ -91,17 +92,20 @@ impl ModPlayerInfo {
 
             for (text, row) in infos_to_print {
                 pos_to_draw.y += row;
-                self.module.draw_text_in_pos(text, pos_to_draw);
+                self.module.draw_text_in_pos(text, pos_to_draw, false);
             }
         } else {
             self.module
-                .draw_text_in_pos("Welcome to Castli!", pos_to_draw);
+                .draw_text_in_pos("Welcome to Castli!", pos_to_draw, false);
             pos_to_draw.y += 2;
             self.module
-                .draw_text_in_pos("Press \"l\" then arrowkeys to move", pos_to_draw);
+                .draw_text_in_pos("Press \"l\" then arrowkeys to move", pos_to_draw, false);
             pos_to_draw.y += 1;
-            self.module
-                .draw_text_in_pos("Press enter to create your castle :)", pos_to_draw);
+            self.module.draw_text_in_pos(
+                "Press enter to create your castle :)",
+                pos_to_draw,
+                false,
+            );
         };
     }
 

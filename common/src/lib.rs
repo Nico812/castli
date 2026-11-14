@@ -9,7 +9,7 @@ pub mod stream;
 pub mod units;
 
 use serde::{Deserialize, Serialize};
-use std::{fmt, ops::Mul};
+use std::{array::from_fn, fmt, ops::Mul};
 
 /// Global IDs for game objects
 pub type GameId = usize;
@@ -69,52 +69,160 @@ impl Time {
     }
 }
 
+#[macro_export]
+macro_rules! all_resources {
+    () => {
+        [$crate::ResourceType::Wood, $crate::ResourceType::Stone]
+    };
+}
+
 #[derive(Copy, Clone, Debug)]
 pub enum ResourceType {
     Wood,
     Stone,
 }
 
-// TODO: IMPLEMENT ARRAY OF RESOURCETYPES LIKE UNITS
-#[derive(Serialize, Deserialize, Clone)]
-pub struct Resources {
-    pub wood: u32,
-    pub stone: u32,
-}
+impl ResourceType {
+    pub const COUNT: usize = 2;
 
-impl Resources {
-    pub const fn new(wood: u32, stone: u32) -> Self {
-        Self { wood, stone }
+    pub fn from_index(i: usize) -> Self {
+        all_resources!()[i]
     }
 
-    pub fn saturating_add(&mut self, other: &Self) {
-        self.wood = self.wood.saturating_add(other.wood);
-        self.stone = self.stone.saturating_add(other.stone);
+    pub fn as_index(&self) -> usize {
+        *self as usize
     }
 
-    pub fn saturating_sub(&mut self, other: &Self) {
-        self.wood = self.wood.saturating_sub(other.wood);
-        self.stone = self.stone.saturating_sub(other.stone);
-    }
-
-    pub fn subtract_if_enough(&mut self, other: &Self) -> bool {
-        if self.wood >= other.wood && self.stone >= other.stone {
-            self.saturating_sub(other);
-            true
-        } else {
-            false
+    pub fn form_index(i: usize) -> Self {
+        match i {
+            0 => Self::Wood,
+            1 => Self::Stone,
+            _ => panic!(),
         }
     }
 
-    pub fn contains(&self, other: &Self) -> bool {
-        self.wood >= other.wood && self.stone >= other.stone
+    pub fn as_mask(&self) -> u8 {
+        1 << self.as_index()
     }
 }
 
-impl Mul<u32> for Resources {
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ResourceGroup {
+    pub quantities: [u32; ResourceType::COUNT],
+}
+
+impl ResourceGroup {
+    pub fn new() -> Self {
+        let quantities = [0; ResourceType::COUNT];
+
+        Self { quantities }
+    }
+
+    pub fn add_single_type(&mut self, unit: ResourceType, count: u32) {
+        let idx = unit.as_index();
+        self.quantities[idx] = self.quantities[idx].saturating_add(count);
+    }
+
+    pub fn subtract_single_type(&mut self, unit: ResourceType, count: u32) {
+        let idx = unit.as_index();
+        self.quantities[idx] = self.quantities[idx].saturating_sub(count);
+    }
+
+    pub fn subtract_if_enough(&mut self, other: &Self) -> bool {
+        if !other.is_subset(self) {
+            return false;
+        }
+        for (i, quantity) in other.quantities.iter().enumerate() {
+            self.subtract_single_type(ResourceType::form_index(i), *quantity);
+        }
+        true
+    }
+
+    pub fn saturating_sub(&mut self, other: &Self) {
+        for (i, quantity) in other.quantities.iter().enumerate() {
+            self.subtract_single_type(ResourceType::form_index(i), *quantity);
+        }
+    }
+
+    pub fn saturating_add(&mut self, other: &Self) {
+        for (i, quantity) in other.quantities.iter().enumerate() {
+            self.add_single_type(ResourceType::form_index(i), *quantity);
+        }
+    }
+
+    pub fn is_subset(&self, other: &Self) -> bool {
+        for (i, quantity) in other.quantities.iter().enumerate() {
+            if self.quantities[i] > *quantity {
+                return false;
+            }
+        }
+        true
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (ResourceType, u32)> + '_ {
+        all_resources!()
+            .into_iter()
+            .map(move |ty| (ty, self.quantities[ty.as_index()]))
+    }
+
+    pub fn iter_present(&self) -> impl Iterator<Item = (ResourceType, u32)> + '_ {
+        self.iter().filter(move |(ty, _)| self.contains(*ty))
+    }
+
+    pub fn is_empty(&self) -> bool {
+        for quantity in self.quantities.iter() {
+            if *quantity != 0 {
+                return false;
+            }
+        }
+        true
+    }
+
+    pub fn contains(&self, unit: ResourceType) -> bool {
+        self.quantities[unit as usize] > 0
+    }
+
+    pub fn as_string_vector(&self) -> Vec<String> {
+        let mut strings = Vec::new();
+        for (ty, amt) in self.iter() {
+            let s = format!("{:?}: {}", ty, amt);
+            strings.push(s);
+        }
+        strings
+    }
+
+    pub fn as_string_vector_nonempty(&self) -> Vec<String> {
+        let mut strings = Vec::new();
+        for (ty, amt) in self.iter_present() {
+            let s = format!("{:?}: {}", ty, amt);
+            strings.push(s);
+        }
+        strings
+    }
+}
+
+impl Mul<u32> for ResourceGroup {
     type Output = Self;
 
     fn mul(self, rhs: u32) -> Self {
-        return Self::new(self.wood * rhs, self.stone * rhs);
+        for (_, ref mut amt) in self.iter_present() {
+            *amt = amt.saturating_mul(rhs);
+        }
+        self
+    }
+}
+
+impl fmt::Display for ResourceGroup {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let strs: [String; ResourceType::COUNT] = std::array::from_fn(|index| {
+            format!(
+                "{:?}: {}",
+                ResourceType::from_index(index),
+                self.quantities[index]
+            )
+        });
+
+        let joined = strs.join(" ");
+        write!(f, "{}", joined)
     }
 }

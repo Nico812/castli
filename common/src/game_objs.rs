@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    GameCoord, GameId, Resources,
+    GameCoord, GameId, ResourceGroup,
     hitboxes::{CASTLE_HITBOX, DEPLOYED_UNITS_HITBOX, Hitbox},
     units::UnitGroup,
 };
@@ -62,5 +62,5 @@ pub struct OwnedCastleE {
     pub name: String,
     pub pos: GameCoord,
     pub units: UnitGroup,
-    pub resources: Resources,
+    pub resources: ResourceGroup,
 }

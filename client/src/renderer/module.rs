@@ -177,8 +177,17 @@ impl Module {
         size
     }
 
-    pub fn draw_text_in_pos(&mut self, string: &str, pos: TermCoord) {
+    pub fn draw_text_in_pos(&mut self, string: &str, pos: TermCoord, push_rows_if_necessary: bool) {
         let mut curr_pos = pos;
+
+        while curr_pos.y >= self.drawable_size().y {
+            if push_rows_if_necessary {
+                self.push_empty_row();
+            } else {
+                return;
+            }
+        }
+
         for ch in string.chars() {
             let cell = DrawableCell {
                 ch,
@@ -229,6 +238,7 @@ impl Module {
                 (self.drawable_size().y as usize).saturating_sub(1) as isize,
                 0,
             ),
+            false,
         );
     }
 

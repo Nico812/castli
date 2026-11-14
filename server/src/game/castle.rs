@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use common::{
-    GameCoord, Resources,
+    GameCoord, ResourceGroup, ResourceType,
     courtyard::{Facility, FacilityType},
     game_objs::{CastleE, OwnedCastleE},
     units::{UnitGroup, UnitType},
@@ -14,23 +14,29 @@ pub struct Castle {
     pos: GameCoord,
     is_alive: bool,
     units: UnitGroup,
-    resources: Resources,
+    resources: ResourceGroup,
     courtyard: Courtyard,
 }
 
 impl Castle {
     pub fn new(name: String, pos: GameCoord) -> Self {
         let mut units = UnitGroup::new();
-        let mut resources = Resources::new(10, 10);
+        let mut resources = ResourceGroup::new();
+        let peasants;
 
         if name == "gabbiano" || name == "pellicano" || name == "asd" {
-            resources.saturating_add(&Resources::new(1000, 1000));
+            resources.add_single_type(ResourceType::Wood, 10000);
+            resources.add_single_type(ResourceType::Stone, 10000);
             units.add_single_type(UnitType::Knight, 1000);
             units.add_single_type(UnitType::Mage, 1000);
             units.add_single_type(UnitType::Dragon, 1000);
             units.add_single_type(UnitType::Ship, 1000);
+            peasants = 1000;
         } else {
+            resources.add_single_type(ResourceType::Wood, 10);
+            resources.add_single_type(ResourceType::Stone, 10);
             units.add_single_type(UnitType::Knight, 5);
+            peasants = 1;
         }
 
         Self {
@@ -39,7 +45,7 @@ impl Castle {
             is_alive: true,
             units,
             resources,
-            courtyard: Courtyard::new(),
+            courtyard: Courtyard::new(peasants),
         }
     }
 
@@ -49,9 +55,9 @@ impl Castle {
 
     pub fn new_facility(&mut self, r#type: FacilityType, pos: GameCoord) -> bool {
         let cost = r#type.base_cost();
-        if !self.resources.contains(&cost) {
+        if !cost.is_subset(&self.resources) {
             return false;
-        }
+        };
         if !self.courtyard.new_facility(r#type, pos) {
             return false;
         }

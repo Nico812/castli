@@ -107,7 +107,7 @@ impl UnitGroup {
         true
     }
 
-    pub fn subtract_unchecked(&mut self, other: &Self) {
+    pub fn saturating_sub(&mut self, other: &Self) {
         for (i, quantity) in other.quantities.iter().enumerate() {
             self.subtract_single_type(UnitType::form_index(i), *quantity);
         }
@@ -128,11 +128,14 @@ impl UnitGroup {
         true
     }
 
-    pub fn iter_present(&self) -> impl Iterator<Item = (UnitType, u32)> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = (UnitType, u32)> + '_ {
         all_units!()
             .into_iter()
-            .filter(move |u| self.contains(*u))
-            .map(move |u: UnitType| (u, self.quantities[u.as_index()]))
+            .map(move |ty| (ty, self.quantities[ty.as_index()]))
+    }
+
+    pub fn iter_present(&self) -> impl Iterator<Item = (UnitType, u32)> + '_ {
+        self.iter().filter(move |(ty, _)| self.contains(*ty))
     }
 
     pub fn is_empty(&self) -> bool {
@@ -146,5 +149,23 @@ impl UnitGroup {
 
     pub fn contains(&self, unit: UnitType) -> bool {
         self.quantities[unit as usize] > 0
+    }
+
+    pub fn as_string_vector(&self) -> Vec<String> {
+        let mut strings = Vec::new();
+        for (ty, amt) in self.iter() {
+            let s = format!("{:?}: {}", ty, amt);
+            strings.push(s);
+        }
+        strings
+    }
+
+    pub fn as_string_vector_nonempty(&self) -> Vec<String> {
+        let mut strings = Vec::new();
+        for (ty, amt) in self.iter_present() {
+            let s = format!("{:?}: {}", ty, amt);
+            strings.push(s);
+        }
+        strings
     }
 }
