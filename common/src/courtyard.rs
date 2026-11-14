@@ -1,7 +1,10 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 
-use crate::hitboxes::*;
+use crate::units::{UnitGroup, UnitType};
 use crate::{GameCoord, Resources};
+use crate::{ResourceType, hitboxes::*};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FacilityType {
@@ -110,5 +113,39 @@ impl Facility {
 
     pub fn lv_up_cost(&self) -> Resources {
         self.r#type.base_cost() * self.lv * self.lv
+    }
+
+    pub fn production(&self) -> Option<Production> {
+        match self.r#type {
+            FacilityType::FarmPlot => Some(Production::Peasants(self.lv * 2)),
+            FacilityType::Sawmill => Some(Production::Resources(ResourceType::Wood, self.lv * 2)),
+            FacilityType::Mines => Some(Production::Resources(ResourceType::Stone, self.lv * 2)),
+            FacilityType::Barracks => Some(Production::Units(UnitType::Knight, self.lv)),
+            FacilityType::Shipyard => Some(Production::Units(UnitType::Ship, self.lv)),
+            _ => None,
+        }
+    }
+}
+
+pub enum Production {
+    Resources(ResourceType, u32),
+    Peasants(u32),
+    Units(UnitType, u32),
+}
+
+impl fmt::Display for Production {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let str = match self {
+            Self::Resources(r#type, amt) => {
+                format!("{:?}: {}", r#type, amt)
+            }
+            Self::Units(r#type, amt) => {
+                format!("{:?}: {}", r#type, amt)
+            }
+            Self::Peasants(amt) => {
+                format!("Peasants: {}", amt)
+            }
+        };
+        write!(f, "{}", str)
     }
 }

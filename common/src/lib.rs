@@ -69,6 +69,13 @@ impl Time {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+pub enum ResourceType {
+    Wood,
+    Stone,
+}
+
+// TODO: IMPLEMENT ARRAY OF RESOURCETYPES LIKE UNITS
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Resources {
     pub wood: u32,

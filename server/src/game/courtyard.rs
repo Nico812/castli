@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use common::{
-    GameCoord, Resources,
+    GameCoord, ResourceType, Resources,
     r#const::{COURTYARD_COLS, COURTYARD_ROWS},
-    courtyard::{Facility, FacilityType},
+    courtyard::{Facility, FacilityType, Production},
     hitboxes::Hitbox,
     units::{UnitGroup, UnitType},
 };
@@ -47,21 +47,22 @@ impl Courtyard {
         let mut peasants_prod = 0;
 
         for facility in self.facilities.values() {
-            match facility.r#type {
-                FacilityType::Wall => {}
-                FacilityType::FarmPlot => peasants_prod += facility.lv * 2,
-                FacilityType::Sawmill => resource_prod.wood += facility.lv * 10,
-                FacilityType::Mines => resource_prod.stone += facility.lv * 10,
-                FacilityType::Barracks => {
-                    let knights = facility.lv;
-                    if self.peasants >= knights {
-                        self.peasants -= knights;
-                        units_prod.add_single_type(UnitType::Knight, knights);
+            let Some(production) = facility.production() else {
+                continue;
+            };
+
+            match production {
+                Production::Resources(r#type, amt) => match r#type {
+                    ResourceType::Wood => resource_prod.wood += amt,
+                    ResourceType::Stone => resource_prod.stone += amt,
+                },
+                Production::Units(r#type, amt) => {
+                    if self.peasants >= amt {
+                        self.peasants -= amt;
+                        units_prod.add_single_type(r#type, amt);
                     }
                 }
-                FacilityType::Shipyard => {
-                    units_prod.add_single_type(UnitType::Ship, facility.lv);
-                }
+                Production::Peasants(amt) => peasants_prod += amt,
             }
         }
 

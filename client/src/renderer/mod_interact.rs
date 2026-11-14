@@ -48,6 +48,7 @@ impl ModInteract {
                         self.module.push_row_with_text("a: send troops");
                     }
                     InteractTarget::Facility(facility_id) => {
+                        let desc_textbox_cols = 25;
                         let Some(facility) = game_state.get_facility(*facility_id) else {
                             return None;
                         };
@@ -58,9 +59,27 @@ impl ModInteract {
                         self.module.draw_text_in_box(
                             facility.r#type.get_desc(),
                             TermCoord::new(3, 0),
-                            15,
+                            desc_textbox_cols,
                             true,
                         );
+                        let mut curr_pos =
+                            TermCoord::new(0, desc_textbox_cols + self.module.get_padding().x);
+
+                        if let Some(production) = facility.production() {
+                            self.module.draw_text_in_pos("Production", curr_pos);
+                            curr_pos.y += 1;
+                            self.module
+                                .draw_text_in_pos(&production.to_string(), curr_pos);
+                            curr_pos.y += 2;
+                        }
+
+                        self.module.draw_text_in_pos(
+                            &format!("lv {}/{}", facility.lv, facility.r#type.max_lv()),
+                            curr_pos,
+                        );
+
+                        curr_pos.y += 1;
+                        self.module.draw_text_in_pos("lv up cost", curr_pos);
                     }
                     InteractTarget::CourtyardPos(_) => {
                         self.module.push_row_with_text("n: build");

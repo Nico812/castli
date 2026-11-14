@@ -261,4 +261,8 @@ impl Module {
     fn content_start_pos(&self) -> TermCoord {
         TermCoord::new(self.padding.y + 1, self.padding.x + 1)
     }
+
+    pub fn get_padding(&self) -> TermCoord {
+        self.padding
+    }
 }
