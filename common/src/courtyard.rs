@@ -131,7 +131,7 @@ impl FacilityType {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Facility {
-    pub lv: u32,
+    pub lv: u8,
     pub pos: GameCoord,
     pub r#type: FacilityType,
 }
@@ -141,17 +141,23 @@ impl Facility {
         Self { lv: 1, r#type, pos }
     }
 
-    pub fn lv_up_cost(&self) -> ResourceGroup {
-        self.r#type.base_cost() * self.lv * self.lv
+    pub fn upgrade_cost(&self) -> ResourceGroup {
+        self.r#type.base_cost() * self.lv as u32 * self.lv as u32
     }
 
     pub fn production(&self) -> Option<Production> {
         match self.r#type {
-            FacilityType::FarmPlot => Some(Production::Peasants(self.lv * 2)),
-            FacilityType::Sawmill => Some(Production::Resources(ResourceType::Wood, self.lv * 2)),
-            FacilityType::Mines => Some(Production::Resources(ResourceType::Stone, self.lv * 2)),
-            FacilityType::Barracks => Some(Production::Units(UnitType::Knight, self.lv)),
-            FacilityType::Shipyard => Some(Production::Units(UnitType::Ship, self.lv)),
+            FacilityType::FarmPlot => Some(Production::Peasants(self.lv as u32 * 2)),
+            FacilityType::Sawmill => Some(Production::Resources(
+                ResourceType::Wood,
+                self.lv as u32 * 2,
+            )),
+            FacilityType::Mines => Some(Production::Resources(
+                ResourceType::Stone,
+                self.lv as u32 * 2,
+            )),
+            FacilityType::Barracks => Some(Production::Units(UnitType::Knight, self.lv as u32)),
+            FacilityType::Shipyard => Some(Production::Units(UnitType::Ship, self.lv as u32)),
             _ => None,
         }
     }

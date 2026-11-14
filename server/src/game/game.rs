@@ -213,6 +213,14 @@ impl Game {
         castle.new_facility(facility_type, pos)
     }
 
+    pub fn upgrade_facility(&mut self, castle_id: GameId, facility_id: usize) -> bool {
+        let Some(castle) = self.get_castle_mut(castle_id) else {
+            return false;
+        };
+
+        castle.upgrade_facility(facility_id)
+    }
+
     pub fn get_castle(&self, castle_id: GameId) -> Option<&Castle> {
         self.game_objs
             .iter()

@@ -98,6 +98,23 @@ impl Courtyard {
         true
     }
 
+    pub fn upgrade_facility(&mut self, id: usize) -> bool {
+        let Some(facility) = self.facilities.get_mut(&id) else {
+            return false;
+        };
+
+        if facility.lv >= facility.r#type.max_lv() {
+            return false;
+        }
+
+        facility.lv += 1;
+        true
+    }
+
+    pub fn get_facility(&self, facility_id: usize) -> Option<&Facility> {
+        self.facilities.get(&facility_id)
+    }
+
     fn new_id(&mut self) -> usize {
         self.id_cnt += 1;
         self.id_cnt

@@ -40,6 +40,7 @@ pub enum T2C {
     InCourtyard,
     OutCourtyard,
     NewFacility((GameCoord, FacilityType)),
+    UpgradeFacility(usize),
 }
 
 pub struct Tui {

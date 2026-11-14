@@ -232,6 +232,15 @@ impl Lobby {
                             response = Some(LobbyResponse::NewFacility(false));
                         };
                     }
+                    C2S4L::UpgradeFacility(id) => {
+                        if let Some(castle_id) = player.castle_id
+                            && game.upgrade_facility(castle_id, id)
+                        {
+                            response = Some(LobbyResponse::UpgradeFacility(true));
+                        } else {
+                            response = Some(LobbyResponse::UpgradeFacility(false));
+                        }
+                    }
                 }
 
                 if let Some(response) = response {

@@ -164,6 +164,7 @@ impl LastLobbyResponses {
             LobbyResponse::NewCastle(value) => self.new_castle = Some(value),
             LobbyResponse::SendUnits(value) => self.send_units = Some(value),
             LobbyResponse::NewFacility(value) => self.new_facility = Some(value),
+            LobbyResponse::UpgradeFacility(_) => {}
         }
     }
 }

@@ -78,8 +78,8 @@ impl ModInteract {
                             curr_pos.y += 2;
                         }
 
-                        self.module.draw_text_in_pos("a: lv up", curr_pos, true);
-                        for string in facility.lv_up_cost().as_string_vector_nonempty() {
+                        self.module.draw_text_in_pos("n: upgrade", curr_pos, true);
+                        for string in facility.upgrade_cost().as_string_vector_nonempty() {
                             curr_pos.y += 1;
                             self.module.draw_text_in_pos(&string, curr_pos, true);
                         }

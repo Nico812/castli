@@ -65,6 +65,26 @@ impl Castle {
         true
     }
 
+    pub fn upgrade_facility(&mut self, facility_id: usize) -> bool {
+        let Some(cost) = self
+            .courtyard
+            .get_facility(facility_id)
+            .map(|facility| facility.upgrade_cost())
+        else {
+            return false;
+        };
+
+        if !cost.is_subset(&self.resources) {
+            return false;
+        };
+
+        if !self.courtyard.upgrade_facility(facility_id) {
+            return false;
+        }
+        self.resources.saturating_sub(&cost);
+        true
+    }
+
     pub fn add_units(&mut self, units: &UnitGroup) {
         self.units.saturating_add(units);
     }

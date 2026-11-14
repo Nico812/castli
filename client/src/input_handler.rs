@@ -1,4 +1,5 @@
 use common::courtyard::FacilityType;
+use common::packets::C2S::C2S4L;
 use common::units::{UnitType, UnitsTarget};
 use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers};
 use tokio::sync::mpsc::UnboundedSender;
@@ -166,6 +167,8 @@ impl InputHandler {
                     if let InteractTarget::CourtyardPos(pos) = interact_target {
                         ui_state
                             .change_mode(UiMode::FacilitySelection(FacilitySelection::new(*pos)));
+                    } else if let InteractTarget::Facility(id) = interact_target {
+                        let _ = tx.send(T2C::UpgradeFacility(*id));
                     }
                 }
                 _ => {}

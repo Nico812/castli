@@ -159,13 +159,13 @@ impl ResourceGroup {
         true
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (ResourceType, u32)> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = (ResourceType, &u32)> + '_ {
         all_resources!()
             .into_iter()
-            .map(move |ty| (ty, self.quantities[ty.as_index()]))
+            .map(move |ty| (ty, &self.quantities[ty.as_index()]))
     }
 
-    pub fn iter_present(&self) -> impl Iterator<Item = (ResourceType, u32)> + '_ {
+    pub fn iter_present(&self) -> impl Iterator<Item = (ResourceType, &u32)> + '_ {
         self.iter().filter(move |(ty, _)| self.contains(*ty))
     }
 
@@ -205,10 +205,12 @@ impl Mul<u32> for ResourceGroup {
     type Output = Self;
 
     fn mul(self, rhs: u32) -> Self {
-        for (_, ref mut amt) in self.iter_present() {
-            *amt = amt.saturating_mul(rhs);
+        let mut copy = self.clone();
+
+        for (i, (_, ref mut amt)) in self.iter().enumerate() {
+            copy.quantities[i] = amt.saturating_mul(rhs);
         }
-        self
+        copy
     }
 }
 

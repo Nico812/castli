@@ -48,6 +48,7 @@ pub enum C2S4L {
     InCourtyard,
     OutCourtyard,
     NewFacility((GameCoord, FacilityType)),
+    UpgradeFacility(usize),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -71,6 +72,7 @@ pub enum LobbyResponse {
     NewCastle(bool),
     SendUnits(bool),
     NewFacility(bool),
+    UpgradeFacility(bool),
 }
 
 #[derive(Serialize, Deserialize)]

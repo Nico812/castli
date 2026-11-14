@@ -108,6 +108,7 @@ fn t2c_to_c2s4l(msg: T2C) -> C2S4L {
         T2C::InCourtyard => C2S4L::InCourtyard,
         T2C::OutCourtyard => C2S4L::OutCourtyard,
         T2C::NewFacility(payload) => C2S4L::NewFacility(payload),
+        T2C::UpgradeFacility(id) => C2S4L::UpgradeFacility(id),
     }
 }
 
@@ -136,6 +137,8 @@ fn handle_server_msg(msg: S2C, game_state: &mut GameState, shutdown: &ShutdownCh
                 LobbyResponse::SendUnits(false) => "Could not deploy units",
                 LobbyResponse::NewFacility(true) => "Facility created",
                 LobbyResponse::NewFacility(false) => "Could not create new facility",
+                LobbyResponse::UpgradeFacility(true) => "Facility upgraded",
+                LobbyResponse::UpgradeFacility(false) => "Could not upgrade new facility",
             };
 
             let message = message_str.to_string();
