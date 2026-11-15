@@ -33,7 +33,7 @@ impl ModPlayerInfo {
             }
             ModPlayerInfoTab::Logs => self.draw_logs_tab(&game_state.logs),
         };
-        let title = "(y): me | (x): logs | (c): debug".to_string();
+        let title = "y: me | x: logs | c: debug | M: world map | m: map | k: courtyard".to_string();
         self.module.set_name(title);
         self.module.get_cells().clone()
     }

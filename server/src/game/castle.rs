@@ -94,7 +94,7 @@ impl Castle {
     }
 
     pub fn get_strength(&self) -> u32 {
-        self.units.get_strength()
+        self.units.get_strength() * self.courtyard.strength_multiplyer()
     }
 
     pub fn get_pos(&self) -> GameCoord {
@@ -103,6 +103,10 @@ impl Castle {
 
     pub fn get_units(&self) -> &UnitGroup {
         &self.units
+    }
+
+    pub fn get_units_mut(&mut self) -> &mut UnitGroup {
+        &mut self.units
     }
 
     pub fn kill(&mut self) {

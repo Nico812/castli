@@ -1,3 +1,5 @@
+use std::ops::{Div, Mul};
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -167,5 +169,31 @@ impl UnitGroup {
             strings.push(s);
         }
         strings
+    }
+}
+
+impl Mul<u32> for UnitGroup {
+    type Output = Self;
+
+    fn mul(self, rhs: u32) -> Self {
+        let mut copy = self.clone();
+
+        for (i, (_, ref mut amt)) in self.iter().enumerate() {
+            copy.quantities[i] = amt.saturating_mul(rhs);
+        }
+        copy
+    }
+}
+
+impl Div<u32> for UnitGroup {
+    type Output = Self;
+
+    fn div(self, rhs: u32) -> Self {
+        let mut copy = self.clone();
+
+        for (i, (_, ref mut amt)) in self.iter().enumerate() {
+            copy.quantities[i] = amt.div_ceil(rhs);
+        }
+        copy
     }
 }

@@ -115,6 +115,15 @@ impl Courtyard {
         self.facilities.get(&facility_id)
     }
 
+    pub fn strength_multiplyer(&self) -> u32 {
+        for (_, facility) in self.facilities.iter() {
+            if facility.r#type == FacilityType::Wall {
+                return facility.lv as u32;
+            }
+        }
+        1
+    }
+
     fn new_id(&mut self) -> usize {
         self.id_cnt += 1;
         self.id_cnt

@@ -124,7 +124,9 @@ impl Game {
             match deployed_units.get_target() {
                 UnitsTarget::Castle(_) => {
                     self.compute_attack(&mut deployed_units, &mut dead_castles);
-                    if let Some(GameObj::DeployedUnits(obj)) = self.game_objs.get_mut(&id) {
+                    if deployed_units.unit_group.is_empty() {
+                        self.game_objs.remove_entry(&id);
+                    } else if let Some(GameObj::DeployedUnits(obj)) = self.game_objs.get_mut(&id) {
                         *obj = deployed_units;
                     }
                 }
@@ -273,18 +275,24 @@ impl Game {
         let Some(target) = self.get_castle_mut(target_id) else {
             return;
         };
-        let target_str = target.get_strength();
-        let attack_str = deployed_units.get_strength();
-        if target_str < attack_str {
-            let defender_unit_group = target.get_units();
+        let def_str = target.get_strength();
+        let atk_str = deployed_units.get_strength();
+        let factor1 = def_str.div_ceil(atk_str);
+        let factor2 = atk_str.div_ceil(def_str);
+
+        let defender_unit_group = target.get_units_mut();
+        if factor2 == 1 {
+            deployed_units.unit_group = UnitGroup::new();
+            defender_unit_group.saturating_sub(&(defender_unit_group.clone() / factor1));
+        } else if factor1 == 1 {
             deployed_units
                 .unit_group
-                .subtract_if_enough(defender_unit_group);
-
+                .saturating_sub(&(deployed_units.unit_group.clone() / factor2));
             target.kill();
             dead_castles.push(target_id);
             println!("Someone died :(");
-            println!("Attack str: {} | Def str: {}", attack_str, target_str);
+        } else {
+            println!("WTF there is a problem with the factors in compute attack")
         }
     }
 
@@ -294,3 +302,16 @@ impl Game {
         *id_cnt
     }
 }
+
+// ATK: 10
+// DEF: 40
+// FACTOR1: 4
+// FACTOR2: 1
+
+// if FACTOR2 == 1 => ATK troops destroyes and DEF troops -= DEF troops/FACTOR1
+// else if FACTOR1 == 1 => DEF troops destroyed and dies
+
+// ATK: 40
+// DEF: 10
+// FACTOR2: 4
+// FACTOR1: 1
