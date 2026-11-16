@@ -90,7 +90,7 @@ impl ModInteract {
                 }
 
                 self.module.set_name("interact".to_string());
-                Some(self.module.get_cells().clone())
+                Some(self.module.get_renderable_and_reset().clone())
             }
             UiMode::UnitSelection(ref selection) => {
                 let Some(ref castle) = game_state.castle else {
@@ -124,7 +124,7 @@ impl ModInteract {
                 self.module.push_row_with_text("a: confirm");
 
                 self.module.set_name("unit selection".to_string());
-                Some(self.module.get_cells().clone())
+                Some(self.module.get_renderable_and_reset().clone())
             }
             UiMode::FacilitySelection(ref selection) => {
                 let all_facilities = all_facilities!();
@@ -157,7 +157,7 @@ impl ModInteract {
                 self.module.push_row_with_text("enter: build");
 
                 self.module.set_name("facility selection".to_string());
-                Some(self.module.get_cells().clone())
+                Some(self.module.get_renderable_and_reset().clone())
             }
             _ => None,
         }

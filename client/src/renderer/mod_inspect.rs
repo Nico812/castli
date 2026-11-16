@@ -52,7 +52,7 @@ impl ModInspect {
                 }
             }
             self.module.set_name(format!("inspect | {}", inspect.coord));
-            Some(self.module.get_cells().clone())
+            Some(self.module.get_renderable_and_reset().clone())
         } else {
             None
         }

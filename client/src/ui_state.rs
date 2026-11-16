@@ -1,5 +1,3 @@
-use std::{mem::swap, ops::DerefMut};
-
 use common::{
     GameCoord, GameId, all_facilities,
     r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS},
@@ -110,7 +108,30 @@ impl UiState {
 
     pub fn toggle_inspect(&mut self) {
         if let UiMode::Std = self.mode {
-            let coord = self.camera.get_pos();
+            let mut coord = match self.camera.location {
+                CameraLocation::Map => {
+                    self.camera.get_pos()
+                        + GameCoord::new(
+                            self.camera.fov_size.y as usize,
+                            (self.camera.fov_size.x / 2) as usize,
+                        )
+                }
+                CameraLocation::WorldMap => GameCoord::new((MAP_ROWS - 1) / 2, (MAP_COLS - 1) / 2),
+                CameraLocation::Courtyard => {
+                    let mut coord = self.camera.get_pos()
+                        + GameCoord::new(
+                            self.camera.fov_size.y as usize - 1,
+                            ((self.camera.fov_size.x - 1) / 2) as usize,
+                        );
+                    coord.x = coord.x.min((COURTYARD_COLS - 1) / 2);
+                    coord.y = coord.y.min((COURTYARD_ROWS - 1) / 2);
+                    coord
+                }
+            };
+
+            coord.x -= coord.x % 2;
+            coord.y -= coord.y % 2;
+
             self.change_mode(UiMode::Inspect(Inspect {
                 coord,
                 selection: None,

@@ -9,7 +9,11 @@ pub mod stream;
 pub mod units;
 
 use serde::{Deserialize, Serialize};
-use std::{array::from_fn, fmt, ops::Mul};
+use std::{
+    array::from_fn,
+    fmt,
+    ops::{Add, Mul},
+};
 
 /// Global IDs for game objects
 pub type GameId = usize;
@@ -28,6 +32,17 @@ impl GameCoord {
     // You can only build on even coords
     pub fn is_even(&self) -> bool {
         self.x & 1 == 0 && self.y & 1 == 0
+    }
+}
+
+impl Add for GameCoord {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
     }
 }
 

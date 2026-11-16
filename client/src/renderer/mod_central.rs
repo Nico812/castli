@@ -6,6 +6,7 @@ use common::courtyard::Facility;
 use common::game_objs::GameObjE;
 use common::map::Tile;
 use common::{GameCoord, GameId};
+use crossterm::style::Color::{Black, White};
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 
@@ -105,17 +106,24 @@ impl ModCentral {
         // Adding the cursor
         if let UiMode::Inspect(ref inspect) = ui_state.mode {
             let cursor_pos = TermCoord::from_game_coord(inspect.coord, &ui_state.camera);
+            // self.module
+            //     .draw_cell(assets.get_ui_element_drawable("CURSOR_L"), cursor_pos);
+            // self.module.draw_cell(
+            //     assets.get_ui_element_drawable("CURSOR_R"),
+            //     cursor_pos + TermCoord::new(0, 1),
+            // );
             self.module
-                .draw_cell(assets.get_ui_element_drawable("CURSOR_L"), cursor_pos);
-            self.module.draw_cell(
-                assets.get_ui_element_drawable("CURSOR_R"),
+                .change_cell_style(Some(White), Some(Black), cursor_pos);
+            self.module.change_cell_style(
+                Some(White),
+                Some(Black),
                 cursor_pos + TermCoord::new(0, 1),
             );
         }
 
         self.module.set_name(title);
         self.module.center();
-        self.module.get_cells()
+        self.module.get_renderable_and_reset()
     }
 
     pub fn fov_size(&self) -> TermCoord {

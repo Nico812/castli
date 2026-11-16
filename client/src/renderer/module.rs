@@ -39,22 +39,12 @@ impl Module {
         }
     }
 
-    // It will create new rows in the module if the y position is out of bounds
     pub fn draw_cell(&mut self, asset: DrawableCell, pos: TermCoord) {
-        let drawable_size = self.drawable_size();
-        let content_start = self.content_start_pos();
-        let (x, y) =
-            if pos.y >= 0 && pos.x >= 0 && pos.y < drawable_size.y && pos.x < drawable_size.x {
-                (
-                    (pos.x + content_start.x) as usize,
-                    (pos.y + content_start.y) as usize,
-                )
-            } else {
-                return;
-            };
-        self.cells[y][x] = asset;
-        self.drawn.0[y] = true;
-        self.drawn.1[x] = true;
+        if let Some((y, x)) = self.get_cell_pos(pos) {
+            self.cells[y][x] = asset;
+            self.drawn.0[y] = true;
+            self.drawn.1[x] = true;
+        }
     }
 
     pub fn push_empty_row(&mut self) {
@@ -70,12 +60,34 @@ impl Module {
         self.size.y += 1;
     }
 
-    pub fn get_cells(&mut self) -> Vec<Vec<DrawableCell>> {
+    pub fn get_renderable_and_reset(&mut self) -> Vec<Vec<DrawableCell>> {
         self.update_frame();
         let cells = self.cells.clone();
         self.reset();
 
         cells
+    }
+
+    pub fn change_cell_style(&mut self, bg: Option<Color>, fg: Option<Color>, pos: TermCoord) {
+        if let Some((y, x)) = self.get_cell_pos(pos) {
+            bg.map(|bg| self.cells[y][x].bg = bg);
+            fg.map(|fg| self.cells[y][x].fg = fg);
+        }
+    }
+
+    fn get_cell_pos(&mut self, pos: TermCoord) -> Option<(usize, usize)> {
+        let drawable_size = self.drawable_size();
+        let content_start = self.content_start_pos();
+        let (x, y) =
+            if pos.y >= 0 && pos.x >= 0 && pos.y < drawable_size.y && pos.x < drawable_size.x {
+                (
+                    (pos.x + content_start.x) as usize,
+                    (pos.y + content_start.y) as usize,
+                )
+            } else {
+                return None;
+            };
+        Some((y, x))
     }
 
     fn reset(&mut self) {

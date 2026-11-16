@@ -35,7 +35,7 @@ impl ModPlayerInfo {
         };
         let title = "y: me | x: logs | c: debug | M: world map | m: map | k: courtyard".to_string();
         self.module.set_name(title);
-        self.module.get_cells().clone()
+        self.module.get_renderable_and_reset().clone()
     }
 
     fn draw_debug_tab(&mut self, frame_dt: u64, player: &PlayerE, time: &Time) {
