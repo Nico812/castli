@@ -2,6 +2,8 @@ pub type Hitbox = &'static [&'static [bool]];
 
 pub const CASTLE_HITBOX: Hitbox = &[&[true], &[true]];
 
+pub const STRUCTURE_HITBOX: Hitbox = &[&[true], &[true]];
+
 pub const DEPLOYED_UNITS_HITBOX: Hitbox = &[&[true], &[true]];
 
 pub const FARMPLOT_HITBOX: Hitbox = &[

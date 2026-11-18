@@ -70,9 +70,6 @@ impl Lobby {
                 let game_tick_start = now;
 
                 // Steps the game and returns a collection of dead castles.
-                let Some(game) = self.game.as_mut() else {
-                    break;
-                };
                 let dead_castles = game.step();
 
                 for dead_castle in dead_castles {

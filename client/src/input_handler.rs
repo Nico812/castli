@@ -245,7 +245,7 @@ impl InputHandler {
 
     fn handle_unit_deploy(tx: &tokio::sync::mpsc::UnboundedSender<T2C>, selection: &UnitSelection) {
         let target = match selection.interact_target {
-            InteractTarget::GameObj(obj_id) => UnitsTarget::Castle(obj_id),
+            InteractTarget::GameObj(obj_id) => UnitsTarget::GameObj(obj_id),
             InteractTarget::MapPos(pos) => UnitsTarget::Coord(pos),
             _ => {
                 return;

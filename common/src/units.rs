@@ -10,7 +10,7 @@ use crate::{
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum UnitType {
     Knight,
-    Mage,
+    Wizard,
     Dragon,
     Ship,
 }
@@ -20,7 +20,7 @@ macro_rules! all_units {
     () => {
         [
             $crate::units::UnitType::Knight,
-            $crate::units::UnitType::Mage,
+            $crate::units::UnitType::Wizard,
             $crate::units::UnitType::Dragon,
             $crate::units::UnitType::Ship,
         ]
@@ -41,7 +41,7 @@ impl UnitType {
     pub fn form_index(i: usize) -> Self {
         match i {
             0 => Self::Knight,
-            1 => Self::Mage,
+            1 => Self::Wizard,
             2 => Self::Dragon,
             3 => Self::Ship,
             _ => panic!(),
@@ -51,7 +51,7 @@ impl UnitType {
     pub fn get_strength(&self) -> u32 {
         match self {
             Self::Knight => KNIGHT_STR,
-            Self::Mage => MAGE_STR,
+            Self::Wizard => MAGE_STR,
             Self::Dragon => DRAGON_STR,
             Self::Ship => SHIP_STR,
         }
@@ -65,7 +65,7 @@ impl UnitType {
 #[derive(Serialize, Deserialize, Clone)]
 pub enum UnitsTarget {
     Coord(GameCoord),
-    Castle(GameId),
+    GameObj(GameId),
 }
 
 #[derive(Serialize, Deserialize, Clone)]

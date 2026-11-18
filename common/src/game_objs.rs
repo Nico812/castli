@@ -1,3 +1,5 @@
+use std::fmt::{self, Display, Formatter};
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -40,14 +42,34 @@ pub struct CastleE {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct StructureE {
-    pub name: String,
+    pub is_alive: bool,
     pub r#type: StructureType,
     pub pos: GameCoord,
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum StructureType {
-    Farm,
+    LoneFarm,
+    NonEuclideanTown,
+    DragonsLair,
+}
+
+impl fmt::Display for StructureType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = format!("{self:?}");
+        let mut chars = name.chars().peekable();
+
+        while let Some(c) = chars.next() {
+            if let Some(next_c) = chars.peek()
+                && next_c.is_uppercase()
+            {
+                write!(f, "{} ", c)?;
+            } else {
+                write!(f, "{}", c)?;
+            }
+        }
+        write!(f, "")
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

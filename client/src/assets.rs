@@ -243,7 +243,7 @@ impl Assets {
                     "Castle"
                 }
             }
-            GameObjE::Structure(_) => "Err",
+            GameObjE::Structure(structure) => &format!("{:?}", structure.r#type),
             GameObjE::DeployedUnits(_) => {
                 if owned {
                     "MyDeployedUnits"
@@ -255,7 +255,7 @@ impl Assets {
 
         self.objs
             .get(object_key)
-            .expect("Unable to fetch world_obj asset")
+            .unwrap_or(self.objs.get("Err").expect("Mega problem with assets"))
             .cells
             .iter()
             .map(|asset_row| {

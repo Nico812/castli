@@ -1,5 +1,8 @@
 # WORLD OBJS
 
+[Err]
+cells = [[{ ch = "?", fg = "UI.WHITE", bg = "UI.RED" }]]
+
 [MyCastle]
 cells = [[{ ch = "@", fg = "UI.GREEN", bg = "UI.BLACK" }]]
 
@@ -14,6 +17,15 @@ cells = [[{ ch = "u", fg = "UI.GREEN", bg = "UI.BLACK" }]]
 
 [DeployedUnits]
 cells = [[{ ch = "u", fg = "UI.WHITE", bg = "UI.BLACK" }]]
+
+[LoneFarm]
+cells = [[{ ch = "T", fg = "UI.WHITE", bg = "UI.BLACK" }]]
+
+[NonEuclideanTown]
+cells = [[{ ch = "E", fg = "UI.WHITE", bg = "UI.BLACK" }]]
+
+[DragonsLair]
+cells = [[{ ch = "D", fg = "UI.WHITE", bg = "UI.BLACK" }]]
 
 # COURTYARD OBJS
 

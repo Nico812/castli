@@ -7,7 +7,10 @@ use common::{
     units::{UnitGroup, UnitType},
 };
 
-use crate::game::courtyard::{Courtyard, CourtyardEvent};
+use crate::game::{
+    courtyard::{Courtyard, CourtyardEvent},
+    game::{Attackable, KillRewards},
+};
 
 pub struct Castle {
     name: String,
@@ -28,7 +31,7 @@ impl Castle {
             resources.add_single_type(ResourceType::Wood, 10000);
             resources.add_single_type(ResourceType::Stone, 10000);
             units.add_single_type(UnitType::Knight, 1000);
-            units.add_single_type(UnitType::Mage, 1000);
+            units.add_single_type(UnitType::Wizard, 1000);
             units.add_single_type(UnitType::Dragon, 1000);
             units.add_single_type(UnitType::Ship, 1000);
             peasants = 1000;
@@ -93,10 +96,6 @@ impl Castle {
         self.units.subtract_if_enough(units)
     }
 
-    pub fn get_strength(&self) -> u32 {
-        self.units.get_strength() * self.courtyard.strength_multiplyer()
-    }
-
     pub fn get_pos(&self) -> GameCoord {
         self.pos
     }
@@ -107,10 +106,6 @@ impl Castle {
 
     pub fn get_units_mut(&mut self) -> &mut UnitGroup {
         &mut self.units
-    }
-
-    pub fn kill(&mut self) {
-        self.is_alive = false;
     }
 
     pub fn update(&mut self) {
@@ -146,5 +141,19 @@ impl Castle {
             units: self.units.clone(),
             resources: self.resources.clone(),
         }
+    }
+}
+
+impl Attackable for Castle {
+    fn get_strength(&self) -> u32 {
+        self.units.get_strength() * self.courtyard.strength_multiplyer()
+    }
+
+    fn kill(&mut self) {
+        self.is_alive = false;
+    }
+
+    fn get_kill_rewards(&self) -> Vec<KillRewards> {
+        vec![]
     }
 }
