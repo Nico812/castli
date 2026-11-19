@@ -8,26 +8,25 @@ use crate::{
         castle::Castle,
         game_obj::GameObj,
         map::Map,
-        pathfinding::{self, a_star},
+        pathfinding,
         structure::Structure,
         units::{DeployedUnits, DeployedUnitsEvent},
     },
     thread_pool::ThreadPool,
 };
 use common::{
-    GameCoord, GameId, ResourceGroup, Time,
+    GameCoord, GameId, LimitedGroup, ResourceType, Time, UnitType, UnitsTarget,
     courtyard::FacilityType,
     game_objs::{GameObjE, StructureType},
     hitboxes::{CASTLE_HITBOX, STRUCTURE_HITBOX},
     map::Tile,
     packets::MapPayload,
-    units::{UnitGroup, UnitsTarget},
 };
-use rand::{Rng, SeedableRng, TryRngCore, rngs::SmallRng};
+use rand::{SeedableRng, TryRngCore, rngs::SmallRng};
 
 pub enum KillRewards {
-    Resources(ResourceGroup),
-    Units(UnitGroup),
+    Resources(LimitedGroup<ResourceType>),
+    Units(LimitedGroup<UnitType>),
 }
 
 pub trait Attackable {
@@ -134,6 +133,9 @@ impl Game {
                 continue;
             };
             owner_castle.add_units(&deployed_units.unit_group);
+            if let Some(ref resources) = deployed_units.wagon_contents {
+                owner_castle.add_resources(resources);
+            };
             self.game_objs.remove_entry(&id);
         }
 
@@ -164,7 +166,7 @@ impl Game {
         &mut self,
         castle_id: GameId,
         target: UnitsTarget,
-        unit_group: UnitGroup,
+        unit_group: LimitedGroup<UnitType>,
         pool: &ThreadPool,
     ) -> bool {
         if unit_group.is_empty() {
@@ -257,18 +259,18 @@ impl Game {
         match (factor1, factor2) {
             (_, 1) => {
                 // Attack failed. All attacking troops die.
-                deployed_units.unit_group = UnitGroup::new();
+                deployed_units.unit_group = LimitedGroup::new(None);
 
                 if let GameObj::Castle(castle) = &mut *def_obj {
                     let units = castle.get_units_mut();
-                    units.saturating_sub(&(units.clone() / factor1));
+                    units.subtract(&(units.clone() / factor1));
                 }
             }
             (1, _) => {
                 // Attack succeeded.
                 deployed_units
                     .unit_group
-                    .saturating_sub(&(deployed_units.unit_group.clone() / factor2));
+                    .subtract(&(deployed_units.unit_group.clone() / factor2));
 
                 let rewards = match &mut *def_obj {
                     GameObj::Castle(castle) => {
@@ -286,12 +288,13 @@ impl Game {
 
                 for reward in rewards {
                     match reward {
-                        // TODO: implement
                         KillRewards::Resources(resource_group) => {
-                            todo!()
+                            if deployed_units.unit_group.contains(UnitType::Wagon) {
+                                deployed_units.wagon_contents = Some(resource_group);
+                            }
                         }
                         KillRewards::Units(unit_group) => {
-                            deployed_units.unit_group.saturating_add(&unit_group);
+                            deployed_units.unit_group.add(&unit_group);
                         }
                     };
                 }

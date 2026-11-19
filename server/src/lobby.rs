@@ -1,5 +1,4 @@
 use std::{
-    any::Any,
     collections::HashMap,
     sync::mpsc::{Receiver, Sender},
     thread,
@@ -8,7 +7,6 @@ use std::{
 
 use common::{
     r#const::MAX_LOBBY_PLAYERS,
-    game_objs::DeployedUnitsE,
     packets::{C2S4L, CourtyardPacket, L2S4C, LobbyResponse, MainPacket},
 };
 

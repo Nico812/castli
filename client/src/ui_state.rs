@@ -1,8 +1,7 @@
 use common::{
-    GameCoord, GameId, all_facilities,
+    GameCoord, GameId, GroupElement, LimitedGroup, UnitType,
     r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS},
     courtyard::FacilityType,
-    units::{UnitGroup, UnitType},
 };
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -234,15 +233,15 @@ pub enum InteractTarget {
 pub struct UnitSelection {
     pub interact_target: InteractTarget,
     pub active_input: (UnitType, Option<String>),
-    pub selected_units: UnitGroup,
+    pub selected_units: LimitedGroup<UnitType>,
 }
 
 impl UnitSelection {
     pub fn from_interact(interact_target: InteractTarget) -> Self {
         Self {
             interact_target,
-            active_input: (UnitType::form_index(0), None),
-            selected_units: UnitGroup::new(),
+            active_input: (UnitType::from_index(0), None),
+            selected_units: LimitedGroup::new(None),
         }
     }
 
@@ -253,7 +252,7 @@ impl UnitSelection {
 
         match dy {
             dy if dy > 0 => {
-                let new_unit_index = (self.active_input.0.as_index() + 1).min(UnitType::COUNT - 1);
+                let new_unit_index = (self.active_input.0.as_index() + 1).min(UnitType::amt() - 1);
                 self.active_input.0 = UnitType::from_index(new_unit_index);
             }
             dy if dy < 0 => {
@@ -274,14 +273,14 @@ impl FacilitySelection {
     pub fn new(pos: GameCoord) -> Self {
         Self {
             pos,
-            active: all_facilities!()[0],
+            active: FacilityType::all()[0],
         }
     }
 
     pub fn move_selection(&mut self, dy: isize) {
         match dy {
             dy if dy > 0 => {
-                let new_facility_index = (self.active.as_index() + 1).min(FacilityType::COUNT - 1);
+                let new_facility_index = (self.active.as_index() + 1).min(FacilityType::amt() - 1);
                 self.active = FacilityType::from_index(new_facility_index);
             }
             dy if dy < 0 => {

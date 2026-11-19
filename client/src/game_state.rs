@@ -94,7 +94,7 @@ impl GameState {
     pub fn update_facilities(&mut self, facilities: HashMap<usize, Facility>) {
         for new_facility in facilities.iter() {
             if self.facilities.get(&new_facility.0).is_none() {
-                let hitbox = new_facility.1.r#type.get_hitbox();
+                let hitbox = new_facility.1.r#type.hitbox();
                 let pos = new_facility.1.pos;
 
                 Self::add_hitbox_entry(
@@ -133,7 +133,7 @@ impl GameState {
         let mut courtyard_hitbox_map = vec![vec![None; COURTYARD_COLS]; COURTYARD_ROWS];
 
         for facility in facilities {
-            let hitbox = facility.1.r#type.get_hitbox();
+            let hitbox = facility.1.r#type.hitbox();
             let pos = facility.1.pos;
 
             Self::add_hitbox_entry(&mut courtyard_hitbox_map, hitbox, pos, *facility.0);

@@ -1,4 +1,4 @@
-use common::{all_facilities, all_units, game_objs::GameObjE};
+use common::{GroupElement, courtyard::FacilityType, game_objs::GameObjE};
 
 use crate::{
     assets::Assets,
@@ -34,8 +34,15 @@ impl ModInteract {
                                 self.module.push_row_with_text(&castle.name);
                                 self.module.push_row_with_text("a: attack");
                             }
-                            Some(GameObjE::Structure(_)) => {}
-                            Some(GameObjE::DeployedUnits(_)) => {}
+                            Some(GameObjE::Structure(structure)) => {
+                                self.module
+                                    .push_row_with_text(&structure.r#type.to_string());
+                                self.module.push_row_with_text("a: attack");
+                            }
+                            Some(GameObjE::DeployedUnits(units)) => {
+                                self.module
+                                    .push_row_with_text(&format!("Owner id: {}", units.owner_id));
+                            }
                             None => {
                                 self.module
                                     .push_row_with_text("The object doesn't exist anymore");
@@ -55,7 +62,7 @@ impl ModInteract {
                         self.module
                             .push_row_with_text(&format!("{:?}", facility.r#type));
                         self.module.draw_text_in_box(
-                            facility.r#type.get_desc(),
+                            facility.r#type.desc(),
                             TermCoord::new(2, 0),
                             desc_textbox_cols,
                             true,
@@ -70,7 +77,7 @@ impl ModInteract {
                         );
                         curr_pos.y += 2;
 
-                        if let Some(production) = facility.production() {
+                        for production in facility.production() {
                             self.module.draw_text_in_pos("Production", curr_pos, true);
                             curr_pos.y += 1;
                             self.module
@@ -79,7 +86,7 @@ impl ModInteract {
                         }
 
                         self.module.draw_text_in_pos("n: upgrade", curr_pos, true);
-                        for string in facility.upgrade_cost().as_string_vector_nonempty() {
+                        for string in facility.upgrade_cost().as_string_vector_nonzero() {
                             curr_pos.y += 1;
                             self.module.draw_text_in_pos(&string, curr_pos, true);
                         }
@@ -105,7 +112,7 @@ impl ModInteract {
                         if is_active && let Some(ref input_str) = selection.active_input.1 {
                             format!("{}_/{}", input_str, amt)
                         } else {
-                            let selected = selection.selected_units.quantities[ty_index];
+                            let selected = selection.selected_units.quant[ty_index];
                             format!("{}/{}", selected, amt)
                         };
 
@@ -127,21 +134,19 @@ impl ModInteract {
                 Some(self.module.get_renderable_and_reset().clone())
             }
             UiMode::FacilitySelection(ref selection) => {
-                let all_facilities = all_facilities!();
-
-                for facility_type in all_facilities.iter() {
-                    let total = facility_type.max_count();
+                for ty in FacilityType::all().iter() {
+                    let total = FacilityType::max_count()[ty.as_index()];
                     let owned = game_state
                         .get_facilities()
                         .iter()
-                        .filter(|facility| facility.1.r#type == *facility_type)
+                        .filter(|facility| facility.1.r#type == *ty)
                         .count();
 
-                    let is_active = selection.active == *facility_type;
+                    let is_active = selection.active == *ty;
 
                     let display_quantities = format!("{}/{}", owned, total);
-                    let quantities_text = format!("{:?}: {}", facility_type, display_quantities);
-                    let price_text = facility_type.base_cost().to_string();
+                    let quantities_text = format!("{:?}: {}", ty, display_quantities);
+                    let price_text = ty.base_cost().to_string();
 
                     self.module.push_row_with_text(&quantities_text);
                     if is_active {

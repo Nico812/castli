@@ -1,65 +1,66 @@
 use std::collections::HashMap;
 
 use common::{
-    GameCoord, ResourceGroup, ResourceType,
+    GameCoord, GroupElement, InhabitantType, LimitedGroup, ResourceType, UnitType,
     r#const::{COURTYARD_COLS, COURTYARD_ROWS},
     courtyard::{Facility, FacilityType, Production},
     hitboxes::Hitbox,
-    units::{UnitGroup, UnitType},
 };
 
 pub enum CourtyardEvent {
-    ResourceProduction(ResourceGroup),
-    UnitsProduction(UnitGroup),
+    ResourceProduction(LimitedGroup<ResourceType>),
+    UnitsProduction(LimitedGroup<UnitType>),
+    ResourceLimExtension(Vec<u32>),
+    UnitsLimExtension(Vec<u32>),
 }
 
 pub struct Courtyard {
     facilities: HashMap<usize, Facility>,
+    owned_cnt: LimitedGroup<FacilityType>,
+    inhabitants: LimitedGroup<InhabitantType>,
     occupied: [[Option<usize>; COURTYARD_COLS]; COURTYARD_ROWS],
-    owned_cnt: [u8; FacilityType::COUNT],
     id_cnt: usize,
-    peasants: u32,
 }
 
 impl Courtyard {
-    pub fn new(peasants: u32) -> Self {
+    pub fn new() -> Self {
         let facilities = HashMap::new();
         let occupied = [[None; COURTYARD_COLS]; COURTYARD_ROWS];
-        let owned_cnt = [0; FacilityType::COUNT];
+        let owned_cnt = LimitedGroup::new(Some(FacilityType::max_count()));
+        let inhabitants = LimitedGroup::<InhabitantType>::castle_starting_group();
 
         let mut self_ = Self {
             facilities,
-            occupied,
             owned_cnt,
+            inhabitants,
+            occupied,
             id_cnt: 0,
-            peasants,
         };
 
         self_.new_facility(FacilityType::Wall, GameCoord { x: 6, y: 6 });
-
         self_
     }
 
     pub fn update(&mut self) -> Vec<CourtyardEvent> {
         let mut events = Vec::new();
-        let mut resource_prod = ResourceGroup::new();
-        let mut units_prod = UnitGroup::new();
-        let mut peasants_prod = 0;
+        let mut resource_prod = LimitedGroup::new(None);
+        let mut units_prod = LimitedGroup::new(None);
+        let mut inhabitants_prod = LimitedGroup::new(None);
 
         for facility in self.facilities.values() {
-            let Some(production) = facility.production() else {
-                continue;
-            };
-
-            match production {
-                Production::Resources(r#type, amt) => resource_prod.add_single_type(r#type, amt),
-                Production::Units(r#type, amt) => {
-                    if self.peasants >= amt {
-                        self.peasants -= amt;
-                        units_prod.add_single_type(r#type, amt);
+            for production in facility.production() {
+                match production {
+                    Production::Resources(ty, amt) => resource_prod.add_single_type(ty, amt),
+                    Production::Units(ty, amt) => {
+                        let owned_peasants =
+                            &mut self.inhabitants.quant[InhabitantType::Peasant.as_index()];
+                        if *owned_peasants >= amt {
+                            *owned_peasants -= amt;
+                            units_prod.add_single_type(ty, amt);
+                        }
                     }
+                    Production::Inhabitants(ty, amt) => inhabitants_prod.add_single_type(ty, amt),
                 }
-                Production::Peasants(amt) => peasants_prod += amt,
             }
         }
 
@@ -71,44 +72,56 @@ impl Courtyard {
             events.push(CourtyardEvent::UnitsProduction(units_prod));
         }
 
-        if peasants_prod > 0 {
-            self.peasants = self.peasants.saturating_add(peasants_prod);
+        if !inhabitants_prod.is_empty() {
+            self.inhabitants.add(&inhabitants_prod);
         }
 
         events
     }
 
-    pub fn new_facility(&mut self, r#type: FacilityType, pos: GameCoord) -> bool {
-        let type_idx = r#type.as_index();
-        let max_count = r#type.max_count();
-
-        if self.owned_cnt[type_idx] >= max_count {
+    pub fn new_facility(&mut self, ty: FacilityType, pos: GameCoord) -> bool {
+        if self.owned_cnt.is_full_by_type(ty) {
             return false;
         }
-        if !self.is_position_valid(pos, &r#type.get_hitbox()) {
+        if !self.is_position_valid(pos, &ty.hitbox()) {
             return false;
         }
 
         let id = self.new_id();
-        let facility = Facility::new(r#type, pos);
-        self.facilities.insert(id, facility);
-        self.owned_cnt[type_idx] += 1;
-        self.mark_occupied(id, pos, &r#type.get_hitbox());
+        let facility = Facility::new(ty, pos);
 
+        self.facilities.insert(id, facility);
+        self.owned_cnt.add_single_type(ty, 1);
+        self.mark_occupied(id, pos, &ty.hitbox());
         true
     }
 
-    pub fn upgrade_facility(&mut self, id: usize) -> bool {
+    pub fn upgrade_facility(&mut self, id: usize) -> (bool, Vec<CourtyardEvent>) {
+        let mut events = Vec::new();
         let Some(facility) = self.facilities.get_mut(&id) else {
-            return false;
+            return (false, events);
         };
-
         if facility.lv >= facility.r#type.max_lv() {
-            return false;
+            return (false, events);
         }
 
         facility.lv += 1;
-        true
+
+        match facility.r#type {
+            FacilityType::Treasury => events.push(CourtyardEvent::ResourceLimExtension(
+                Facility::treasury_lim_extension(facility.lv),
+            )),
+            FacilityType::Residence => {
+                events.push(CourtyardEvent::UnitsLimExtension(
+                    Facility::residence_units_limit_extension(facility.lv),
+                ));
+                self.inhabitants
+                    .add_to_lim(&Facility::residence_inhabitants_lim_extension(facility.lv));
+            }
+            _ => {}
+        }
+
+        (true, events)
     }
 
     pub fn get_facility(&self, facility_id: usize) -> Option<&Facility> {

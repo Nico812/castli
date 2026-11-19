@@ -1,18 +1,14 @@
-use common::courtyard::FacilityType;
-use common::packets::C2S::C2S4L;
-use common::units::{UnitType, UnitsTarget};
+use common::{GroupElement, UnitsTarget};
 use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers};
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::camera::{Camera, CameraLocation};
+use crate::camera::CameraLocation;
 use crate::coord::TermCoord;
 use crate::game_state::GameState;
 use crate::renderer::ModPlayerInfoTab;
 use crate::shutdown::{ShutdownChannel, ShutdownReason};
 use crate::tui::{T2C, Tui};
 use crate::ui_state::{FacilitySelection, Inspect, InteractTarget, UiMode, UiState, UnitSelection};
-use common::GameCoord;
-use common::r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS};
 
 pub struct InputHandler;
 
@@ -190,10 +186,10 @@ impl InputHandler {
                         if let Some(ref string) = selection.active_input.1 {
                             let unit_index = selection.active_input.0.as_index();
 
-                            selection.selected_units.quantities[unit_index] = string
+                            selection.selected_units.quant[unit_index] = string
                                 .parse()
                                 .unwrap_or(0)
-                                .min(castle.units.quantities[unit_index]);
+                                .min(castle.units.quant[unit_index]);
                             selection.active_input.1 = None;
                         } else {
                             selection.active_input.1 = Some(String::new());

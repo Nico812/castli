@@ -8,11 +8,10 @@ use crate::{
     ui_state::{UiMode, UiState},
 };
 use common::{
-    GameCoord, GameId,
+    GameCoord, GameId, LimitedGroup, UnitType, UnitsTarget,
     r#const::{MAX_LOBBIES, MAX_LOBBY_PLAYERS},
     courtyard::{Facility, FacilityType},
     game_objs::GameObjE,
-    units::{UnitGroup, UnitsTarget},
 };
 use crossterm::{
     ExecutableCommand, cursor,
@@ -36,7 +35,7 @@ use tokio::{
 /// Messages sent from the TUI to the client's network task.
 pub enum T2C {
     NewCastle(GameCoord),
-    SendUnits(UnitsTarget, UnitGroup),
+    SendUnits(UnitsTarget, LimitedGroup<UnitType>),
     InCourtyard,
     OutCourtyard,
     NewFacility((GameCoord, FacilityType)),

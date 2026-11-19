@@ -2,9 +2,9 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::units::{UnitGroup, UnitType};
-use crate::{GameCoord, ResourceGroup};
-use crate::{ResourceType, hitboxes::*};
+use crate::{
+    GameCoord, GroupElement, InhabitantType, LimitedGroup, ResourceType, UnitType, hitboxes::*,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FacilityType {
@@ -13,35 +13,38 @@ pub enum FacilityType {
     Sawmill,
     Mines,
     Barracks,
-    Shipyard,
+    Carpenter,
+    Treasury,
+    Residence,
 }
 
-#[macro_export]
-macro_rules! all_facilities {
-    () => {
-        [
-            $crate::courtyard::FacilityType::Wall,
-            $crate::courtyard::FacilityType::FarmPlot,
-            $crate::courtyard::FacilityType::Sawmill,
-            $crate::courtyard::FacilityType::Mines,
-            $crate::courtyard::FacilityType::Barracks,
-            $crate::courtyard::FacilityType::Shipyard,
+impl GroupElement for FacilityType {
+    fn all() -> &'static [Self] {
+        &[
+            Self::Wall,
+            Self::FarmPlot,
+            Self::Sawmill,
+            Self::Mines,
+            Self::Barracks,
+            Self::Carpenter,
+            Self::Treasury,
+            Self::Residence,
         ]
-    };
+    }
 }
 
 impl FacilityType {
-    pub const COUNT: usize = all_facilities!().len();
-
-    pub fn max_count(&self) -> u8 {
-        match self {
-            FacilityType::Wall => 1,
-            FacilityType::FarmPlot => 4,
-            FacilityType::Sawmill => 1,
-            FacilityType::Mines => 1,
-            FacilityType::Barracks => 1,
-            FacilityType::Shipyard => 1,
-        }
+    pub fn max_count() -> Vec<u32> {
+        let mut lim = vec![0; Self::amt()];
+        lim[FacilityType::Wall.as_index()] = 1;
+        lim[FacilityType::FarmPlot.as_index()] = 3;
+        lim[FacilityType::Sawmill.as_index()] = 1;
+        lim[FacilityType::Mines.as_index()] = 1;
+        lim[FacilityType::Barracks.as_index()] = 1;
+        lim[FacilityType::Carpenter.as_index()] = 1;
+        lim[FacilityType::Treasury.as_index()] = 1;
+        lim[FacilityType::Residence.as_index()] = 4;
+        lim
     }
 
     pub fn max_lv(&self) -> u8 {
@@ -51,81 +54,101 @@ impl FacilityType {
             FacilityType::Sawmill => 10,
             FacilityType::Mines => 10,
             FacilityType::Barracks => 10,
-            FacilityType::Shipyard => 2,
+            FacilityType::Carpenter => 2,
+            FacilityType::Treasury => 10,
+            FacilityType::Residence => 10,
         }
     }
 
-    pub fn base_cost(&self) -> ResourceGroup {
+    pub fn base_cost(&self) -> LimitedGroup<ResourceType> {
         match self {
+            FacilityType::Wall => {
+                let mut cost = LimitedGroup::new(None);
+                cost.add_single_type(ResourceType::Wood, 50);
+                cost.add_single_type(ResourceType::Stone, 50);
+                cost
+            }
             FacilityType::FarmPlot => {
-                let mut cost = ResourceGroup::new();
+                let mut cost = LimitedGroup::new(None);
                 cost.add_single_type(ResourceType::Wood, 15);
                 cost.add_single_type(ResourceType::Stone, 15);
                 cost
             }
             FacilityType::Sawmill => {
-                let mut cost = ResourceGroup::new();
+                let mut cost = LimitedGroup::new(None);
                 cost.add_single_type(ResourceType::Wood, 5);
                 cost.add_single_type(ResourceType::Stone, 5);
                 cost
             }
             FacilityType::Mines => {
-                let mut cost = ResourceGroup::new();
+                let mut cost = LimitedGroup::new(None);
                 cost.add_single_type(ResourceType::Wood, 5);
                 cost.add_single_type(ResourceType::Stone, 5);
                 cost
             }
             FacilityType::Barracks => {
-                let mut cost = ResourceGroup::new();
+                let mut cost = LimitedGroup::new(None);
                 cost.add_single_type(ResourceType::Wood, 50);
                 cost.add_single_type(ResourceType::Stone, 50);
                 cost
             }
-            FacilityType::Shipyard => {
-                let mut cost = ResourceGroup::new();
+            FacilityType::Carpenter => {
+                let mut cost = LimitedGroup::new(None);
                 cost.add_single_type(ResourceType::Wood, 1000);
                 cost.add_single_type(ResourceType::Stone, 1000);
                 cost
             }
-            FacilityType::Wall => {
-                let mut cost = ResourceGroup::new();
-                cost.add_single_type(ResourceType::Wood, 50);
-                cost.add_single_type(ResourceType::Stone, 50);
+            FacilityType::Treasury => {
+                let mut cost = LimitedGroup::new(None);
+                cost.add_single_type(ResourceType::Wood, 25);
+                cost.add_single_type(ResourceType::Stone, 25);
+                cost
+            }
+            FacilityType::Residence => {
+                let mut cost = LimitedGroup::new(None);
+                cost.add_single_type(ResourceType::Wood, 10);
+                cost.add_single_type(ResourceType::Stone, 10);
                 cost
             }
         }
     }
 
-    pub fn get_hitbox(&self) -> Hitbox {
+    pub fn hitbox(&self) -> Hitbox {
         match self {
             FacilityType::Wall => WALL_HITBOX,
             FacilityType::FarmPlot => FARMPLOT_HITBOX,
             FacilityType::Sawmill => SAWMILL_HITBOX,
             FacilityType::Mines => MINES_HITBOX,
             FacilityType::Barracks => BARRACKS_HITBOX,
-            FacilityType::Shipyard => SHIPYARD_HITBOX,
+            FacilityType::Carpenter => SHIPYARD_HITBOX,
+            FacilityType::Treasury => SHIPYARD_HITBOX,
+            FacilityType::Residence => SHIPYARD_HITBOX,
         }
     }
 
-    pub fn get_desc(&self) -> &str {
+    pub fn desc(&self) -> &str {
         match self {
             FacilityType::Wall => {
-                "Its a fucking wall... what do you want from me????? ????????????? ??????????????? ???????? ???????????? ??????????????????????? ????????????????? ???????"
+                "Rumors say that members of the dfensive army feel twice as powerful each time the wall has been improved on."
             }
-            FacilityType::FarmPlot => "yessssss as asas as asasa",
-            FacilityType::Sawmill => "yes",
-            FacilityType::Mines => "a",
-            FacilityType::Barracks => "a",
-            FacilityType::Shipyard => "a",
+            FacilityType::FarmPlot => {
+                "Coziest place in the castle. Production of food is important for mantaining the peasants's sex drive."
+            }
+            FacilityType::Sawmill => {
+                "Somewhere bored peasants can work wood they find on the outshirts of the castle."
+            }
+            FacilityType::Mines => "Somewhere strong peasants can mine stone. No casualties yet.",
+            FacilityType::Barracks => {
+                "A training place for peasants aspiring to be promoted as holy knights."
+            }
+            FacilityType::Carpenter => {
+                "Special contraptions can be built here, assuming there is a special ideator living between the walls."
+            }
+            FacilityType::Treasury => {
+                "Where all the resources are stored. It's the cleanest place of the castle."
+            }
+            FacilityType::Residence => "They are mutch more spatious than they look.",
         }
-    }
-
-    pub fn as_index(&self) -> usize {
-        *self as usize
-    }
-
-    pub fn from_index(i: usize) -> Self {
-        all_facilities!()[i]
     }
 }
 
@@ -141,45 +164,76 @@ impl Facility {
         Self { lv: 1, r#type, pos }
     }
 
-    pub fn upgrade_cost(&self) -> ResourceGroup {
+    pub fn upgrade_cost(&self) -> LimitedGroup<ResourceType> {
         self.r#type.base_cost() * self.lv as u32 * self.lv as u32
     }
 
-    pub fn production(&self) -> Option<Production> {
+    pub fn production(&self) -> Vec<Production> {
         match self.r#type {
-            FacilityType::FarmPlot => Some(Production::Peasants(self.lv as u32 * 2)),
-            FacilityType::Sawmill => Some(Production::Resources(
+            FacilityType::FarmPlot => vec![Production::Inhabitants(
+                InhabitantType::Peasant,
+                self.lv as u32 * 2,
+            )],
+            FacilityType::Sawmill => vec![Production::Resources(
                 ResourceType::Wood,
                 self.lv as u32 * 2,
-            )),
-            FacilityType::Mines => Some(Production::Resources(
+            )],
+            FacilityType::Mines => vec![Production::Resources(
                 ResourceType::Stone,
                 self.lv as u32 * 2,
-            )),
-            FacilityType::Barracks => Some(Production::Units(UnitType::Knight, self.lv as u32)),
-            FacilityType::Shipyard => Some(Production::Units(UnitType::Ship, self.lv as u32)),
-            _ => None,
+            )],
+            FacilityType::Barracks => vec![Production::Units(UnitType::Knight, self.lv as u32)],
+            FacilityType::Carpenter => {
+                let mut prod = Vec::new();
+                prod.push(Production::Units(UnitType::Wagon, self.lv as u32));
+                prod.push(Production::Units(UnitType::Ship, 1));
+                prod
+            }
+            _ => Vec::new(),
         }
+    }
+
+    pub fn treasury_lim_extension(lv: u8) -> Vec<u32> {
+        let mut cap = vec![0; ResourceType::amt()];
+        cap[ResourceType::as_index(ResourceType::Wood)] = (100 * lv * lv) as u32;
+        cap[ResourceType::as_index(ResourceType::Stone)] = (100 * lv * lv) as u32;
+        cap
+    }
+
+    pub fn residence_inhabitants_lim_extension(lv: u8) -> Vec<u32> {
+        let mut cap = vec![0; InhabitantType::amt()];
+        cap[InhabitantType::as_index(InhabitantType::Peasant)] = (10 * lv * lv) as u32;
+        cap
+    }
+
+    pub fn residence_units_limit_extension(lv: u8) -> Vec<u32> {
+        let mut cap = vec![0; UnitType::amt()];
+        cap[UnitType::as_index(UnitType::Knight)] = (2 * lv * lv) as u32;
+        cap[UnitType::as_index(UnitType::Wizard)] = lv as u32;
+        cap[UnitType::as_index(UnitType::Dragon)] = lv.saturating_sub(7) as u32;
+        cap[UnitType::as_index(UnitType::Wagon)] = 0;
+        cap[UnitType::as_index(UnitType::Ship)] = 0;
+        cap
     }
 }
 
 pub enum Production {
     Resources(ResourceType, u32),
-    Peasants(u32),
+    Inhabitants(InhabitantType, u32),
     Units(UnitType, u32),
 }
 
 impl fmt::Display for Production {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let str = match self {
-            Self::Resources(r#type, amt) => {
-                format!("{:?}: {}", r#type, amt)
+            Self::Resources(ty, amt) => {
+                format!("{:?}: {}", ty, amt)
             }
-            Self::Units(r#type, amt) => {
-                format!("{:?}: {}", r#type, amt)
+            Self::Units(ty, amt) => {
+                format!("{:?}s: {}", ty, amt)
             }
-            Self::Peasants(amt) => {
-                format!("Peasants: {}", amt)
+            Self::Inhabitants(ty, amt) => {
+                format!("{:?}s: {}", ty, amt)
             }
         };
         write!(f, "{}", str)

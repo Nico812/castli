@@ -1,4 +1,4 @@
-use crossterm::style::{Color, Stylize};
+use crossterm::style::Color;
 
 use crate::{
     r#const::FRAME_WIDTH,

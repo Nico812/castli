@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
 use common::{
-    GameCoord, ResourceGroup, ResourceType,
+    GameCoord, GroupElement, LimitedGroup, ResourceType, UnitType,
     courtyard::{Facility, FacilityType},
     game_objs::{CastleE, OwnedCastleE},
-    units::{UnitGroup, UnitType},
 };
 
 use crate::game::{
@@ -16,31 +15,15 @@ pub struct Castle {
     name: String,
     pos: GameCoord,
     is_alive: bool,
-    units: UnitGroup,
-    resources: ResourceGroup,
+    units: LimitedGroup<UnitType>,
+    resources: LimitedGroup<ResourceType>,
     courtyard: Courtyard,
 }
 
 impl Castle {
     pub fn new(name: String, pos: GameCoord) -> Self {
-        let mut units = UnitGroup::new();
-        let mut resources = ResourceGroup::new();
-        let peasants;
-
-        if name == "gabbiano" || name == "pellicano" || name == "asd" {
-            resources.add_single_type(ResourceType::Wood, 10000);
-            resources.add_single_type(ResourceType::Stone, 10000);
-            units.add_single_type(UnitType::Knight, 1000);
-            units.add_single_type(UnitType::Wizard, 1000);
-            units.add_single_type(UnitType::Dragon, 1000);
-            units.add_single_type(UnitType::Ship, 1000);
-            peasants = 1000;
-        } else {
-            resources.add_single_type(ResourceType::Wood, 10);
-            resources.add_single_type(ResourceType::Stone, 10);
-            units.add_single_type(UnitType::Knight, 5);
-            peasants = 1;
-        }
+        let units = LimitedGroup::new(Some(vec![0; UnitType::amt()]));
+        let resources = LimitedGroup::<ResourceType>::castle_starting_group();
 
         Self {
             name,
@@ -48,7 +31,7 @@ impl Castle {
             is_alive: true,
             units,
             resources,
-            courtyard: Courtyard::new(peasants),
+            courtyard: Courtyard::new(),
         }
     }
 
@@ -64,7 +47,7 @@ impl Castle {
         if !self.courtyard.new_facility(r#type, pos) {
             return false;
         }
-        self.resources.saturating_sub(&cost);
+        self.resources.subtract(&cost);
         true
     }
 
@@ -76,46 +59,68 @@ impl Castle {
         else {
             return false;
         };
-
         if !cost.is_subset(&self.resources) {
             return false;
         };
 
-        if !self.courtyard.upgrade_facility(facility_id) {
+        let (success, events) = self.courtyard.upgrade_facility(facility_id);
+        if !success {
             return false;
         }
-        self.resources.saturating_sub(&cost);
+
+        self.resources.subtract(&cost);
+        self.listen_courtyard_events(events);
         true
     }
 
-    pub fn add_units(&mut self, units: &UnitGroup) {
-        self.units.saturating_add(units);
+    pub fn add_units(&mut self, units: &LimitedGroup<UnitType>) {
+        self.units.subtract(units);
     }
 
-    pub fn subtract_units_if_enough(&mut self, units: &UnitGroup) -> bool {
-        self.units.subtract_if_enough(units)
+    pub fn add_resources(&mut self, resources: &LimitedGroup<ResourceType>) {
+        self.resources.add(resources);
+    }
+
+    pub fn subtract_units_if_enough(&mut self, units: &LimitedGroup<UnitType>) -> bool {
+        if self.units.is_uberset(units) {
+            self.units.subtract(units);
+            true
+        } else {
+            false
+        }
     }
 
     pub fn get_pos(&self) -> GameCoord {
         self.pos
     }
 
-    pub fn get_units(&self) -> &UnitGroup {
+    pub fn get_units(&self) -> &LimitedGroup<UnitType> {
         &self.units
     }
 
-    pub fn get_units_mut(&mut self) -> &mut UnitGroup {
+    pub fn get_units_mut(&mut self) -> &mut LimitedGroup<UnitType> {
         &mut self.units
     }
 
     pub fn update(&mut self) {
-        for event in self.courtyard.update().iter() {
+        let events = self.courtyard.update();
+        self.listen_courtyard_events(events);
+    }
+
+    pub fn listen_courtyard_events(&mut self, events: Vec<CourtyardEvent>) {
+        for event in events {
             match event {
                 CourtyardEvent::ResourceProduction(resources) => {
-                    self.resources.saturating_add(resources);
+                    self.resources.add(&resources);
                 }
                 CourtyardEvent::UnitsProduction(units) => {
-                    self.units.saturating_add(units);
+                    self.units.add(&units);
+                }
+                CourtyardEvent::ResourceLimExtension(lim_ext) => {
+                    self.resources.add_to_lim(&lim_ext);
+                }
+                CourtyardEvent::UnitsLimExtension(lim_ext) => {
+                    self.units.add_to_lim(&lim_ext);
                 }
             }
         }

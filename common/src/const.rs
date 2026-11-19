@@ -11,9 +11,10 @@ pub const ONLINE: bool = false;
 pub const IP_LOCAL: &str = "127.0.0.1:7878";
 
 pub const KNIGHT_STR: u32 = 1;
-pub const MAGE_STR: u32 = 3;
-pub const DRAGON_STR: u32 = 10;
+pub const MAGE_STR: u32 = 10;
+pub const DRAGON_STR: u32 = 100;
 pub const SHIP_STR: u32 = 0;
+pub const WAGON_STR: u32 = 0;
 
 // TO DELETE
 // pub const CASTLE_SIZE: GameCoord = GameCoord::new(2, 1);

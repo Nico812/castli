@@ -6,8 +6,6 @@ use crate::renderer::module::Module;
 use crate::renderer::renderer::DrawableCell;
 use crate::ui_state::UiState;
 use common::Time;
-use common::all_resources;
-use common::all_units;
 use common::player::PlayerE;
 use crossterm::style::Color;
 
@@ -64,8 +62,8 @@ impl ModPlayerInfo {
             let pos_str = format!("{}", castle.pos);
             let time_str = format!("Time: {}", game_state.time.h);
 
-            let resource_strings = castle.resources.as_string_vector();
-            let unit_strings = castle.units.as_string_vector();
+            let resource_strings = castle.resources.as_string_vector_with_lims();
+            let unit_strings = castle.units.as_string_vector_with_lims();
 
             let mut infos_to_print = vec![
                 (castle.name.as_str(), 0),

@@ -3,13 +3,12 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    GameCoord, GameId, Time,
+    GameCoord, GameId, LimitedGroup, Time, UnitType, UnitsTarget,
     r#const::MAX_LOBBIES,
     courtyard::{Facility, FacilityType},
     game_objs::{GameObjE, OwnedCastleE},
     map::Tile,
     player::PlayerE,
-    units::{UnitGroup, UnitsTarget},
 };
 
 /// Represents messages sent from the Server to the Client (S2C).
@@ -44,7 +43,7 @@ pub enum C2S {
 #[derive(Serialize, Deserialize)]
 pub enum C2S4L {
     NewCastle(GameCoord),
-    SendUnits(UnitsTarget, UnitGroup),
+    SendUnits(UnitsTarget, LimitedGroup<UnitType>),
     InCourtyard,
     OutCourtyard,
     NewFacility((GameCoord, FacilityType)),

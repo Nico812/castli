@@ -1,10 +1,8 @@
 use std::collections::VecDeque;
 
 use common::{
-    GameCoord, GameId,
-    game_objs::DeployedUnitsE,
-    map::Tile,
-    units::{UnitGroup, UnitType, UnitsTarget},
+    GameCoord, GameId, LimitedGroup, ResourceType, UnitType, UnitsTarget,
+    game_objs::DeployedUnitsE, map::Tile,
 };
 
 pub enum DeployedUnitsEvent {
@@ -14,7 +12,8 @@ pub enum DeployedUnitsEvent {
 
 #[derive(Clone)]
 pub struct DeployedUnits {
-    pub unit_group: UnitGroup,
+    pub unit_group: LimitedGroup<UnitType>,
+    pub wagon_contents: Option<LimitedGroup<ResourceType>>,
     owner_id: GameId,
     target: UnitsTarget,
     returning: bool,
@@ -28,12 +27,13 @@ impl DeployedUnits {
         owner_id: GameId,
         target: UnitsTarget,
         path: Option<VecDeque<GameCoord>>,
-        unit_group: UnitGroup,
+        unit_group: LimitedGroup<UnitType>,
     ) -> Self {
         let path_size = path.as_ref().map(|path| path.len()).unwrap_or(0);
 
         Self {
             owner_id,
+            wagon_contents: None,
             target,
             path_size,
             path,

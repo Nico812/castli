@@ -1,11 +1,10 @@
-use std::fmt::{self, Display, Formatter};
+use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    GameCoord, GameId, ResourceGroup,
+    GameCoord, GameId, LimitedGroup, ResourceType, UnitType,
     hitboxes::{CASTLE_HITBOX, DEPLOYED_UNITS_HITBOX, Hitbox},
-    units::UnitGroup,
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -83,6 +82,6 @@ pub struct OwnedCastleE {
     pub alive: bool,
     pub name: String,
     pub pos: GameCoord,
-    pub units: UnitGroup,
-    pub resources: ResourceGroup,
+    pub units: LimitedGroup<UnitType>,
+    pub resources: LimitedGroup<ResourceType>,
 }

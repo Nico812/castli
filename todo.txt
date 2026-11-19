@@ -1,3 +1,6 @@
+Maybe also GameObj should be GroupElement, so to control the max amount of game objects by type.
+Maybe not because i should implement a structure to control more in detail the population.
+
 IMPORTANTISSIMO decidi se avere la hitbox map shared e inviata dal server al client,
 cosi da non dover iterare ad ogni update dal server su tutti gli oggetti e modificare la hitbox map dal client e aggiungere complessita per niente.
 A sto punto quello che faro e` rinizializzare la hitbox map sul cliuent ad ogni update zio can

@@ -1,8 +1,7 @@
 use common::{
-    GameCoord, ResourceGroup,
+    GameCoord, LimitedGroup,
     game_objs::{StructureE, StructureType},
     map::Tile,
-    units::UnitGroup,
 };
 
 use crate::game::game::{Attackable, KillRewards};
@@ -55,8 +54,8 @@ impl Attackable for Structure {
     fn get_strength(&self) -> u32 {
         match self.r#type {
             StructureType::LoneFarm => 15,
-            StructureType::NonEuclideanTown => 100,
-            StructureType::DragonsLair => 500,
+            StructureType::NonEuclideanTown => 50,
+            StructureType::DragonsLair => 200,
         }
     }
 
@@ -67,19 +66,19 @@ impl Attackable for Structure {
     fn get_kill_rewards(&self) -> Vec<KillRewards> {
         match self.r#type {
             StructureType::LoneFarm => {
-                let mut resources = ResourceGroup::new();
+                let mut resources = LimitedGroup::new(None);
                 resources.add_single_type(common::ResourceType::Wood, 100);
                 resources.add_single_type(common::ResourceType::Stone, 100);
                 vec![KillRewards::Resources(resources)]
             }
             StructureType::NonEuclideanTown => {
-                let mut units = UnitGroup::new();
-                units.add_single_type(common::units::UnitType::Wizard, 3);
+                let mut units = LimitedGroup::new(None);
+                units.add_single_type(common::UnitType::Wizard, 3);
                 vec![KillRewards::Units(units)]
             }
             StructureType::DragonsLair => {
-                let mut units = UnitGroup::new();
-                units.add_single_type(common::units::UnitType::Dragon, 1);
+                let mut units = LimitedGroup::new(None);
+                units.add_single_type(common::UnitType::Dragon, 1);
                 vec![KillRewards::Units(units)]
             }
         }

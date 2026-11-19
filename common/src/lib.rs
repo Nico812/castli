@@ -6,14 +6,15 @@ pub mod map;
 pub mod packets;
 pub mod player;
 pub mod stream;
-pub mod units;
 
 use serde::{Deserialize, Serialize};
 use std::{
-    array::from_fn,
     fmt,
-    ops::{Add, Mul},
+    marker::PhantomData,
+    ops::{Add, Div, Mul, Sub},
 };
+
+use crate::r#const::*;
 
 /// Global IDs for game objects
 pub type GameId = usize;
@@ -84,162 +85,294 @@ impl Time {
     }
 }
 
-#[macro_export]
-macro_rules! all_resources {
-    () => {
-        [$crate::ResourceType::Wood, $crate::ResourceType::Stone]
-    };
+pub trait GroupElement: Copy + PartialEq + 'static {
+    fn all() -> &'static [Self];
+
+    fn amt() -> usize {
+        Self::all().len()
+    }
+
+    fn from_index(i: usize) -> Self {
+        Self::all()[i]
+    }
+
+    fn as_index(self) -> usize {
+        Self::all()
+            .iter()
+            .position(|el| *el == self)
+            .expect("element must be included in GroupElement::all")
+    }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone)]
+pub struct LimitedGroup<T: GroupElement> {
+    pub quant: Vec<u32>,
+    pub lim: Vec<u32>,
+    marker: PhantomData<T>,
+}
+
+impl<T: GroupElement> LimitedGroup<T> {
+    pub fn new(lim: Option<Vec<u32>>) -> Self {
+        let quant = vec![0; T::amt()];
+
+        Self {
+            quant,
+            lim: lim.unwrap_or(vec![u32::MAX; T::amt()]),
+            marker: PhantomData,
+        }
+    }
+
+    pub fn change_lim(&mut self, new_lim: Vec<u32>) {
+        self.lim = new_lim;
+    }
+
+    pub fn add_single_type(&mut self, ty: T, count: u32) {
+        let i = ty.as_index();
+        self.quant[i] = self.quant[i].saturating_add(count).min(self.lim[i]);
+    }
+
+    pub fn add(&mut self, other: &Self) {
+        for (i, (self_quant, other_quant)) in
+            self.quant.iter_mut().zip(other.quant.iter()).enumerate()
+        {
+            *self_quant = self_quant.saturating_add(*other_quant).min(self.lim[i]);
+        }
+    }
+
+    pub fn add_to_lim(&mut self, other: &Vec<u32>) {
+        for (self_lim, other_lim) in self.lim.iter_mut().zip(other.iter()) {
+            *self_lim = self_lim.saturating_add(*other_lim);
+        }
+    }
+
+    pub fn subtract_single_type(&mut self, ty: T, count: u32) {
+        let i = ty.as_index();
+        self.quant[i] = self.quant[i].saturating_sub(count);
+    }
+
+    pub fn subtract(&mut self, other: &Self) {
+        for (self_quant, other_quant) in self.quant.iter_mut().zip(other.quant.iter()) {
+            *self_quant = self_quant.saturating_sub(*other_quant);
+        }
+    }
+
+    pub fn is_subset(&self, other: &Self) -> bool {
+        self.quant
+            .iter()
+            .zip(other.quant.iter())
+            .all(|(self_quant, other_quant)| self_quant <= other_quant)
+    }
+
+    pub fn is_uberset(&self, other: &Self) -> bool {
+        self.quant
+            .iter()
+            .zip(other.quant.iter())
+            .all(|(self_quant, other_quant)| self_quant >= other_quant)
+    }
+
+    pub fn contains(&self, ty: T) -> bool {
+        self.quant[ty.as_index()] > 0
+    }
+
+    pub fn is_full_by_type(&self, ty: T) -> bool {
+        self.quant[ty.as_index()] >= self.lim[ty.as_index()]
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (T, u32)> + '_ {
+        T::all()
+            .iter()
+            .copied()
+            .map(|ty| (ty, self.quant[ty.as_index()]))
+    }
+
+    pub fn iter_nonzero(&self) -> impl Iterator<Item = (T, u32)> + '_ {
+        self.iter().filter(|(_, amt)| *amt > 0)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.quant.iter().all(|amt| *amt == 0)
+    }
+
+    pub fn as_string_vector(&self) -> Vec<String>
+    where
+        T: std::fmt::Debug,
+    {
+        self.iter()
+            .map(|(ty, amt)| format!("{:?}: {}", ty, amt))
+            .collect()
+    }
+
+    pub fn as_string_vector_with_lims(&self) -> Vec<String>
+    where
+        T: std::fmt::Debug,
+    {
+        self.iter()
+            .zip(self.lim.iter())
+            .map(|((ty, amt), lim)| format!("{:?}: {}/{}", ty, amt, lim))
+            .collect()
+    }
+
+    pub fn as_string_vector_nonzero(&self) -> Vec<String>
+    where
+        T: std::fmt::Debug,
+    {
+        self.iter_nonzero()
+            .map(|(ty, amt)| format!("{:?}: {}", ty, amt))
+            .collect()
+    }
+}
+
+impl<T: GroupElement> Add for LimitedGroup<T> {
+    type Output = Self;
+
+    fn add(mut self, rhs: Self) -> Self::Output {
+        for (i, &amount) in rhs.quant.iter().enumerate() {
+            self.add_single_type(T::from_index(i), amount);
+        }
+        self
+    }
+}
+
+impl<T: GroupElement> Sub for LimitedGroup<T> {
+    type Output = Self;
+
+    fn sub(mut self, rhs: Self) -> Self::Output {
+        for (i, &amount) in rhs.quant.iter().enumerate() {
+            self.subtract_single_type(T::from_index(i), amount);
+        }
+        self
+    }
+}
+
+impl<T: GroupElement> Mul<u32> for LimitedGroup<T> {
+    type Output = Self;
+
+    fn mul(mut self, rhs: u32) -> Self {
+        for i in 0..T::amt() {
+            self.quant[i] *= rhs;
+        }
+        self
+    }
+}
+
+impl<T: GroupElement> Div<u32> for LimitedGroup<T> {
+    type Output = Self;
+
+    fn div(mut self, rhs: u32) -> Self {
+        for i in 0..T::amt() {
+            self.quant[i] = self.quant[i].div_ceil(rhs);
+        }
+        self
+    }
+}
+
+impl<T> fmt::Display for LimitedGroup<T>
+where
+    T: GroupElement + fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let output = T::all()
+            .iter()
+            .map(|ty| format!("{ty:?}: {}", self.quant[ty.as_index()]))
+            .collect::<Vec<_>>()
+            .join(" ");
+
+        write!(f, "{output}")
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ResourceType {
     Wood,
     Stone,
 }
 
-impl ResourceType {
-    pub const COUNT: usize = 2;
-
-    pub fn from_index(i: usize) -> Self {
-        all_resources!()[i]
+impl GroupElement for ResourceType {
+    fn all() -> &'static [Self] {
+        &[Self::Wood, Self::Stone]
     }
+}
 
-    pub fn as_index(&self) -> usize {
-        *self as usize
+impl LimitedGroup<ResourceType> {
+    pub fn castle_starting_group() -> Self {
+        let mut base_lim = vec![0; ResourceType::amt()];
+        base_lim[ResourceType::Wood.as_index()] = 25;
+        base_lim[ResourceType::Stone.as_index()] = 25;
+
+        let mut group = Self::new(Some(base_lim));
+        group.add_single_type(ResourceType::Stone, 10);
+        group.add_single_type(ResourceType::Wood, 10);
+        group
     }
+}
 
-    pub fn form_index(i: usize) -> Self {
-        match i {
-            0 => Self::Wood,
-            1 => Self::Stone,
-            _ => panic!(),
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
+pub enum UnitType {
+    Knight,
+    Wizard,
+    Dragon,
+    Wagon,
+    Ship,
+}
+
+impl UnitType {
+    pub fn get_strength(&self) -> u32 {
+        match self {
+            Self::Knight => KNIGHT_STR,
+            Self::Wizard => MAGE_STR,
+            Self::Dragon => DRAGON_STR,
+            Self::Ship => SHIP_STR,
+            Self::Wagon => WAGON_STR,
         }
     }
+}
 
-    pub fn as_mask(&self) -> u8 {
-        1 << self.as_index()
+impl GroupElement for UnitType {
+    fn all() -> &'static [Self] {
+        &[
+            Self::Knight,
+            Self::Wizard,
+            Self::Dragon,
+            Self::Wagon,
+            Self::Ship,
+        ]
+    }
+}
+
+impl LimitedGroup<UnitType> {
+    pub fn get_strength(&self) -> u32 {
+        let mut str = 0;
+
+        self.iter_nonzero()
+            .for_each(|(ty, amt)| str += amt * ty.get_strength());
+        str
     }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct ResourceGroup {
-    pub quantities: [u32; ResourceType::COUNT],
+pub enum UnitsTarget {
+    Coord(GameCoord),
+    GameObj(GameId),
 }
 
-impl ResourceGroup {
-    pub fn new() -> Self {
-        let quantities = [0; ResourceType::COUNT];
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum InhabitantType {
+    Peasant,
+}
 
-        Self { quantities }
-    }
-
-    pub fn add_single_type(&mut self, unit: ResourceType, count: u32) {
-        let idx = unit.as_index();
-        self.quantities[idx] = self.quantities[idx].saturating_add(count);
-    }
-
-    pub fn subtract_single_type(&mut self, unit: ResourceType, count: u32) {
-        let idx = unit.as_index();
-        self.quantities[idx] = self.quantities[idx].saturating_sub(count);
-    }
-
-    pub fn subtract_if_enough(&mut self, other: &Self) -> bool {
-        if !other.is_subset(self) {
-            return false;
-        }
-        for (i, quantity) in other.quantities.iter().enumerate() {
-            self.subtract_single_type(ResourceType::form_index(i), *quantity);
-        }
-        true
-    }
-
-    pub fn saturating_sub(&mut self, other: &Self) {
-        for (i, quantity) in other.quantities.iter().enumerate() {
-            self.subtract_single_type(ResourceType::form_index(i), *quantity);
-        }
-    }
-
-    pub fn saturating_add(&mut self, other: &Self) {
-        for (i, quantity) in other.quantities.iter().enumerate() {
-            self.add_single_type(ResourceType::form_index(i), *quantity);
-        }
-    }
-
-    pub fn is_subset(&self, other: &Self) -> bool {
-        for (i, quantity) in other.quantities.iter().enumerate() {
-            if self.quantities[i] > *quantity {
-                return false;
-            }
-        }
-        true
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = (ResourceType, &u32)> + '_ {
-        all_resources!()
-            .into_iter()
-            .map(move |ty| (ty, &self.quantities[ty.as_index()]))
-    }
-
-    pub fn iter_present(&self) -> impl Iterator<Item = (ResourceType, &u32)> + '_ {
-        self.iter().filter(move |(ty, _)| self.contains(*ty))
-    }
-
-    pub fn is_empty(&self) -> bool {
-        for quantity in self.quantities.iter() {
-            if *quantity != 0 {
-                return false;
-            }
-        }
-        true
-    }
-
-    pub fn contains(&self, unit: ResourceType) -> bool {
-        self.quantities[unit as usize] > 0
-    }
-
-    pub fn as_string_vector(&self) -> Vec<String> {
-        let mut strings = Vec::new();
-        for (ty, amt) in self.iter() {
-            let s = format!("{:?}: {}", ty, amt);
-            strings.push(s);
-        }
-        strings
-    }
-
-    pub fn as_string_vector_nonempty(&self) -> Vec<String> {
-        let mut strings = Vec::new();
-        for (ty, amt) in self.iter_present() {
-            let s = format!("{:?}: {}", ty, amt);
-            strings.push(s);
-        }
-        strings
+impl GroupElement for InhabitantType {
+    fn all() -> &'static [Self] {
+        &[Self::Peasant]
     }
 }
 
-impl Mul<u32> for ResourceGroup {
-    type Output = Self;
+impl LimitedGroup<InhabitantType> {
+    pub fn castle_starting_group() -> Self {
+        let mut base_lim = vec![0; InhabitantType::amt()];
+        base_lim[InhabitantType::Peasant.as_index()] = 10;
 
-    fn mul(self, rhs: u32) -> Self {
-        let mut copy = self.clone();
-
-        for (i, (_, ref mut amt)) in self.iter().enumerate() {
-            copy.quantities[i] = amt.saturating_mul(rhs);
-        }
-        copy
-    }
-}
-
-impl fmt::Display for ResourceGroup {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let strs: [String; ResourceType::COUNT] = std::array::from_fn(|index| {
-            format!(
-                "{:?}: {}",
-                ResourceType::from_index(index),
-                self.quantities[index]
-            )
-        });
-
-        let joined = strs.join(" ");
-        write!(f, "{}", joined)
+        let mut group = Self::new(Some(base_lim));
+        group.add_single_type(InhabitantType::Peasant, 10);
+        group
     }
 }

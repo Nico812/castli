@@ -1,11 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fs::read_to_string;
 
+use common::GameCoord;
 use common::r#const::{COURTYARD_COLS, COURTYARD_ROWS, MAP_COLS, MAP_ROWS};
-use common::courtyard::Facility;
 use common::game_objs::GameObjE;
 use common::map::Tile;
-use common::{GameCoord, GameId};
 use crossterm::style::Color::{Black, White};
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
